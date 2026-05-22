@@ -67,14 +67,12 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5">
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1">ID Único (Correo Admin)*</label>
-                        <input type="text" id="new-id" placeholder="correo@escuela.com" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
-                        <p class="text-[9px] text-slate-500 ml-1">Este correo formará la URL de la escuela.</p>
+                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1">ID Único (Correo/ID)*</label>
+                        <input type="text" id="new-id" placeholder="escuela_carpio" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1">UID del Administrador*</label>
                         <input type="text" id="new-uid" placeholder="Pegar UID de Firebase" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white transition-all">
-                        <p class="text-[9px] text-slate-500 ml-1">Para acceso al panel de su escuela.</p>
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre Institución</label>
@@ -89,151 +87,44 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">WhatsApp de Contacto</label>
-                        <input type="text" id="new-tel" placeholder="50688888888" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Mensualidad ($ / ₡)</label>
-                        <input type="number" id="new-monto" placeholder="0.00" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                    <div class="space-y-1 md:col-span-2">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Fecha de Próximo Corte</label>
-                        <input type="date" id="new-corte" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                </div>
-
-                <button id="btn-create" class="mt-8 w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-10 py-4 rounded-2xl transition-all uppercase text-xs tracking-widest shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2">
-                    Activar Nueva Plataforma Escolar <i data-lucide="plus" class="w-4 h-4"></i>
+                <button id="btn-create" class="mt-4 w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-10 py-4 rounded-2xl transition-all uppercase text-xs tracking-widest shadow-xl shadow-indigo-500/20">
+                    Activar Escuela
                 </button>
             </section>
 
             <!-- Tabla de Clientes -->
             <div class="bg-[#1e293b] rounded-3xl border border-slate-700/50 overflow-hidden shadow-2xl">
-                <div class="p-6 border-b border-slate-700 bg-slate-900/40 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div>
-                        <h4 class="text-white font-black uppercase text-sm tracking-widest">Sistemas Escolares Monitorizados</h4>
-                        <p class="text-slate-500 text-[10px] font-bold uppercase mt-1">Comparte la URL generada con la junta de cada escuela</p>
-                    </div>
-                </div>
-                
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead class="bg-slate-900/60 text-slate-500 text-[10px] uppercase font-black border-b border-slate-700">
                             <tr>
-                                <th class="p-6">Institución / URL Dinámica</th>
-                                <th class="p-6">Admin Asignado</th>
-                                <th class="p-6">Plan / Vigencia</th>
-                                <th class="p-6">Monto</th>
-                                <th class="p-6 text-center">Estado del Servicio</th>
+                                <th class="p-6">Institución / ID</th>
+                                <th class="p-6 text-center">Estado</th>
                                 <th class="p-6 text-right">Gestión</th>
                             </tr>
                         </thead>
-                        <tbody id="tenant-list" class="divide-y divide-slate-700/40">
-                            <!-- Datos inyectados por JS -->
-                        </tbody>
+                        <tbody id="tenant-list" class="divide-y divide-slate-700/40"></tbody>
                     </table>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modal de Configuración (Bloqueos y Edición Completa) -->
+    <!-- Modal Configuración -->
     <div id="manageModal" class="fixed inset-0 bg-[#0b1120]/95 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-[#1e293b] border border-slate-600 w-full max-w-4xl rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            
-            <div class="flex justify-between items-center mb-6 sticky top-0 bg-[#1e293b] z-10 py-2 border-b border-slate-700/50">
-                <div class="flex items-center gap-3">
-                    <div class="bg-indigo-500/20 p-3 rounded-2xl text-indigo-400">
-                        <i data-lucide="settings-2"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-black text-white uppercase tracking-tight">Editar / Bloquear Escuela</h2>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Al alterar el correo, la URL pública cambiará.</p>
-                    </div>
+        <div class="bg-[#1e293b] border border-slate-600 w-full max-w-lg rounded-[2rem] p-8 shadow-2xl">
+            <h2 class="text-lg font-black text-white uppercase mb-6">Gestionar Estado</h2>
+            <div class="space-y-4">
+                <div class="flex gap-2">
+                    <button onclick="setStatus('Activo')" class="flex-1 py-3 bg-emerald-600/20 border border-emerald-500/50 text-emerald-400 rounded-xl font-bold uppercase text-[10px]">Activar</button>
+                    <button onclick="setStatus('Suspendido')" class="flex-1 py-3 bg-red-600/20 border border-red-500/50 text-red-400 rounded-xl font-bold uppercase text-[10px]">Bloquear (Mora)</button>
                 </div>
-                <button onclick="closeModal('manageModal')" class="text-slate-500 hover:text-white transition-colors">
-                    <i data-lucide="x-circle" class="w-8 h-8"></i>
-                </button>
-            </div>
-            
-            <div class="space-y-6">
-                <!-- Zona de Datos Editables -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/30 p-5 rounded-3xl border border-slate-700/50">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1 flex items-center gap-1"><i data-lucide="link" class="w-3 h-3"></i> ID Único (Correo URL)</label>
-                        <input type="text" id="edit-id" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1 flex items-center gap-1"><i data-lucide="key" class="w-3 h-3"></i> UID Admin Director</label>
-                        <input type="text" id="edit-uid" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre Institución</label>
-                        <input type="text" id="edit-name" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Plan de Servicio</label>
-                        <select id="edit-plan" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white appearance-none transition-all">
-                            <option value="Mensual">Suscripción Mensual</option>
-                            <option value="Anual">Suscripción Anual</option>
-                        </select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">WhatsApp de Contacto</label>
-                        <input type="text" id="edit-tel" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Mensualidad</label>
-                            <input type="number" id="edit-monto" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Fecha Corte</label>
-                            <input type="date" id="edit-corte" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Zona de Bloqueo / Estado -->
-                <div class="bg-slate-900/30 p-5 rounded-3xl border border-slate-700/50">
-                    <label class="text-[10px] font-black text-slate-500 uppercase mb-3 block">Estado de Acceso para la Escuela (Bloqueo)</label>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <label class="cursor-pointer group">
-                            <input type="radio" name="m_status" value="Activo" class="hidden peer">
-                            <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-emerald-600/20 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">FUNCIONAL</div>
-                        </label>
-                        <label class="cursor-pointer group">
-                            <input type="radio" name="m_status" value="Suspendido" class="hidden peer">
-                            <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-red-600/20 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">SUSPENDIDO (MOROSO)</div>
-                        </label>
-                        <label class="cursor-pointer group">
-                            <input type="radio" name="m_status" value="Mantenimiento" class="hidden peer">
-                            <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-amber-600/20 peer-checked:border-amber-500 text-slate-500 peer-checked:text-amber-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">MANTENIM.</div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="bg-[#0b1120] p-5 rounded-3xl border border-slate-700">
-                    <label class="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mb-3">
-                        <i data-lucide="code" class="w-3 h-3 text-red-500"></i> Pantalla de Bloqueo por Falta de Pago (HTML/Texto)
-                    </label>
-                    <textarea id="m_html_mora" rows="3" class="w-full bg-transparent border border-slate-700 rounded-lg p-3 outline-none text-indigo-300 font-mono text-[12px] resize-none focus:border-indigo-500 transition-colors" placeholder="Pega aquí el código HTML o mensaje para mostrarle a la escuela bloqueada..."></textarea>
-                </div>
-
-                <div class="flex gap-4 pt-2">
-                    <button onclick="closeModal('manageModal')" class="flex-1 py-4 bg-slate-800 rounded-2xl font-bold text-slate-400 uppercase text-xs tracking-widest hover:bg-slate-700 transition-all">Cancelar</button>
-                    <button id="btn-save-edit" class="flex-[2] py-4 bg-indigo-600 rounded-2xl font-black text-white uppercase text-xs tracking-widest hover:bg-indigo-500 shadow-xl shadow-indigo-500/20 transition-all flex justify-center items-center gap-2">
-                        <i data-lucide="save" class="w-4 h-4"></i> Guardar Cambios y Estado
-                    </button>
-                </div>
+                <button onclick="closeModal('manageModal')" class="w-full py-3 bg-slate-700 text-white rounded-xl font-bold uppercase text-[10px]">Cerrar</button>
             </div>
         </div>
     </div>
 
     <script>
-        // CONFIGURACIÓN CENTRAL FIREBASE (De CREDENCIALES.txt)
         const firebaseConfig = {
             apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
             authDomain: "tenant-escuela.firebaseapp.com",
@@ -247,114 +138,37 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-        // Ruta base donde alojarás la plataforma de escuelas.
-        const BASE_CLIENT_URL = "https://tu-dominio-escuelas.com/"; 
+        const BASE_CLIENT_URL = "https://prodigitalcr.github.io/TENANT-ESCUELA/"; 
         
-        let currentTenants = [];
         let editingId = null;
 
-        // Utilidades UI
         const showToast = (msg, type = 'success') => {
-            const container = document.getElementById('toast-container');
             const t = document.createElement('div');
-            t.className = `p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase tracking-wider flex items-center gap-2 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} transition-all transform animate-bounce`;
-            t.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="w-4 h-4"></i> ${msg}`;
-            container.appendChild(t);
-            lucide.createIcons();
-            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3500);
+            t.className = `fixed bottom-5 right-5 p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} z-[9999]`;
+            t.innerText = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
         };
 
-        const copyToClipboard = (text) => {
-            navigator.clipboard.writeText(text).then(() => showToast("URL Copiada al Portapapeles", "success")).catch(() => showToast("Error al copiar URL", "error"));
-        };
-
-        // Auth Lógica
-        document.getElementById('login-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('password').value;
-            auth.signInWithEmailAndPassword(email, pass).catch(err => {
-                const errBox = document.getElementById('auth-error');
-                errBox.innerText = "Error: Credenciales Incorrectas";
-                errBox.classList.remove('hidden');
-            });
-        });
-
-        document.getElementById('btn-logout').addEventListener('click', () => auth.signOut());
-
-        auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('auth-overlay').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
                 loadData();
-            } else {
-                document.getElementById('auth-overlay').classList.remove('hidden');
-                document.getElementById('main-content').classList.add('hidden');
             }
-            lucide.createIcons();
         });
 
-        const verSitioSocio = (tenantId) => { window.open(`${BASE_CLIENT_URL}?id=${encodeURIComponent(tenantId)}`, '_blank'); };
-
-        // Core Data: Escucha la colección maestra 'tenants'
         function loadData() {
-            db.collection('tenants').onSnapshot((snap) => {
+            db.collection('tenants').onSnapshot(snap => {
                 const list = document.getElementById('tenant-list');
                 list.innerHTML = "";
-                currentTenants = [];
-
                 snap.forEach(d => {
                     const t = d.data();
-                    const id = d.id; // El ID de documento es ahora el correo registrado
-                    currentTenants.push({ id, ...t });
-
-                    const badge = t.estado === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (t.estado === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
-                    const waLink = `https://wa.me/${t.telefono ? t.telefono.replace(/\D/g,'') : ''}?text=${encodeURIComponent('Hola ' + t.empresa + ', te contactamos de soporte técnico SaaS.')}`;
-                    const tenantUrl = `${BASE_CLIENT_URL}?id=${encodeURIComponent(id)}`;
-
                     const row = document.createElement('tr');
-                    row.className = "hover:bg-slate-800/30 transition-all border-b border-slate-700/30 group";
                     row.innerHTML = `
-                        <td class="p-6">
-                            <div class="font-black text-white text-xs uppercase group-hover:text-indigo-400 transition-colors">${t.empresa}</div>
-                            <div class="text-[10px] text-indigo-300 font-bold mt-1">ID/CORREO: ${id}</div>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[9px] text-slate-500 font-mono tracking-widest bg-slate-900/60 px-2 py-0.5 rounded truncate max-w-[200px] border border-slate-700/50">${tenantUrl}</span>
-                                <button onclick="copyToClipboard('${tenantUrl}')" class="text-indigo-400 hover:text-indigo-300" title="Copiar URL"><i data-lucide="copy" class="w-3 h-3"></i></button>
-                            </div>
-                        </td>
-                        <td class="p-6">
-                            <div class="text-[10px] font-mono font-bold ${t.adminUid ? 'text-emerald-400' : 'text-red-400'} truncate max-w-[120px] bg-[#0b1120] p-1.5 rounded border border-slate-700/50 text-center" title="${t.adminUid}">
-                                ${t.adminUid || 'Falta UID'}
-                            </div>
-                        </td>
-                        <td class="p-6">
-                            <div class="text-[10px] text-slate-300 font-bold uppercase">${t.tipoPlan}</div>
-                            <div class="text-[9px] text-slate-500 font-mono mt-0.5">Vence: ${t.fechaCorte}</div>
-                        </td>
-                        <td class="p-6">
-                            <div class="text-emerald-400 font-mono text-sm font-black">$${t.montoContrato || 0}</div>
-                        </td>
-                        <td class="p-6 text-center">
-                            <span class="px-4 py-1.5 rounded-full border ${badge} text-[9px] font-black uppercase tracking-widest shadow-sm">${t.estado}</span>
-                        </td>
-                        <td class="p-6">
-                            <div class="flex justify-end gap-2 items-center">
-                                <a href="${waLink}" target="_blank" class="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-lg" title="WhatsApp">
-                                    <i data-lucide="message-circle" class="w-4 h-4"></i>
-                                </a>
-                                <button onclick="verSitioSocio('${id}')" class="p-2.5 bg-slate-700/50 text-slate-300 rounded-xl hover:bg-white hover:text-black transition-all shadow-lg" title="Visitar App del Cliente">
-                                    <i data-lucide="external-link" class="w-4 h-4"></i>
-                                </button>
-                                <button onclick="openEdit('${id}')" class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-lg" title="Editar / Bloquear">
-                                    <i data-lucide="settings" class="w-4 h-4"></i>
-                                </button>
-                                <button onclick="deleteTenant('${id}')" class="p-2.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-lg" title="Eliminar Cliente">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
-                            </div>
-                        </td>
+                        <td class="p-6"><div class="font-black text-white">${t.empresa}</div><div class="text-[10px] text-indigo-400">${d.id}</div></td>
+                        <td class="p-6 text-center"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${t.estado === 'Activo' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}">${t.estado}</span></td>
+                        <td class="p-6 text-right"><button onclick="openEdit('${d.id}')" class="text-indigo-400 hover:text-white"><i data-lucide="settings"></i></button></td>
                     `;
                     list.appendChild(row);
                 });
@@ -362,110 +176,34 @@
             });
         }
 
-        // Crear nueva Institución
-        document.getElementById('btn-create').addEventListener('click', async () => {
-            const id = document.getElementById('new-id').value.trim().toLowerCase(); // Ahora es el correo
-            const uid = document.getElementById('new-uid').value.trim(); // UID del admin
-            const name = document.getElementById('new-name').value.trim();
-            const plan = document.getElementById('new-plan').value;
-            const tel = document.getElementById('new-tel').value.trim();
-            const monto = document.getElementById('new-monto').value;
-            const corte = document.getElementById('new-corte').value;
-
-            if(!id || !name || !corte || !uid) return showToast("Falta Correo, UID, Nombre o Fecha", "error");
-
-            try {
-                // Escribe usando el correo (o ID ingresado) como Document ID
-                await db.collection('tenants').doc(id).set({
-                    empresa: name,
-                    adminUid: uid,
-                    tipoPlan: plan,
-                    telefono: tel,
-                    montoContrato: Number(monto),
-                    fechaCorte: corte,
-                    estado: 'Activo',
-                    htmlMora: ''
-                });
-                
-                showToast("Nueva escuela activada en Firestore", "success");
-                ['new-id', 'new-uid', 'new-name', 'new-tel', 'new-monto', 'new-corte'].forEach(el => document.getElementById(el).value = "");
-            } catch (e) { showToast("Error al desplegar escuela: " + e.message, "error"); }
-        });
-
-        // Abrir Modal y cargar todos los datos
-        window.openEdit = (id) => {
-            editingId = id;
-            const t = currentTenants.find(x => x.id === id);
-            
-            // Cargar datos editables
-            document.getElementById('edit-id').value = id; // El correo / ID actual
-            document.getElementById('edit-uid').value = t.adminUid || '';
-            document.getElementById('edit-name').value = t.empresa || '';
-            document.getElementById('edit-plan').value = t.tipoPlan || 'Mensual';
-            document.getElementById('edit-tel').value = t.telefono || '';
-            document.getElementById('edit-monto').value = t.montoContrato || 0;
-            document.getElementById('edit-corte').value = t.fechaCorte || '';
-            
-            // Cargar bloqueos
-            document.getElementById('m_html_mora').value = t.htmlMora || '';
-            const rads = document.getElementsByName('m_status');
-            for(let r of rads) if(r.value === t.estado) r.checked = true;
-            
-            document.getElementById('manageModal').classList.remove('hidden');
-        };
-
+        window.openEdit = (id) => { editingId = id; document.getElementById('manageModal').classList.remove('hidden'); };
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
-        // Guardar Edición Completa
-        document.getElementById('btn-save-edit').addEventListener('click', async () => {
-            const newId = document.getElementById('edit-id').value.trim().toLowerCase();
-            const newUid = document.getElementById('edit-uid').value.trim();
-            const newName = document.getElementById('edit-name').value.trim();
-            const newPlan = document.getElementById('edit-plan').value;
-            const newTel = document.getElementById('edit-tel').value.trim();
-            const newMonto = document.getElementById('edit-monto').value;
-            const newCorte = document.getElementById('edit-corte').value;
-            
-            const status = document.querySelector('input[name="m_status"]:checked').value;
-            const hMora = document.getElementById('m_html_mora').value;
-
-            if(!newId || !newName || !newUid) return showToast("El Correo, UID y Nombre son obligatorios", "error");
-
-            const updatedData = {
-                empresa: newName,
-                adminUid: newUid,
-                tipoPlan: newPlan,
-                telefono: newTel,
-                montoContrato: Number(newMonto),
-                fechaCorte: newCorte,
-                estado: status,
-                htmlMora: hMora
-            };
-
+        window.setStatus = async (status) => {
             try {
-                if (newId !== editingId) {
-                    // Si el usuario cambió el "ID Único (Correo)", migramos el documento a un ID nuevo
-                    await db.collection('tenants').doc(newId).set(updatedData);
-                    await db.collection('tenants').doc(editingId).delete();
-                } else {
-                    // Si el ID es el mismo, solo actualizamos los datos
-                    await db.collection('tenants').doc(editingId).update(updatedData);
-                }
-                
-                showToast("Datos y bloqueos actualizados correctamente", "success");
+                await db.collection('tenants').doc(editingId).update({ estado: status });
+                showToast("Estado actualizado a " + status);
                 closeModal('manageModal');
-            } catch (e) { showToast("Error de sincronización: " + e.message, "error"); }
-        });
-
-        window.deleteTenant = async (id) => {
-            if(confirm(`¿Estás seguro de eliminar permanentemente a ${id}? Se cortará su acceso por completo y la URL dejará de funcionar.`)) {
-                try {
-                    await db.collection('tenants').doc(id).delete();
-                    showToast("Institución y URL eliminadas", "success");
-                } catch(e) { showToast("Error al eliminar", "error"); }
-            }
+            } catch(e) { showToast("Error: " + e.message, "error"); }
         };
 
+        document.getElementById('btn-create').addEventListener('click', async () => {
+            const id = document.getElementById('new-id').value.trim();
+            if(!id) return;
+            await db.collection('tenants').doc(id).set({
+                empresa: document.getElementById('new-name').value,
+                estado: 'Activo',
+                adminUid: document.getElementById('new-uid').value
+            });
+            showToast("Escuela creada");
+        });
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value)
+                .catch(() => document.getElementById('auth-error').classList.remove('hidden'));
+        });
+        document.getElementById('btn-logout').addEventListener('click', () => auth.signOut());
     </script>
 </body>
 </html>
