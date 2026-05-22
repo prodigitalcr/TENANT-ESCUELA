@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide:0.263.0/lucide.min.js"></script>
     
-    <!-- Firebase JS SDK v8 compat (Para asegurar 100% compatibilidad con la app cliente) -->
+    <!-- Firebase JS SDK v8 compat -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
@@ -15,7 +15,7 @@
     <style>
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-[#0b1120] text-slate-200 min-h-screen font-sans overflow-x-hidden">
@@ -32,9 +32,9 @@
             <p class="text-slate-400 mb-8 text-sm text-center font-bold">Administración Central de Escuelas</p>
             
             <form id="login-form" class="space-y-4">
-                <input type="email" id="email" required placeholder="Email autorizado (Admin)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white">
-                <input type="password" id="password" required placeholder="Contraseña" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white">
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest text-sm">
+                <input type="email" id="email" required placeholder="Email autorizado (Admin)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
+                <input type="password" id="password" required placeholder="Contraseña" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest text-sm shadow-lg shadow-indigo-500/20">
                     Autenticar Sistema
                 </button>
             </form>
@@ -67,20 +67,22 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5">
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">ID Único (Carpeta/URL)</label>
-                        <input type="text" id="new-id" placeholder="ej: escuela_carpio" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white">
+                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1">ID Único (Correo Admin)*</label>
+                        <input type="text" id="new-id" placeholder="correo@escuela.com" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
+                        <p class="text-[9px] text-slate-500 ml-1">Este correo formará la URL de la escuela.</p>
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1">UID Admin Director</label>
-                        <input type="text" id="new-uid" placeholder="Correo o UID del director" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white">
+                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1">UID del Administrador*</label>
+                        <input type="text" id="new-uid" placeholder="Pegar UID de Firebase" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white transition-all">
+                        <p class="text-[9px] text-slate-500 ml-1">Para acceso al panel de su escuela.</p>
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre Institución</label>
-                        <input type="text" id="new-name" placeholder="Nombre completo" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white">
+                        <input type="text" id="new-name" placeholder="Nombre completo" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Plan de Servicio</label>
-                        <select id="new-plan" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white appearance-none">
+                        <select id="new-plan" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white appearance-none transition-all">
                             <option value="Mensual">Suscripción Mensual</option>
                             <option value="Anual">Suscripción Anual</option>
                         </select>
@@ -90,15 +92,15 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">WhatsApp de Contacto</label>
-                        <input type="text" id="new-tel" placeholder="50688888888" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white">
+                        <input type="text" id="new-tel" placeholder="50688888888" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Mensualidad ($ / ₡)</label>
-                        <input type="number" id="new-monto" placeholder="0.00" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white">
+                        <input type="number" id="new-monto" placeholder="0.00" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
                     </div>
                     <div class="space-y-1 md:col-span-2">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Fecha de Próximo Corte</label>
-                        <input type="date" id="new-corte" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white">
+                        <input type="date" id="new-corte" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
                     </div>
                 </div>
 
@@ -112,7 +114,7 @@
                 <div class="p-6 border-b border-slate-700 bg-slate-900/40 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
                         <h4 class="text-white font-black uppercase text-sm tracking-widest">Sistemas Escolares Monitorizados</h4>
-                        <p class="text-slate-500 text-[10px] font-bold uppercase mt-1">Control de acceso y facturación (Multi-Tenant Firestore)</p>
+                        <p class="text-slate-500 text-[10px] font-bold uppercase mt-1">Comparte la URL generada con la junta de cada escuela</p>
                     </div>
                 </div>
                 
@@ -120,7 +122,7 @@
                     <table class="w-full text-left">
                         <thead class="bg-slate-900/60 text-slate-500 text-[10px] uppercase font-black border-b border-slate-700">
                             <tr>
-                                <th class="p-6">Institución / ID URL</th>
+                                <th class="p-6">Institución / URL Dinámica</th>
                                 <th class="p-6">Admin Asignado</th>
                                 <th class="p-6">Plan / Vigencia</th>
                                 <th class="p-6">Monto</th>
@@ -137,15 +139,19 @@
         </main>
     </div>
 
-    <!-- Modal de Configuración (Bloqueos) -->
-    <div id="manageModal" class="fixed inset-0 bg-[#0b1120]/95 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto">
-        <div class="bg-[#1e293b] border border-slate-600 w-full max-w-2xl rounded-[2.5rem] p-8 my-auto shadow-2xl relative">
-            <div class="flex justify-between items-center mb-8">
+    <!-- Modal de Configuración (Bloqueos y Edición Completa) -->
+    <div id="manageModal" class="fixed inset-0 bg-[#0b1120]/95 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-[#1e293b] border border-slate-600 w-full max-w-4xl rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            
+            <div class="flex justify-between items-center mb-6 sticky top-0 bg-[#1e293b] z-10 py-2 border-b border-slate-700/50">
                 <div class="flex items-center gap-3">
                     <div class="bg-indigo-500/20 p-3 rounded-2xl text-indigo-400">
                         <i data-lucide="settings-2"></i>
                     </div>
-                    <h2 class="text-xl font-black text-white uppercase tracking-tight">Ajustes del Servicio B2B</h2>
+                    <div>
+                        <h2 class="text-xl font-black text-white uppercase tracking-tight">Editar / Bloquear Escuela</h2>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Al alterar el correo, la URL pública cambiará.</p>
+                    </div>
                 </div>
                 <button onclick="closeModal('manageModal')" class="text-slate-500 hover:text-white transition-colors">
                     <i data-lucide="x-circle" class="w-8 h-8"></i>
@@ -153,9 +159,47 @@
             </div>
             
             <div class="space-y-6">
-                <div class="bg-slate-900/30 p-2 rounded-2xl border border-slate-700/50">
-                    <label class="text-[10px] font-black text-slate-500 uppercase mb-3 block px-2">Estado de Acceso para la Escuela</label>
-                    <div class="grid grid-cols-3 gap-2">
+                <!-- Zona de Datos Editables -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/30 p-5 rounded-3xl border border-slate-700/50">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1 flex items-center gap-1"><i data-lucide="link" class="w-3 h-3"></i> ID Único (Correo URL)</label>
+                        <input type="text" id="edit-id" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1 flex items-center gap-1"><i data-lucide="key" class="w-3 h-3"></i> UID Admin Director</label>
+                        <input type="text" id="edit-uid" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white transition-all">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre Institución</label>
+                        <input type="text" id="edit-name" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Plan de Servicio</label>
+                        <select id="edit-plan" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white appearance-none transition-all">
+                            <option value="Mensual">Suscripción Mensual</option>
+                            <option value="Anual">Suscripción Anual</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">WhatsApp de Contacto</label>
+                        <input type="text" id="edit-tel" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Mensualidad</label>
+                            <input type="number" id="edit-monto" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Fecha Corte</label>
+                            <input type="date" id="edit-corte" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zona de Bloqueo / Estado -->
+                <div class="bg-slate-900/30 p-5 rounded-3xl border border-slate-700/50">
+                    <label class="text-[10px] font-black text-slate-500 uppercase mb-3 block">Estado de Acceso para la Escuela (Bloqueo)</label>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <label class="cursor-pointer group">
                             <input type="radio" name="m_status" value="Activo" class="hidden peer">
                             <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-emerald-600/20 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">FUNCIONAL</div>
@@ -171,18 +215,18 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 gap-4">
-                    <div class="bg-[#0b1120] p-5 rounded-3xl border border-slate-700">
-                        <label class="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mb-3">
-                            <i data-lucide="code" class="w-3 h-3 text-red-500"></i> Pantalla de Bloqueo por Falta de Pago (HTML/Texto)
-                        </label>
-                        <textarea id="m_html_mora" rows="4" class="w-full bg-transparent border border-slate-700 rounded-lg p-3 outline-none text-indigo-300 font-mono text-[12px] resize-none" placeholder="Pega aquí el código HTML o mensaje para mostrarle a la escuela bloqueada..."></textarea>
-                    </div>
+                <div class="bg-[#0b1120] p-5 rounded-3xl border border-slate-700">
+                    <label class="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mb-3">
+                        <i data-lucide="code" class="w-3 h-3 text-red-500"></i> Pantalla de Bloqueo por Falta de Pago (HTML/Texto)
+                    </label>
+                    <textarea id="m_html_mora" rows="3" class="w-full bg-transparent border border-slate-700 rounded-lg p-3 outline-none text-indigo-300 font-mono text-[12px] resize-none focus:border-indigo-500 transition-colors" placeholder="Pega aquí el código HTML o mensaje para mostrarle a la escuela bloqueada..."></textarea>
                 </div>
 
-                <div class="flex gap-4 pt-4">
-                    <button onclick="closeModal('manageModal')" class="flex-1 py-5 bg-slate-800 rounded-2xl font-bold text-slate-400 uppercase text-xs tracking-widest hover:bg-slate-700 transition-all">Cancelar</button>
-                    <button id="btn-save-edit" class="flex-[2] py-5 bg-indigo-600 rounded-2xl font-black text-white uppercase text-xs tracking-widest hover:bg-indigo-500 shadow-xl shadow-indigo-500/20 transition-all">Aplicar Bloqueo a Institución</button>
+                <div class="flex gap-4 pt-2">
+                    <button onclick="closeModal('manageModal')" class="flex-1 py-4 bg-slate-800 rounded-2xl font-bold text-slate-400 uppercase text-xs tracking-widest hover:bg-slate-700 transition-all">Cancelar</button>
+                    <button id="btn-save-edit" class="flex-[2] py-4 bg-indigo-600 rounded-2xl font-black text-white uppercase text-xs tracking-widest hover:bg-indigo-500 shadow-xl shadow-indigo-500/20 transition-all flex justify-center items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> Guardar Cambios y Estado
+                    </button>
                 </div>
             </div>
         </div>
@@ -214,9 +258,10 @@
         const showToast = (msg, type = 'success') => {
             const container = document.getElementById('toast-container');
             const t = document.createElement('div');
-            t.className = `p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase tracking-wider ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} transition-all transform animate-bounce`;
-            t.innerText = msg;
+            t.className = `p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase tracking-wider flex items-center gap-2 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} transition-all transform animate-bounce`;
+            t.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="w-4 h-4"></i> ${msg}`;
             container.appendChild(t);
+            lucide.createIcons();
             setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3500);
         };
 
@@ -250,7 +295,7 @@
             lucide.createIcons();
         });
 
-        const verSitioSocio = (tenantId) => { window.open(`${BASE_CLIENT_URL}?id=${tenantId}`, '_blank'); };
+        const verSitioSocio = (tenantId) => { window.open(`${BASE_CLIENT_URL}?id=${encodeURIComponent(tenantId)}`, '_blank'); };
 
         // Core Data: Escucha la colección maestra 'tenants'
         function loadData() {
@@ -261,35 +306,38 @@
 
                 snap.forEach(d => {
                     const t = d.data();
-                    const id = d.id;
+                    const id = d.id; // El ID de documento es ahora el correo registrado
                     currentTenants.push({ id, ...t });
 
                     const badge = t.estado === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (t.estado === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
                     const waLink = `https://wa.me/${t.telefono ? t.telefono.replace(/\D/g,'') : ''}?text=${encodeURIComponent('Hola ' + t.empresa + ', te contactamos de soporte técnico SaaS.')}`;
-                    const tenantUrl = `${BASE_CLIENT_URL}?id=${id}`;
+                    const tenantUrl = `${BASE_CLIENT_URL}?id=${encodeURIComponent(id)}`;
 
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-800/30 transition-all border-b border-slate-700/30 group";
                     row.innerHTML = `
                         <td class="p-6">
                             <div class="font-black text-white text-xs uppercase group-hover:text-indigo-400 transition-colors">${t.empresa}</div>
+                            <div class="text-[10px] text-indigo-300 font-bold mt-1">ID/CORREO: ${id}</div>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[9px] text-slate-500 font-mono tracking-widest bg-slate-900/60 px-2 py-0.5 rounded truncate max-w-[200px]">${tenantUrl}</span>
+                                <span class="text-[9px] text-slate-500 font-mono tracking-widest bg-slate-900/60 px-2 py-0.5 rounded truncate max-w-[200px] border border-slate-700/50">${tenantUrl}</span>
                                 <button onclick="copyToClipboard('${tenantUrl}')" class="text-indigo-400 hover:text-indigo-300" title="Copiar URL"><i data-lucide="copy" class="w-3 h-3"></i></button>
                             </div>
                         </td>
                         <td class="p-6">
-                            <div class="text-[10px] font-mono font-bold ${t.adminUid ? 'text-emerald-400' : 'text-red-400'} truncate max-w-[120px]">${t.adminUid || 'No Asignado'}</div>
+                            <div class="text-[10px] font-mono font-bold ${t.adminUid ? 'text-emerald-400' : 'text-red-400'} truncate max-w-[120px] bg-[#0b1120] p-1.5 rounded border border-slate-700/50 text-center" title="${t.adminUid}">
+                                ${t.adminUid || 'Falta UID'}
+                            </div>
                         </td>
                         <td class="p-6">
                             <div class="text-[10px] text-slate-300 font-bold uppercase">${t.tipoPlan}</div>
                             <div class="text-[9px] text-slate-500 font-mono mt-0.5">Vence: ${t.fechaCorte}</div>
                         </td>
                         <td class="p-6">
-                            <div class="text-indigo-300 font-mono text-sm font-black">${t.montoContrato || 0}</div>
+                            <div class="text-emerald-400 font-mono text-sm font-black">$${t.montoContrato || 0}</div>
                         </td>
                         <td class="p-6 text-center">
-                            <span class="px-4 py-1.5 rounded-full border ${badge} text-[9px] font-black uppercase tracking-widest">${t.estado}</span>
+                            <span class="px-4 py-1.5 rounded-full border ${badge} text-[9px] font-black uppercase tracking-widest shadow-sm">${t.estado}</span>
                         </td>
                         <td class="p-6">
                             <div class="flex justify-end gap-2 items-center">
@@ -299,7 +347,7 @@
                                 <button onclick="verSitioSocio('${id}')" class="p-2.5 bg-slate-700/50 text-slate-300 rounded-xl hover:bg-white hover:text-black transition-all shadow-lg" title="Visitar App del Cliente">
                                     <i data-lucide="external-link" class="w-4 h-4"></i>
                                 </button>
-                                <button onclick="openEdit('${id}')" class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-lg" title="Bloquear / Editar">
+                                <button onclick="openEdit('${id}')" class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-lg" title="Editar / Bloquear">
                                     <i data-lucide="settings" class="w-4 h-4"></i>
                                 </button>
                                 <button onclick="deleteTenant('${id}')" class="p-2.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-lg" title="Eliminar Cliente">
@@ -316,18 +364,18 @@
 
         // Crear nueva Institución
         document.getElementById('btn-create').addEventListener('click', async () => {
-            const id = document.getElementById('new-id').value.trim().toLowerCase().replace(/\s/g, '_');
-            const uid = document.getElementById('new-uid').value.trim();
+            const id = document.getElementById('new-id').value.trim().toLowerCase(); // Ahora es el correo
+            const uid = document.getElementById('new-uid').value.trim(); // UID del admin
             const name = document.getElementById('new-name').value.trim();
             const plan = document.getElementById('new-plan').value;
             const tel = document.getElementById('new-tel').value.trim();
             const monto = document.getElementById('new-monto').value;
             const corte = document.getElementById('new-corte').value;
 
-            if(!id || !name || !corte) return showToast("Complete ID, Nombre y Fecha", "error");
+            if(!id || !name || !corte || !uid) return showToast("Falta Correo, UID, Nombre o Fecha", "error");
 
             try {
-                // Escribe en la colección principal tenants. La app cliente leerá desde aquí.
+                // Escribe usando el correo (o ID ingresado) como Document ID
                 await db.collection('tenants').doc(id).set({
                     empresa: name,
                     adminUid: uid,
@@ -339,42 +387,81 @@
                     htmlMora: ''
                 });
                 
-                showToast("Nueva escuela activada en Firestore");
+                showToast("Nueva escuela activada en Firestore", "success");
                 ['new-id', 'new-uid', 'new-name', 'new-tel', 'new-monto', 'new-corte'].forEach(el => document.getElementById(el).value = "");
             } catch (e) { showToast("Error al desplegar escuela: " + e.message, "error"); }
         });
 
-        // Editar y Bloquear
+        // Abrir Modal y cargar todos los datos
         window.openEdit = (id) => {
             editingId = id;
             const t = currentTenants.find(x => x.id === id);
+            
+            // Cargar datos editables
+            document.getElementById('edit-id').value = id; // El correo / ID actual
+            document.getElementById('edit-uid').value = t.adminUid || '';
+            document.getElementById('edit-name').value = t.empresa || '';
+            document.getElementById('edit-plan').value = t.tipoPlan || 'Mensual';
+            document.getElementById('edit-tel').value = t.telefono || '';
+            document.getElementById('edit-monto').value = t.montoContrato || 0;
+            document.getElementById('edit-corte').value = t.fechaCorte || '';
+            
+            // Cargar bloqueos
             document.getElementById('m_html_mora').value = t.htmlMora || '';
             const rads = document.getElementsByName('m_status');
             for(let r of rads) if(r.value === t.estado) r.checked = true;
+            
             document.getElementById('manageModal').classList.remove('hidden');
         };
 
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
+        // Guardar Edición Completa
         document.getElementById('btn-save-edit').addEventListener('click', async () => {
+            const newId = document.getElementById('edit-id').value.trim().toLowerCase();
+            const newUid = document.getElementById('edit-uid').value.trim();
+            const newName = document.getElementById('edit-name').value.trim();
+            const newPlan = document.getElementById('edit-plan').value;
+            const newTel = document.getElementById('edit-tel').value.trim();
+            const newMonto = document.getElementById('edit-monto').value;
+            const newCorte = document.getElementById('edit-corte').value;
+            
             const status = document.querySelector('input[name="m_status"]:checked').value;
             const hMora = document.getElementById('m_html_mora').value;
 
+            if(!newId || !newName || !newUid) return showToast("El Correo, UID y Nombre son obligatorios", "error");
+
+            const updatedData = {
+                empresa: newName,
+                adminUid: newUid,
+                tipoPlan: newPlan,
+                telefono: newTel,
+                montoContrato: Number(newMonto),
+                fechaCorte: newCorte,
+                estado: status,
+                htmlMora: hMora
+            };
+
             try {
-                await db.collection('tenants').doc(editingId).update({
-                    estado: status,
-                    htmlMora: hMora
-                });
-                showToast("Bloqueos aplicados correctamente", "success");
+                if (newId !== editingId) {
+                    // Si el usuario cambió el "ID Único (Correo)", migramos el documento a un ID nuevo
+                    await db.collection('tenants').doc(newId).set(updatedData);
+                    await db.collection('tenants').doc(editingId).delete();
+                } else {
+                    // Si el ID es el mismo, solo actualizamos los datos
+                    await db.collection('tenants').doc(editingId).update(updatedData);
+                }
+                
+                showToast("Datos y bloqueos actualizados correctamente", "success");
                 closeModal('manageModal');
             } catch (e) { showToast("Error de sincronización: " + e.message, "error"); }
         });
 
         window.deleteTenant = async (id) => {
-            if(confirm(`¿Estás seguro de eliminar permanentemente a ${id.toUpperCase()}? Se cortará su acceso por completo.`)) {
+            if(confirm(`¿Estás seguro de eliminar permanentemente a ${id}? Se cortará su acceso por completo y la URL dejará de funcionar.`)) {
                 try {
                     await db.collection('tenants').doc(id).delete();
-                    showToast("Institución eliminada");
+                    showToast("Institución y URL eliminadas", "success");
                 } catch(e) { showToast("Error al eliminar", "error"); }
             }
         };
