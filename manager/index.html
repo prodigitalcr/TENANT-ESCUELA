@@ -11,8 +11,6 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
-        .animate-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-[#0b1120] text-slate-200 min-h-screen font-sans overflow-x-hidden">
@@ -21,7 +19,7 @@
 
     <!-- Login -->
     <div id="auth-overlay" class="fixed inset-0 bg-[#0b1120] z-[100] flex flex-col items-center justify-center p-6">
-        <div class="bg-[#1e293b] p-8 md:p-10 rounded-3xl border border-slate-700/50 w-full max-w-md shadow-2xl transition-all">
+        <div class="bg-[#1e293b] p-8 md:p-10 rounded-3xl border border-slate-700/50 w-full max-w-md shadow-2xl">
             <div class="bg-indigo-600/20 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center border border-indigo-500/30 text-indigo-400">
                 <i data-lucide="shield-check" class="w-10 h-10"></i>
             </div>
@@ -29,9 +27,9 @@
             <p class="text-slate-400 mb-8 text-sm text-center font-bold">Administración Central de Plataformas Geo Cerca</p>
             
             <form id="login-form" class="space-y-4">
-                <input type="email" id="email" required placeholder="Email autorizado (prodigital@test.com)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all text-sm font-mono">
-                <input type="password" id="password" required placeholder="Contraseña Master" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all text-sm font-mono">
-                <button type="submit" id="btn-login-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest text-sm shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
+                <input type="email" id="email" required placeholder="Email autorizado (Master)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
+                <input type="password" id="password" required placeholder="Contraseña Master" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest text-sm shadow-lg shadow-indigo-500/20">
                     Autenticar Sistema
                 </button>
             </form>
@@ -64,9 +62,9 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5">
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1">Correo del Director (ID Único URL)*</label>
-                        <input type="email" id="new-id" placeholder="ejemplo@escuela.com" required class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
-                        <p class="text-[9px] text-slate-500 ml-1">Define el enlace: ?id=correo</p>
+                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1">ID Único de Socio (URL)*</label>
+                        <input type="text" id="new-id" placeholder="ejemplo: escuela_carpio" required class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
+                        <p class="text-[9px] text-slate-500 ml-1">Define el enlace: ?id=valor</p>
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1">UID del Socio / Director*</label>
@@ -89,7 +87,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Teléfono Institución</label>
-                        <input type="text" id="new-tel" placeholder="WhatsApp (ej. +50688888888)" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
+                        <input type="text" id="new-tel" placeholder="WhatsApp" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Monto de Contrato ($)</label>
@@ -158,7 +156,7 @@
                 <!-- Datos Editables -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/30 p-5 rounded-3xl border border-slate-700/50">
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1 flex items-center gap-1"><i data-lucide="mail" class="w-3 h-3"></i> CORREO DEL SOCIO (ID Fijo)</label>
+                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1 flex items-center gap-1"><i data-lucide="mail" class="w-3 h-3"></i> ID DEL SOCIO (Fijo)</label>
                         <input type="text" id="edit-id" readonly class="w-full bg-[#0f172a] border border-slate-700 p-3 rounded-xl outline-none text-sm font-mono text-slate-500 cursor-not-allowed opacity-70">
                     </div>
                     <div class="space-y-1">
@@ -275,61 +273,32 @@
             });
         };
 
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value;
-            const errorEl = document.getElementById('auth-error');
-            const btn = document.getElementById('btn-login-submit');
-
-            // RESTRICCIÓN MAESTRA DEL CORREO
-            if (email.toLowerCase() !== 'prodigital@test.com') {
-                errorEl.innerText = "⛔ ACCESO DENEGADO: Solo el administrador maestro puede ingresar.";
-                errorEl.classList.remove('hidden');
-                return;
-            }
-
-            try {
-                errorEl.classList.add('hidden');
-                btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Autenticando...`;
-                lucide.createIcons();
-                
-                await signInWithEmailAndPassword(auth, email, pass);
-                // Si es exitoso, onAuthStateChanged se encargará de cambiar la vista.
-            } catch (err) {
-                btn.innerHTML = `Autenticar Sistema`;
-                let errorMsg = "Error en credenciales";
-                if(err.code === 'auth/wrong-password') errorMsg = "Contraseña incorrecta.";
-                if(err.code === 'auth/user-not-found') errorMsg = "Usuario maestro no registrado en Firebase.";
-                
-                errorEl.innerText = errorMsg;
-                errorEl.classList.remove('hidden');
-            }
+            signInWithEmailAndPassword(auth, email, pass).catch(err => {
+                document.getElementById('auth-error').innerText = "Credenciales Maestro Incorrectas";
+                document.getElementById('auth-error').classList.remove('hidden');
+            });
         });
 
         document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
         onAuthStateChanged(auth, (user) => {
-            if (user && user.email === 'prodigital@test.com') {
+            if (user) {
                 document.getElementById('auth-overlay').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
                 loadData();
             } else {
                 document.getElementById('auth-overlay').classList.remove('hidden');
                 document.getElementById('main-content').classList.add('hidden');
-                document.getElementById('btn-login-submit').innerHTML = `Autenticar Sistema`;
             }
             lucide.createIcons();
         });
 
         window.verSitioSocio = (tenantId) => { 
             window.open(`${BASE_CLIENT_URL}?id=${encodeURIComponent(tenantId)}`, '_blank'); 
-        };
-
-        window.contactarWA = (telefono) => {
-            if(!telefono || telefono.trim() === '') return showToast("El socio no tiene teléfono registrado", "error");
-            const num = telefono.replace(/\D/g, ''); // Limpiar el número y quitar caracteres extraños
-            window.open(`https://wa.me/${num}`, '_blank');
         };
 
         function loadData() {
@@ -344,8 +313,7 @@
                     const id = d.id;
                     currentTenants.push({ id, ...t });
 
-                    const estadoSeguro = t.estado || 'Activo';
-                    const badge = estadoSeguro === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (estadoSeguro === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
+                    const badge = t.estado === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (t.estado === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
                     
                     const tenantUrl = `${BASE_CLIENT_URL}?id=${encodeURIComponent(id)}`;
 
@@ -353,7 +321,7 @@
                     row.className = "hover:bg-slate-800/30 transition-all border-b border-slate-700/30";
                     row.innerHTML = `
                         <td class="p-6">
-                            <div class="font-black text-white text-xs uppercase">${t.empresa || 'Sin nombre'}</div>
+                            <div class="font-black text-white text-xs uppercase">${t.empresa}</div>
                             <div class="flex items-center gap-2 mt-1">
                                 <span class="text-[9px] text-slate-500 font-mono bg-slate-900/60 px-2 py-0.5 rounded truncate max-w-[200px] border border-slate-700/50" title="${tenantUrl}">${tenantUrl}</span>
                                 <button onclick="copyToClipboard('${tenantUrl}')" class="text-indigo-400 hover:text-indigo-300"><i data-lucide="copy" class="w-3 h-3"></i></button>
@@ -364,13 +332,12 @@
                             <div class="text-[9px] text-slate-500 mt-1">ID: ${id}</div>
                         </td>
                         <td class="p-6">
-                            <div class="text-[10px] text-slate-300 font-bold uppercase">${t.tipoPlan || '-'} ($${t.montoContrato || 0})</div>
-                            <div class="text-[9px] text-slate-500 font-mono mt-0.5">Vence: ${t.fechaCorte || '-'}</div>
+                            <div class="text-[10px] text-slate-300 font-bold uppercase">${t.tipoPlan} ($${t.montoContrato || 0})</div>
+                            <div class="text-[9px] text-slate-500 font-mono mt-0.5">Vence: ${t.fechaCorte}</div>
                         </td>
-                        <td class="p-6 text-center"><span class="px-4 py-1.5 rounded-full border ${badge} text-[9px] font-black uppercase tracking-widest">${estadoSeguro}</span></td>
+                        <td class="p-6 text-center"><span class="px-4 py-1.5 rounded-full border ${badge} text-[9px] font-black uppercase tracking-widest">${t.estado}</span></td>
                         <td class="p-6">
                             <div class="flex justify-end gap-2">
-                                <button onclick="contactarWA('${t.telefono || ''}')" class="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 hover:text-white transition-all" title="Contactar WhatsApp"><i data-lucide="message-circle" class="w-4 h-4"></i></button>
                                 <button onclick="verSitioSocio('${id}')" class="p-2.5 bg-slate-700/50 text-slate-300 rounded-xl hover:bg-white hover:text-black transition-all" title="Abrir URL"><i data-lucide="external-link" class="w-4 h-4"></i></button>
                                 <button onclick="openEdit('${id}')" class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all" title="Administrar"><i data-lucide="settings" class="w-4 h-4"></i></button>
                                 <button onclick="deleteTenant('${id}')" class="p-2.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all" title="Eliminar"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -383,7 +350,7 @@
             }, (error) => { showToast("Error cargando socios: " + error.message, "error"); });
         }
 
-        document.getElementById('btn-create').addEventListener('click', async (e) => {
+        document.getElementById('btn-create').addEventListener('click', async () => {
             const idTenant = document.getElementById('new-id').value.trim().toLowerCase();
             const uid = document.getElementById('new-uid').value.trim();
             const name = document.getElementById('new-name').value.trim();
@@ -392,35 +359,24 @@
             const monto = document.getElementById('new-monto').value;
             const corte = document.getElementById('new-corte').value;
 
-            if(!idTenant || !idTenant.includes('@')) return showToast("El ID debe ser un correo válido", "error");
-            if(!name || !corte || !uid) return showToast("Datos incompletos requeridos", "error");
-
-            const btn = e.currentTarget;
-            const origHTML = btn.innerHTML;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> CREANDO...`;
-            lucide.createIcons();
+            if(!idTenant || !name || !corte || !uid) return showToast("Datos incompletos requeridos", "error");
 
             try {
                 const docRef = doc(db, 'tenants', idTenant);
                 await setDoc(docRef, {
-                    empresa: name || '', 
-                    adminUid: uid || '', 
-                    tipoPlan: plan || 'Mensual', 
-                    telefono: tel || '',
-                    numeroJunta: tel || '',
-                    montoContrato: Number(monto) || 0, 
-                    fechaCorte: corte || '', 
+                    empresa: name, 
+                    adminUid: uid, 
+                    tipoPlan: plan, 
+                    telefono: tel,
+                    numeroJunta: tel,
+                    montoContrato: Number(monto), 
+                    fechaCorte: corte, 
                     estado: 'Activo',
                     htmlMora: '<div style="font-family:sans-serif; text-align:center; padding: 40px;"><h1 style="color:#ef4444; font-size:2rem;">⛔ ACCESO SUSPENDIDO</h1><p style="color:#64748b; font-size:1.2rem;">Por favor, contacte con administración para reactivar la plataforma del socio.</p></div>'
                 });
                 showToast("Socio creado exitosamente", "success");
                 ['new-id', 'new-uid', 'new-name', 'new-tel', 'new-monto', 'new-corte'].forEach(el => document.getElementById(el).value = "");
-            } catch (err) { 
-                showToast("Error: " + err.message, "error"); 
-            } finally {
-                btn.innerHTML = origHTML;
-                lucide.createIcons();
-            }
+            } catch (e) { showToast("Error: " + e.message, "error"); }
         });
 
         window.openEdit = (id) => {
@@ -443,50 +399,33 @@
 
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
-        document.getElementById('btn-save-edit').addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            const origHTML = btn.innerHTML;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> SINCRONIZANDO...`;
-            lucide.createIcons();
+        document.getElementById('btn-save-edit').addEventListener('click', async () => {
+            const statusNode = document.querySelector('input[name="m_status"]:checked');
+            const updatedData = {
+                empresa: document.getElementById('edit-name').value.trim(),
+                adminUid: document.getElementById('edit-uid').value.trim(),
+                tipoPlan: document.getElementById('edit-plan').value,
+                montoContrato: Number(document.getElementById('edit-monto').value),
+                fechaCorte: document.getElementById('edit-corte').value,
+                estado: statusNode ? statusNode.value : 'Activo',
+                htmlMora: document.getElementById('m_html_mora').value
+            };
 
             try {
-                const statusNode = document.querySelector('input[name="m_status"]:checked');
-                
-                // Validación para asegurar que no se envíen campos 'undefined' a Firestore que causen error de sincronización
-                const updatedData = {
-                    empresa: document.getElementById('edit-name').value.trim() || 'Sin Nombre',
-                    adminUid: document.getElementById('edit-uid').value.trim() || '',
-                    tipoPlan: document.getElementById('edit-plan').value || 'Mensual',
-                    montoContrato: Number(document.getElementById('edit-monto').value) || 0,
-                    fechaCorte: document.getElementById('edit-corte').value || '',
-                    estado: statusNode ? statusNode.value : 'Activo',
-                    htmlMora: document.getElementById('m_html_mora').value || ''
-                };
-
                 const docRef = doc(db, 'tenants', editingId);
                 await updateDoc(docRef, updatedData);
-                
-                showToast("Sincronización de estado exitosa", "success");
+                showToast("Estado y datos actualizados", "success");
                 closeModal('manageModal');
-            } catch (err) { 
-                console.error("Error al actualizar:", err);
-                showToast("Error al sincronizar: " + err.message, "error"); 
-            } finally {
-                btn.innerHTML = origHTML;
-                lucide.createIcons();
-            }
+            } catch (e) { showToast("Error al sincronizar: " + e.message, "error"); }
         });
 
         window.deleteTenant = async (id) => {
-            if(confirm(`¿Estás seguro de que deseas eliminar permanentemente el socio: ${id}?`)) {
-                try { 
-                    const docRef = doc(db, 'tenants', id);
-                    await deleteDoc(docRef); 
-                    showToast(`Socio ${id} eliminado correctamente`, "success"); 
-                } catch(e) { 
-                    showToast("Error al eliminar", "error"); 
-                }
-            }
+            try { 
+                const docRef = doc(db, 'tenants', id);
+                await deleteDoc(docRef); 
+                showToast(`Socio ${id} eliminado correctamente`, "success"); 
+            } 
+            catch(e) { showToast("Error al eliminar", "error"); }
         };
 
         lucide.createIcons();
