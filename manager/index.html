@@ -2,494 +2,201 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaaS Master Control | Plataforma de Gestión</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide:0.263.0/lucide.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicación Autenticada - Socio</title>
+    
+    <!-- Firebase (Misma versión del panel maestro) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <style>
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
-        .animate-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="bg-[#0b1120] text-slate-200 min-h-screen font-sans overflow-x-hidden">
-
-    <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2"></div>
-
-    <!-- Login -->
-    <div id="auth-overlay" class="fixed inset-0 bg-[#0b1120] z-[100] flex flex-col items-center justify-center p-6">
-        <div class="bg-[#1e293b] p-8 md:p-10 rounded-3xl border border-slate-700/50 w-full max-w-md shadow-2xl transition-all">
-            <div class="bg-indigo-600/20 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center border border-indigo-500/30 text-indigo-400">
-                <i data-lucide="shield-check" class="w-10 h-10"></i>
-            </div>
-            <h1 class="text-2xl font-black mb-1 text-white text-center uppercase tracking-tight">SaaS Maestro V4</h1>
-            <p class="text-slate-400 mb-8 text-sm text-center font-bold">Administración Central de Plataformas Geo Cerca</p>
-            
-            <form id="login-form" class="space-y-4">
-                <input type="email" id="email" required placeholder="Email autorizado (prodigital@test.com)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all text-sm font-mono">
-                <input type="password" id="password" required placeholder="Contraseña Master" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all text-sm font-mono">
-                <button type="submit" id="btn-login-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest text-sm shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
-                    Autenticar Sistema
-                </button>
-            </form>
-            <p id="auth-error" class="text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-lg mt-4 text-xs hidden font-bold text-center uppercase"></p>
-        </div>
-    </div>
-
-    <!-- Main Dashboard -->
-    <div id="main-content" class="hidden flex-col min-h-screen">
-        <header class="bg-[#1e293b]/90 border-b border-slate-700 p-4 sticky top-0 backdrop-blur-xl z-40">
-            <div class="max-w-7xl mx-auto flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-500/20">
-                        <i data-lucide="layout-dashboard" class="text-white w-5 h-5"></i>
-                    </div>
-                    <h2 class="text-lg font-black text-white uppercase tracking-tighter">Master Control <span class="text-indigo-400">Geo Cerca</span></h2>
-                </div>
-                <button id="btn-logout" class="bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 px-4 py-2 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-2">
-                    <i data-lucide="log-out" class="w-4 h-4"></i> Cerrar Sesión
-                </button>
-            </div>
-        </header>
-
-        <main class="max-w-7xl mx-auto p-4 md:p-8 w-full flex-1">
-            <!-- Formulario de Nuevo Cliente -->
-            <section class="bg-[#1e293b] border border-slate-700 p-6 md:p-8 rounded-3xl mb-8 shadow-2xl relative overflow-hidden">
-                <h3 class="text-lg font-black mb-6 text-white uppercase flex items-center gap-2">
-                    <i data-lucide="zap" class="text-indigo-400"></i> Desplegar Nuevo Tenant (Socio)
-                </h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1">Correo del Director (ID Único URL)*</label>
-                        <input type="email" id="new-id" placeholder="ejemplo@escuela.com" required class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
-                        <p class="text-[9px] text-slate-500 ml-1">Define el enlace: ?id=correo</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1">UID del Socio / Director*</label>
-                        <input type="text" id="new-uid" placeholder="UID de Firebase Auth" required class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white transition-all">
-                        <p class="text-[9px] text-slate-500 ml-1">Requerido para ser admin en Geocerca.</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre de la Institución</label>
-                        <input type="text" id="new-name" placeholder="Nombre completo" required class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Plan de Suscripción</label>
-                        <select id="new-plan" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white appearance-none transition-all">
-                            <option value="Mensual">Suscripción Mensual</option>
-                            <option value="Anual">Suscripción Anual</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Teléfono Institución</label>
-                        <input type="text" id="new-tel" placeholder="WhatsApp (ej. +50688888888)" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Monto de Contrato ($)</label>
-                        <input type="number" id="new-monto" placeholder="0.00" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                    <div class="space-y-1 md:col-span-2">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Vencimiento del Servicio</label>
-                        <input type="date" id="new-corte" required class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                </div>
-
-                <button id="btn-create" class="mt-8 w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-10 py-4 rounded-2xl transition-all uppercase text-xs tracking-widest shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2">
-                    Crear y Activar Institución <i data-lucide="plus" class="w-4 h-4"></i>
-                </button>
-            </section>
-
-            <!-- Tabla de Clientes -->
-            <div class="bg-[#1e293b] rounded-3xl border border-slate-700/50 overflow-hidden shadow-2xl">
-                <div class="p-6 border-b border-slate-700 bg-slate-900/40 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div>
-                        <h4 class="text-white font-black uppercase text-sm tracking-widest">Cartera de Socios SaaS</h4>
-                        <p class="text-slate-500 text-[10px] font-bold uppercase mt-1">Comparte la URL dinámica generada con cada cliente</p>
-                    </div>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-900/60 text-slate-500 text-[10px] uppercase font-black border-b border-slate-700">
-                            <tr>
-                                <th class="p-6">Institución / URL Acceso</th>
-                                <th class="p-6">UID Socio Admin</th>
-                                <th class="p-6">Plan / Vencimiento</th>
-                                <th class="p-6 text-center">Estado Plataforma</th>
-                                <th class="p-6 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tenant-list" class="divide-y divide-slate-700/40">
-                            <!-- Inyectado por JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modal de Edición / Bloqueos -->
-    <div id="manageModal" class="fixed inset-0 bg-[#0b1120]/95 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-[#1e293b] border border-slate-600 w-full max-w-4xl rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            
-            <div class="flex justify-between items-center mb-6 sticky top-0 bg-[#1e293b] z-10 py-2 border-b border-slate-700/50">
-                <div class="flex items-center gap-3">
-                    <div class="bg-indigo-500/20 p-3 rounded-2xl text-indigo-400">
-                        <i data-lucide="settings-2"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-black text-white uppercase tracking-tight">Gestión del Socio</h2>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Control de accesos, mora y bloqueos.</p>
-                    </div>
-                </div>
-                <button onclick="closeModal('manageModal')" class="text-slate-500 hover:text-white transition-colors">
-                    <i data-lucide="x-circle" class="w-8 h-8"></i>
-                </button>
-            </div>
-            
-            <div class="space-y-6">
-                <!-- Datos Editables -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/30 p-5 rounded-3xl border border-slate-700/50">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1 flex items-center gap-1"><i data-lucide="mail" class="w-3 h-3"></i> CORREO DEL SOCIO (ID Fijo)</label>
-                        <input type="text" id="edit-id" readonly class="w-full bg-[#0f172a] border border-slate-700 p-3 rounded-xl outline-none text-sm font-mono text-slate-500 cursor-not-allowed opacity-70">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1 flex items-center gap-1"><i data-lucide="key" class="w-3 h-3"></i> UID Director</label>
-                        <input type="text" id="edit-uid" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre Institución</label>
-                        <input type="text" id="edit-name" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Plan</label>
-                        <select id="edit-plan" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white appearance-none transition-all">
-                            <option value="Mensual">Mensual</option>
-                            <option value="Anual">Anual</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 md:col-span-2">
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Monto ($)</label>
-                            <input type="number" id="edit-monto" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Vence</label>
-                            <input type="date" id="edit-corte" class="w-full bg-[#0b1120] border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Bloqueos -->
-                <div class="bg-slate-900/30 p-5 rounded-3xl border border-slate-700/50">
-                    <label class="text-[10px] font-black text-slate-500 uppercase mb-3 block">Estado de la Plataforma para este Socio</label>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <label class="cursor-pointer group">
-                            <input type="radio" name="m_status" value="Activo" class="hidden peer">
-                            <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-emerald-600/20 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-black text-[10px] uppercase transition-all">ACTIVO</div>
-                        </label>
-                        <label class="cursor-pointer group">
-                            <input type="radio" name="m_status" value="Suspendido" class="hidden peer">
-                            <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-red-600/20 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-black text-[10px] uppercase transition-all">SUSPENDIDO / MOROSO</div>
-                        </label>
-                        <label class="cursor-pointer group">
-                            <input type="radio" name="m_status" value="Mantenimiento" class="hidden peer">
-                            <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-amber-600/20 peer-checked:border-amber-500 text-slate-500 peer-checked:text-amber-400 font-black text-[10px] uppercase transition-all">MANTENIMIENTO</div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="bg-[#0b1120] p-5 rounded-3xl border border-slate-700">
-                    <label class="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mb-3">
-                        <i data-lucide="code" class="w-3 h-3 text-red-500"></i> Mensaje de Bloqueo HTML (Mostrado en Geo Cerca)
-                    </label>
-                    <textarea id="m_html_mora" rows="3" class="w-full bg-transparent border border-slate-700 rounded-lg p-3 outline-none text-indigo-300 font-mono text-[12px] focus:border-indigo-500 transition-colors" placeholder="<h1>Suscripción Vencida</h1><p>Realice el pago para reactivar el sistema.</p>"></textarea>
-                </div>
-
-                <div class="flex gap-4 pt-2">
-                    <button onclick="closeModal('manageModal')" class="flex-1 py-4 bg-slate-800 rounded-2xl font-bold text-slate-400 uppercase text-xs hover:bg-slate-700 transition-all">Cancelar</button>
-                    <button id="btn-save-edit" class="flex-[2] py-4 bg-indigo-600 rounded-2xl font-black text-white uppercase text-xs hover:bg-indigo-500 shadow-xl shadow-indigo-500/20 transition-all flex justify-center items-center gap-2">
-                        <i data-lucide="save" class="w-4 h-4"></i> Sincronizar Cambios
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
-            authDomain: "tenant-escuela.firebaseapp.com",
-            projectId: "tenant-escuela",
-            storageBucket: "tenant-escuela.firebasestorage.app",
-            messagingSenderId: "456023877565",
-            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4",
-            measurementId: "G-ZK03Q0855K"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // URL DE DESPLIEGUE DONDE ESTÁ EL GEOCERCA OFICIAL (Se concatena el ?id=)
-        const BASE_CLIENT_URL = "https://prodigitalcr.github.io/GEOCERCA-OFICIAL/index.html"; 
-        
-        let currentTenants = [];
-        let editingId = null;
-
-        const showToast = (msg, type = 'success') => {
-            const container = document.getElementById('toast-container');
-            const t = document.createElement('div');
-            t.className = `p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase tracking-wider flex items-center gap-2 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} transition-all`;
-            t.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="w-4 h-4"></i> ${msg}`;
-            container.appendChild(t);
-            lucide.createIcons();
-            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3500);
-        };
-
-        window.copyToClipboard = (text) => {
-            navigator.clipboard.writeText(text).then(() => showToast("URL Copiada al portapapeles", "success")).catch(err => {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    showToast("URL Copiada", "success");
-                } catch (err) {
-                    showToast("Error al copiar", "error");
-                }
-                document.body.removeChild(textArea);
-            });
-        };
-
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('password').value;
-            const errorEl = document.getElementById('auth-error');
-            const btn = document.getElementById('btn-login-submit');
-
-            // RESTRICCIÓN MAESTRA DEL CORREO
-            if (email.toLowerCase() !== 'prodigital@test.com') {
-                errorEl.innerText = "⛔ ACCESO DENEGADO: Solo el administrador maestro puede ingresar.";
-                errorEl.classList.remove('hidden');
-                return;
-            }
-
-            try {
-                errorEl.classList.add('hidden');
-                btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Autenticando...`;
-                lucide.createIcons();
-                
-                await signInWithEmailAndPassword(auth, email, pass);
-                // Si es exitoso, onAuthStateChanged se encargará de cambiar la vista.
-            } catch (err) {
-                btn.innerHTML = `Autenticar Sistema`;
-                let errorMsg = "Error en credenciales";
-                if(err.code === 'auth/wrong-password') errorMsg = "Contraseña incorrecta.";
-                if(err.code === 'auth/user-not-found') errorMsg = "Usuario maestro no registrado en Firebase.";
-                
-                errorEl.innerText = errorMsg;
-                errorEl.classList.remove('hidden');
-            }
-        });
-
-        document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
-
-        onAuthStateChanged(auth, (user) => {
-            if (user && user.email === 'prodigital@test.com') {
-                document.getElementById('auth-overlay').classList.add('hidden');
-                document.getElementById('main-content').classList.remove('hidden');
-                loadData();
-            } else {
-                document.getElementById('auth-overlay').classList.remove('hidden');
-                document.getElementById('main-content').classList.add('hidden');
-                document.getElementById('btn-login-submit').innerHTML = `Autenticar Sistema`;
-            }
-            lucide.createIcons();
-        });
-
-        window.verSitioSocio = (tenantId) => { 
-            window.open(`${BASE_CLIENT_URL}?id=${encodeURIComponent(tenantId)}`, '_blank'); 
-        };
-
-        window.contactarWA = (telefono) => {
-            if(!telefono || telefono.trim() === '') return showToast("El socio no tiene teléfono registrado", "error");
-            const num = telefono.replace(/\D/g, ''); // Limpiar el número y quitar caracteres extraños
-            window.open(`https://wa.me/${num}`, '_blank');
-        };
-
-        function loadData() {
-            const tenantsCol = collection(db, 'tenants');
-            onSnapshot(tenantsCol, (snap) => {
-                const list = document.getElementById('tenant-list');
-                list.innerHTML = "";
-                currentTenants = [];
-
-                snap.forEach(d => {
-                    const t = d.data();
-                    const id = d.id;
-                    currentTenants.push({ id, ...t });
-
-                    const estadoSeguro = t.estado || 'Activo';
-                    const badge = estadoSeguro === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (estadoSeguro === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
-                    
-                    const tenantUrl = `${BASE_CLIENT_URL}?id=${encodeURIComponent(id)}`;
-
-                    const row = document.createElement('tr');
-                    row.className = "hover:bg-slate-800/30 transition-all border-b border-slate-700/30";
-                    row.innerHTML = `
-                        <td class="p-6">
-                            <div class="font-black text-white text-xs uppercase">${t.empresa || 'Sin nombre'}</div>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[9px] text-slate-500 font-mono bg-slate-900/60 px-2 py-0.5 rounded truncate max-w-[200px] border border-slate-700/50" title="${tenantUrl}">${tenantUrl}</span>
-                                <button onclick="copyToClipboard('${tenantUrl}')" class="text-indigo-400 hover:text-indigo-300"><i data-lucide="copy" class="w-3 h-3"></i></button>
-                            </div>
-                        </td>
-                        <td class="p-6">
-                            <div class="text-[10px] font-mono text-emerald-400 truncate max-w-[120px] bg-[#0b1120] p-1.5 rounded" title="${t.adminUid || 'Falta'}">${t.adminUid || 'Falta UID'}</div>
-                            <div class="text-[9px] text-slate-500 mt-1">ID: ${id}</div>
-                        </td>
-                        <td class="p-6">
-                            <div class="text-[10px] text-slate-300 font-bold uppercase">${t.tipoPlan || '-'} ($${t.montoContrato || 0})</div>
-                            <div class="text-[9px] text-slate-500 font-mono mt-0.5">Vence: ${t.fechaCorte || '-'}</div>
-                        </td>
-                        <td class="p-6 text-center"><span class="px-4 py-1.5 rounded-full border ${badge} text-[9px] font-black uppercase tracking-widest">${estadoSeguro}</span></td>
-                        <td class="p-6">
-                            <div class="flex justify-end gap-2">
-                                <button onclick="contactarWA('${t.telefono || ''}')" class="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 hover:text-white transition-all" title="Contactar WhatsApp"><i data-lucide="message-circle" class="w-4 h-4"></i></button>
-                                <button onclick="verSitioSocio('${id}')" class="p-2.5 bg-slate-700/50 text-slate-300 rounded-xl hover:bg-white hover:text-black transition-all" title="Abrir URL"><i data-lucide="external-link" class="w-4 h-4"></i></button>
-                                <button onclick="openEdit('${id}')" class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all" title="Administrar"><i data-lucide="settings" class="w-4 h-4"></i></button>
-                                <button onclick="deleteTenant('${id}')" class="p-2.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all" title="Eliminar"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </div>
-                        </td>
-                    `;
-                    list.appendChild(row);
-                });
-                lucide.createIcons();
-            }, (error) => { showToast("Error cargando socios: " + error.message, "error"); });
+        :root {
+            --bg-dark: #0a0e27;
+            --text-primary: #e8eef5;
+            --accent-danger: #ff4444;
+            --accent-warning: #ffb800;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
-        document.getElementById('btn-create').addEventListener('click', async (e) => {
-            const idTenant = document.getElementById('new-id').value.trim().toLowerCase();
-            const uid = document.getElementById('new-uid').value.trim();
-            const name = document.getElementById('new-name').value.trim();
-            const plan = document.getElementById('new-plan').value;
-            const tel = document.getElementById('new-tel').value.trim();
-            const monto = document.getElementById('new-monto').value;
-            const corte = document.getElementById('new-corte').value;
+        /* CAPA DE BLOQUEO (MOROSIDAD / MANTENIMIENTO) */
+        #bloqueo-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 8, 16, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .bloqueo-card {
+            background: #1a1f3a;
+            padding: 40px;
+            border-radius: 16px;
+            border: 2px solid var(--accent-danger);
+            max-width: 500px;
+            box-shadow: 0 16px 48px rgba(255, 68, 68, 0.2);
+        }
 
-            if(!idTenant || !idTenant.includes('@')) return showToast("El ID debe ser un correo válido", "error");
-            if(!name || !corte || !uid) return showToast("Datos incompletos requeridos", "error");
+        .bloqueo-card.mantenimiento {
+            border-color: var(--accent-warning);
+            box-shadow: 0 16px 48px rgba(255, 184, 0, 0.2);
+        }
 
-            const btn = e.currentTarget;
-            const origHTML = btn.innerHTML;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> CREANDO...`;
-            lucide.createIcons();
+        /* APP PRINCIPAL AISLADA */
+        #app-content {
+            display: none; /* Oculto hasta verificar estado */
+            padding: 20px;
+            flex: 1;
+        }
 
-            try {
-                const docRef = doc(db, 'tenants', idTenant);
-                await setDoc(docRef, {
-                    empresa: name || '', 
-                    adminUid: uid || '', 
-                    tipoPlan: plan || 'Mensual', 
-                    telefono: tel || '',
-                    numeroJunta: tel || '',
-                    montoContrato: Number(monto) || 0, 
-                    fechaCorte: corte || '', 
-                    estado: 'Activo',
-                    htmlMora: '<div style="font-family:sans-serif; text-align:center; padding: 40px;"><h1 style="color:#ef4444; font-size:2rem;">⛔ ACCESO SUSPENDIDO</h1><p style="color:#64748b; font-size:1.2rem;">Por favor, contacte con administración para reactivar la plataforma del socio.</p></div>'
-                });
-                showToast("Socio creado exitosamente", "success");
-                ['new-id', 'new-uid', 'new-name', 'new-tel', 'new-monto', 'new-corte'].forEach(el => document.getElementById(el).value = "");
-            } catch (err) { 
-                showToast("Error: " + err.message, "error"); 
-            } finally {
-                btn.innerHTML = origHTML;
-                lucide.createIcons();
-            }
-        });
+        .navbar-tenant {
+            background: rgba(26, 31, 58, 0.9);
+            padding: 15px 20px;
+            border-bottom: 1px solid #2a3250;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
 
-        window.openEdit = (id) => {
-            editingId = id;
-            const t = currentTenants.find(x => x.id === id);
+    <!-- PANTALLA DE ESTADO RESTRINGIDO -->
+    <div id="bloqueo-overlay" style="display: none;">
+        <div id="bloqueo-card" class="bloqueo-card">
+            <h1 id="bloqueo-titulo">Acceso Restringido</h1>
+            <p id="bloqueo-mensaje">Verificando estado de la cuenta...</p>
+            <div style="margin-top: 20px; font-size: 0.8rem; color: #7a8299;">
+                UID: <span id="display-uid">---</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE LA APLICACIÓN (SOLO ACTIVA SI ESTADO == ACTIVO) -->
+    <div id="app-content">
+        <div class="navbar-tenant">
+            <h2 id="tenant-name" style="margin: 0; color: #00d9ff;">Cargando Entorno...</h2>
+            <button onclick="cerrarSesionSocio()" style="background: transparent; color: white; border: 1px solid #3a4560; padding: 5px 15px; border-radius: 5px; cursor: pointer;">Salir</button>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>Panel de Trabajo del Socio</h3>
+            <p>Toda la información aquí mostrada está aislada lógica y criptográficamente en la ruta: <code>/socios/<b id="ruta-uid"></b>/datos/</code></p>
             
-            document.getElementById('edit-id').value = id; 
-            document.getElementById('edit-uid').value = t.adminUid || '';
-            document.getElementById('edit-name').value = t.empresa || '';
-            document.getElementById('edit-plan').value = t.tipoPlan || 'Mensual';
-            document.getElementById('edit-monto').value = t.montoContrato || 0;
-            document.getElementById('edit-corte').value = t.fechaCorte || '';
-            document.getElementById('m_html_mora').value = t.htmlMora || '';
-            
-            const rads = document.getElementsByName('m_status');
-            for(let r of rads) { if(r.value === (t.estado || 'Activo')) r.checked = true; }
-            
-            document.getElementById('manageModal').classList.remove('hidden');
+            <!-- Aquí iría la lógica específica del socio (ej. sistema de asistencia, ventas, etc.) -->
+        </div>
+    </div>
+
+    <script>
+        // 1. INICIALIZACIÓN DE FIREBASE (Conectar al mismo proyecto maestro)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpGu...", // Tus credenciales maestras
+            authDomain: "tu-proyecto.firebaseapp.com",
+            databaseURL: "https://tu-proyecto-default-rtdb.firebaseio.com",
+            projectId: "tu-proyecto"
         };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
 
-        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+        let tenantUID = null;
+        let estadoListener = null;
 
-        document.getElementById('btn-save-edit').addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            const origHTML = btn.innerHTML;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> SINCRONIZANDO...`;
-            lucide.createIcons();
-
-            try {
-                const statusNode = document.querySelector('input[name="m_status"]:checked');
-                
-                // Validación para asegurar que no se envíen campos 'undefined' a Firestore que causen error de sincronización
-                const updatedData = {
-                    empresa: document.getElementById('edit-name').value.trim() || 'Sin Nombre',
-                    adminUid: document.getElementById('edit-uid').value.trim() || '',
-                    tipoPlan: document.getElementById('edit-plan').value || 'Mensual',
-                    montoContrato: Number(document.getElementById('edit-monto').value) || 0,
-                    fechaCorte: document.getElementById('edit-corte').value || '',
-                    estado: statusNode ? statusNode.value : 'Activo',
-                    htmlMora: document.getElementById('m_html_mora').value || ''
-                };
-
-                const docRef = doc(db, 'tenants', editingId);
-                await updateDoc(docRef, updatedData);
-                
-                showToast("Sincronización de estado exitosa", "success");
-                closeModal('manageModal');
-            } catch (err) { 
-                console.error("Error al actualizar:", err);
-                showToast("Error al sincronizar: " + err.message, "error"); 
-            } finally {
-                btn.innerHTML = origHTML;
-                lucide.createIcons();
+        // 2. ESCUCHADOR DE AUTENTICACIÓN
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                tenantUID = user.uid;
+                document.getElementById('display-uid').innerText = tenantUID;
+                document.getElementById('ruta-uid').innerText = tenantUID;
+                iniciarConexionMaestra(tenantUID);
+            } else {
+                // Si no hay sesión, redirigir a un login genérico o mostrar modal
+                manejarRedireccionLogin();
             }
         });
 
-        window.deleteTenant = async (id) => {
-            if(confirm(`¿Estás seguro de que deseas eliminar permanentemente el socio: ${id}?`)) {
-                try { 
-                    const docRef = doc(db, 'tenants', id);
-                    await deleteDoc(docRef); 
-                    showToast(`Socio ${id} eliminado correctamente`, "success"); 
-                } catch(e) { 
-                    showToast("Error al eliminar", "error"); 
+        // 3. AISLAMIENTO Y CONTROL EN TIEMPO REAL DESDE EL PANEL MAESTRO
+        function iniciarConexionMaestra(uid) {
+            const socioRef = database.ref(`socios/${uid}`);
+
+            // Cargar datos básicos (Nombre del colegio/empresa, logos)
+            socioRef.child('perfil').once('value').then(snap => {
+                if(snap.exists()) {
+                    document.getElementById('tenant-name').innerText = snap.val().nombreApp || "Aplicación Cliente";
                 }
-            }
-        };
+            });
 
-        lucide.createIcons();
+            // ESCUCHADOR CRÍTICO: Vigila el estado de morosidad o mantenimiento
+            if(estadoListener) socioRef.child('estado').off('value', estadoListener);
+            
+            estadoListener = socioRef.child('estado').on('value', (snap) => {
+                if(snap.exists()) {
+                    const status = snap.val();
+                    evaluarEstadoSocio(status.estatus, status.mensajeBloqueo);
+                } else {
+                    // Si no existe nodo de estado, asumir error o cuenta no inicializada
+                    evaluarEstadoSocio('error', 'Cuenta no configurada por el administrador.');
+                }
+            });
+        }
+
+        // 4. LÓGICA DE RENDERIZADO SEGÚN ESTATUS
+        function evaluarEstadoSocio(estatus, mensajePersonalizado) {
+            const bloqueoOverlay = document.getElementById('bloqueo-overlay');
+            const bloqueoCard = document.getElementById('bloqueo-card');
+            const titulo = document.getElementById('bloqueo-titulo');
+            const mensaje = document.getElementById('bloqueo-mensaje');
+            const appContent = document.getElementById('app-content');
+
+            if (estatus === 'activo') {
+                // Liberar la aplicación
+                bloqueoOverlay.style.display = 'none';
+                appContent.style.display = 'block';
+                
+            } else if (estatus === 'moroso') {
+                // Bloquear por falta de pago
+                bloqueoOverlay.style.display = 'flex';
+                appContent.style.display = 'none';
+                bloqueoCard.className = 'bloqueo-card'; // Borde rojo
+                titulo.innerText = "🔒 Servicio Suspendido";
+                titulo.style.color = "var(--accent-danger)";
+                mensaje.innerText = mensajePersonalizado || "El sistema ha sido pausado por un saldo pendiente. Por favor, regularice su cuenta o reporte sus pagos SINPE al administrador maestro para reactivar el servicio.";
+                
+            } else if (estatus === 'mantenimiento') {
+                // Bloquear por actualización
+                bloqueoOverlay.style.display = 'flex';
+                appContent.style.display = 'none';
+                bloqueoCard.className = 'bloqueo-card mantenimiento'; // Borde amarillo
+                titulo.innerText = "⚙️ En Mantenimiento";
+                titulo.style.color = "var(--accent-warning)";
+                mensaje.innerText = mensajePersonalizado || "Estamos realizando mejoras en su plataforma aislada. El servicio regresará en breve.";
+            }
+        }
+
+        function cerrarSesionSocio() {
+            auth.signOut().then(() => { window.location.reload(); });
+        }
+
+        function manejarRedireccionLogin() {
+            // Aquí puedes forzar un auth.signInWithEmailAndPassword
+            // Para propósitos de prueba, simularemos que no hay sesión:
+            document.getElementById('bloqueo-overlay').style.display = 'flex';
+            document.getElementById('bloqueo-titulo').innerText = "Autenticación Requerida";
+            document.getElementById('bloqueo-mensaje').innerText = "Inicie sesión con su cuenta de administrador de entorno.";
+        }
     </script>
 </body>
 </html>
