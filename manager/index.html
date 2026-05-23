@@ -32,7 +32,7 @@
             <p class="text-slate-400 mb-8 text-sm text-center font-bold">Administración Central de Escuelas</p>
             
             <form id="login-form" class="space-y-4">
-                <input type="email" id="email" required placeholder="Email autorizado (Admin)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
+                <input type="email" id="email" required placeholder="Email autorizado (Dueño)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
                 <input type="password" id="password" required placeholder="Contraseña" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest text-sm shadow-lg shadow-indigo-500/20">
                     Autenticar Sistema
@@ -150,7 +150,7 @@
                     </div>
                     <div>
                         <h2 class="text-xl font-black text-white uppercase tracking-tight">Editar / Bloquear Escuela</h2>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Al alterar el ID, la URL pública cambiará.</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Maneja el acceso general de la institución.</p>
                     </div>
                 </div>
                 <button onclick="closeModal('manageModal')" class="text-slate-500 hover:text-white transition-colors">
@@ -205,7 +205,6 @@
                             <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-emerald-600/20 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">FUNCIONAL</div>
                         </label>
                         <label class="cursor-pointer group">
-                            <!-- Al seleccionar SUSPENDIDO, la app cliente leerá este estado y bloqueará el acceso -->
                             <input type="radio" name="m_status" value="Suspendido" class="hidden peer">
                             <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-red-600/20 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">SUSPENDIDO (MOROSO)</div>
                         </label>
@@ -236,16 +235,17 @@
 
     <script>
         // ==========================================
-        // REEMPLAZAR CON TU CONFIGURACIÓN DE FIREBASE
+        // CONFIGURACIÓN OFICIAL DE FIREBASE
         // ==========================================
         const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "tu-proyecto.firebaseapp.com",
-            databaseURL: "https://tu-proyecto.firebaseio.com",
-            projectId: "tu-proyecto",
-            storageBucket: "tu-proyecto.appspot.com",
-            messagingSenderId: "TU_SENDER_ID",
-            appId: "TU_APP_ID"
+            apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
+            authDomain: "tenant-escuela.firebaseapp.com",
+            databaseURL: "https://tenant-escuela-default-rtdb.firebaseio.com",
+            projectId: "tenant-escuela",
+            storageBucket: "tenant-escuela.firebasestorage.app",
+            messagingSenderId: "456023877565",
+            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4",
+            measurementId: "G-ZK03Q0855K"
         };
 
         if (!firebase.apps.length) {
@@ -255,13 +255,13 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // RUTA BASE DONDE ESTARÁ ALOJADA LA APP DEL CLIENTE (Ej: tu Github Pages)
-        const BASE_CLIENT_URL = "client_app.html"; 
+        // Generador dinámico de URL para el cliente.
+        // Asume que "app_cliente.html" estará en la misma carpeta que el saas_master.
+        const BASE_CLIENT_FILE = "app_cliente.html"; 
         
         let currentTenants = [];
         let editingId = null;
 
-        // Utilidades UI
         const showToast = (msg, type = 'success') => {
             const container = document.getElementById('toast-container');
             const t = document.createElement('div');
@@ -302,9 +302,15 @@
             lucide.createIcons();
         });
 
-        const verSitioSocio = (tenantId) => { window.open(`${BASE_CLIENT_URL}?id=${encodeURIComponent(tenantId)}`, '_blank'); };
+        // Obtiene la ruta actual y reemplaza este archivo por app_cliente.html para generar el link
+        function getClientUrl(tenantId) {
+            let currentUrl = window.location.href.split('?')[0]; // quita parametros si los hay
+            let basePath = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+            return basePath + BASE_CLIENT_FILE + "?id=" + encodeURIComponent(tenantId);
+        }
 
-        // Core Data: Escucha la colección maestra 'tenants' en Firestore
+        const verSitioSocio = (tenantId) => { window.open(getClientUrl(tenantId), '_blank'); };
+
         function loadData() {
             db.collection('tenants').onSnapshot((snap) => {
                 const list = document.getElementById('tenant-list');
@@ -319,7 +325,7 @@
                     const badge = t.estado === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (t.estado === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
                     const waLink = `https://wa.me/${t.telefono ? t.telefono.replace(/\D/g,'') : ''}?text=${encodeURIComponent('Hola ' + t.empresa + ', te contactamos de soporte técnico de la plataforma escolar.')}`;
                     
-                    const tenantUrl = `${window.location.origin}/${BASE_CLIENT_URL}?id=${encodeURIComponent(id)}`;
+                    const tenantUrl = getClientUrl(id);
 
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-800/30 transition-all border-b border-slate-700/30 group";
@@ -328,7 +334,7 @@
                             <div class="font-black text-white text-xs uppercase group-hover:text-indigo-400 transition-colors">${t.empresa}</div>
                             <div class="text-[10px] text-indigo-300 font-bold mt-1">ID: ${id}</div>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[9px] text-slate-500 font-mono tracking-widest bg-slate-900/60 px-2 py-0.5 rounded truncate max-w-[200px] border border-slate-700/50">${tenantUrl}</span>
+                                <span class="text-[9px] text-slate-500 font-mono tracking-widest bg-slate-900/60 px-2 py-0.5 rounded truncate max-w-[200px] border border-slate-700/50" title="${tenantUrl}">${tenantUrl}</span>
                                 <button onclick="copyToClipboard('${tenantUrl}')" class="text-indigo-400 hover:text-indigo-300" title="Copiar URL"><i data-lucide="copy" class="w-3 h-3"></i></button>
                             </div>
                         </td>
@@ -370,7 +376,6 @@
             });
         }
 
-        // Crear nueva Institución
         document.getElementById('btn-create').addEventListener('click', async () => {
             const id = document.getElementById('new-id').value.trim().toLowerCase().replace(/\s+/g, '_');
             const uid = document.getElementById('new-uid').value.trim(); 
@@ -399,7 +404,6 @@
             } catch (e) { showToast("Error al desplegar escuela: " + e.message, "error"); }
         });
 
-        // Abrir Modal de edición
         window.openEdit = (id) => {
             editingId = id;
             const t = currentTenants.find(x => x.id === id);
@@ -416,10 +420,7 @@
             const rads = document.getElementsByName('m_status');
             let matched = false;
             for(let r of rads) {
-                if(r.value === t.estado) {
-                    r.checked = true;
-                    matched = true;
-                }
+                if(r.value === t.estado) { r.checked = true; matched = true; }
             }
             if(!matched && rads.length > 0) rads[0].checked = true;
             
@@ -428,7 +429,6 @@
 
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
-        // Guardar Edición 
         document.getElementById('btn-save-edit').addEventListener('click', async () => {
             const newUid = document.getElementById('edit-uid').value.trim();
             const newName = document.getElementById('edit-name').value.trim();
@@ -444,14 +444,8 @@
             if(!newName || !newUid) return showToast("El UID y Nombre son obligatorios", "error");
 
             const updatedData = {
-                empresa: newName,
-                adminUid: newUid,
-                tipoPlan: newPlan,
-                telefono: newTel,
-                montoContrato: Number(newMonto),
-                fechaCorte: newCorte,
-                estado: status,
-                htmlMora: hMora
+                empresa: newName, adminUid: newUid, tipoPlan: newPlan, telefono: newTel,
+                montoContrato: Number(newMonto), fechaCorte: newCorte, estado: status, htmlMora: hMora
             };
 
             try {
