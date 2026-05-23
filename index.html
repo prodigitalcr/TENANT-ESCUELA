@@ -401,17 +401,20 @@
 
     <script>
         // ============================================
-        // CONFIGURACIÓN FIREBASE SAAS
+        // CONFIGURACIÓN FIREBASE SAAS (TENANT ESCUELA)
         // ============================================
+        // Configuración actualizada insertada en el formato compatible con SDK v8.10.0
         const firebaseConfig = {
-            apiKey: "AIzaSyBpGu9Bnr5pQhNBK4kYpoh4GuLkR4CED4c",
-            authDomain: "escuela-la-carpio.firebaseapp.com",
-            projectId: "escuela-la-carpio",
-            storageBucket: "escuela-la-carpio.firebasestorage.app",
-            messagingSenderId: "163331007154",
-            appId: "1:163331007154:web:2465b1068d6b356cbadfab",
-            measurementId: "G-8EBFX04XVC"
+            apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
+            authDomain: "tenant-escuela.firebaseapp.com",
+            databaseURL: "https://tenant-escuela-default-rtdb.firebaseio.com",
+            projectId: "tenant-escuela",
+            storageBucket: "tenant-escuela.firebasestorage.app",
+            messagingSenderId: "456023877565",
+            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4",
+            measurementId: "G-ZK03Q0855K"
         };
+        
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const firestore = firebase.firestore();
