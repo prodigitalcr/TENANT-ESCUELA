@@ -139,7 +139,7 @@
         </main>
     </div>
 
-    <!-- Modal de Configuración (Bloqueos y Edición Completa) -->
+    <!-- Modal de Configuración -->
     <div id="manageModal" class="fixed inset-0 bg-[#0b1120]/95 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-[#1e293b] border border-slate-600 w-full max-w-4xl rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             
@@ -163,7 +163,6 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/30 p-5 rounded-3xl border border-slate-700/50">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1 flex items-center gap-1"><i data-lucide="link" class="w-3 h-3"></i> ID Único (Inmutable)</label>
-                        <!-- SE HIZO READONLY: No se puede editar para proteger la base de datos de la escuela -->
                         <input type="text" id="edit-id" readonly title="El ID de la URL no se puede cambiar para no perder los datos de la escuela." class="w-full bg-[#0f172a] border border-slate-700 p-3 rounded-xl outline-none text-sm font-mono text-slate-500 cursor-not-allowed opacity-70 transition-all">
                     </div>
                     <div class="space-y-1">
@@ -236,23 +235,28 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN CENTRAL FIREBASE
+        // ==========================================
+        // REEMPLAZAR CON TU CONFIGURACIÓN DE FIREBASE
+        // ==========================================
         const firebaseConfig = {
-            apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
-            authDomain: "tenant-escuela.firebaseapp.com",
-            projectId: "tenant-escuela",
-            storageBucket: "tenant-escuela.firebasestorage.app",
-            messagingSenderId: "456023877565",
-            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4",
-            measurementId: "G-ZK03Q0855K"
+            apiKey: "TU_API_KEY",
+            authDomain: "tu-proyecto.firebaseapp.com",
+            databaseURL: "https://tu-proyecto.firebaseio.com",
+            projectId: "tu-proyecto",
+            storageBucket: "tu-proyecto.appspot.com",
+            messagingSenderId: "TU_SENDER_ID",
+            appId: "TU_APP_ID"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // RUTA BASE DE TU APP MULTI-TENANT EN GITHUB PAGES
-        const BASE_CLIENT_URL = "https://prodigitalcr.github.io/TENANT-ESCUELA/"; 
+        // RUTA BASE DONDE ESTARÁ ALOJADA LA APP DEL CLIENTE (Ej: tu Github Pages)
+        const BASE_CLIENT_URL = "client_app.html"; 
         
         let currentTenants = [];
         let editingId = null;
@@ -298,10 +302,9 @@
             lucide.createIcons();
         });
 
-        // Visitar app de la escuela
         const verSitioSocio = (tenantId) => { window.open(`${BASE_CLIENT_URL}?id=${encodeURIComponent(tenantId)}`, '_blank'); };
 
-        // Core Data: Escucha la colección maestra 'tenants'
+        // Core Data: Escucha la colección maestra 'tenants' en Firestore
         function loadData() {
             db.collection('tenants').onSnapshot((snap) => {
                 const list = document.getElementById('tenant-list');
@@ -310,24 +313,23 @@
 
                 snap.forEach(d => {
                     const t = d.data();
-                    const id = d.id; // El ID de documento es el parámetro de la URL
+                    const id = d.id; 
                     currentTenants.push({ id, ...t });
 
                     const badge = t.estado === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (t.estado === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
                     const waLink = `https://wa.me/${t.telefono ? t.telefono.replace(/\D/g,'') : ''}?text=${encodeURIComponent('Hola ' + t.empresa + ', te contactamos de soporte técnico de la plataforma escolar.')}`;
                     
-                    // URL Generada Automáticamente
-                    const tenantUrl = `${BASE_CLIENT_URL}?id=${encodeURIComponent(id)}`;
+                    const tenantUrl = `${window.location.origin}/${BASE_CLIENT_URL}?id=${encodeURIComponent(id)}`;
 
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-800/30 transition-all border-b border-slate-700/30 group";
                     row.innerHTML = `
                         <td class="p-6">
                             <div class="font-black text-white text-xs uppercase group-hover:text-indigo-400 transition-colors">${t.empresa}</div>
-                            <div class="text-[10px] text-indigo-300 font-bold mt-1">ID (URL): ${id}</div>
+                            <div class="text-[10px] text-indigo-300 font-bold mt-1">ID: ${id}</div>
                             <div class="flex items-center gap-2 mt-1">
                                 <span class="text-[9px] text-slate-500 font-mono tracking-widest bg-slate-900/60 px-2 py-0.5 rounded truncate max-w-[200px] border border-slate-700/50">${tenantUrl}</span>
-                                <button onclick="copyToClipboard('${tenantUrl}')" class="text-indigo-400 hover:text-indigo-300" title="Copiar URL para la junta"><i data-lucide="copy" class="w-3 h-3"></i></button>
+                                <button onclick="copyToClipboard('${tenantUrl}')" class="text-indigo-400 hover:text-indigo-300" title="Copiar URL"><i data-lucide="copy" class="w-3 h-3"></i></button>
                             </div>
                         </td>
                         <td class="p-6">
@@ -368,10 +370,10 @@
             });
         }
 
-        // Crear nueva Institución / Tenant
+        // Crear nueva Institución
         document.getElementById('btn-create').addEventListener('click', async () => {
-            const id = document.getElementById('new-id').value.trim().toLowerCase().replace(/\s+/g, '_'); // Reemplaza espacios por guiones bajos
-            const uid = document.getElementById('new-uid').value.trim(); // UID del admin
+            const id = document.getElementById('new-id').value.trim().toLowerCase().replace(/\s+/g, '_');
+            const uid = document.getElementById('new-uid').value.trim(); 
             const name = document.getElementById('new-name').value.trim();
             const plan = document.getElementById('new-plan').value;
             const tel = document.getElementById('new-tel').value.trim();
@@ -381,7 +383,6 @@
             if(!id || !name || !corte || !uid) return showToast("Falta ID, UID, Nombre o Fecha", "error");
 
             try {
-                // Escribe usando el ID ingresado como Document ID
                 await db.collection('tenants').doc(id).set({
                     empresa: name,
                     adminUid: uid,
@@ -390,7 +391,7 @@
                     montoContrato: Number(monto),
                     fechaCorte: corte,
                     estado: 'Activo',
-                    htmlMora: '<h1>Plataforma Suspendida</h1><p>Comuníquese con administración.</p>'
+                    htmlMora: '<div style="background:#111; color:white; height:100vh; display:flex; justify-content:center; align-items:center; flex-direction:column; font-family:sans-serif;"><h1>🛑 Plataforma Suspendida</h1><p>Por favor comuníquese con la administración central para reactivar su servicio.</p></div>'
                 });
                 
                 showToast("Nueva escuela activada en Firestore", "success");
@@ -398,24 +399,20 @@
             } catch (e) { showToast("Error al desplegar escuela: " + e.message, "error"); }
         });
 
-        // Abrir Modal y cargar todos los datos
+        // Abrir Modal de edición
         window.openEdit = (id) => {
             editingId = id;
             const t = currentTenants.find(x => x.id === id);
             
-            // Cargar datos editables
-            document.getElementById('edit-id').value = id; // El ID actual (ahora es inmutable en UI)
+            document.getElementById('edit-id').value = id;
             document.getElementById('edit-uid').value = t.adminUid || '';
             document.getElementById('edit-name').value = t.empresa || '';
             document.getElementById('edit-plan').value = t.tipoPlan || 'Mensual';
             document.getElementById('edit-tel').value = t.telefono || '';
             document.getElementById('edit-monto').value = t.montoContrato || 0;
             document.getElementById('edit-corte').value = t.fechaCorte || '';
-            
-            // Cargar bloqueos
             document.getElementById('m_html_mora').value = t.htmlMora || '';
             
-            // Asegurar que un radio button se marque correctamente o usar 'Activo' por defecto
             const rads = document.getElementsByName('m_status');
             let matched = false;
             for(let r of rads) {
@@ -424,16 +421,15 @@
                     matched = true;
                 }
             }
-            if(!matched && rads.length > 0) rads[0].checked = true; // Fallback de seguridad
+            if(!matched && rads.length > 0) rads[0].checked = true;
             
             document.getElementById('manageModal').classList.remove('hidden');
         };
 
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
-        // Guardar Edición Completa y Cambios de Bloqueo
+        // Guardar Edición 
         document.getElementById('btn-save-edit').addEventListener('click', async () => {
-            // Ya no leemos el edit-id porque es inmutable. Usamos directamente editingId.
             const newUid = document.getElementById('edit-uid').value.trim();
             const newName = document.getElementById('edit-name').value.trim();
             const newPlan = document.getElementById('edit-plan').value;
@@ -441,7 +437,6 @@
             const newMonto = document.getElementById('edit-monto').value;
             const newCorte = document.getElementById('edit-corte').value;
             
-            // Validación segura del estado
             const statusNode = document.querySelector('input[name="m_status"]:checked');
             const status = statusNode ? statusNode.value : 'Activo';
             const hMora = document.getElementById('m_html_mora').value;
@@ -460,9 +455,7 @@
             };
 
             try {
-                // Simplemente actualizamos el documento. NUNCA lo borramos ni lo recreamos.
                 await db.collection('tenants').doc(editingId).update(updatedData);
-                
                 showToast("Datos y estado actualizados correctamente", "success");
                 closeModal('manageModal');
             } catch (e) { showToast("Error de sincronización: " + e.message, "error"); }
@@ -476,7 +469,6 @@
                 } catch(e) { showToast("Error al eliminar", "error"); }
             }
         };
-
     </script>
 </body>
 </html>
