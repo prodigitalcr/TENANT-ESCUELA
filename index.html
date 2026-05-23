@@ -36,6 +36,7 @@
             --bg-dark: #f0f4f8; --bg-darker: #e2e8f0; --bg-card: #ffffff; --bg-hover: #f1f5f9;
             --text-primary: #1e293b; --text-secondary: #475569; --text-muted: #64748b;
             --border-subtle: #cbd5e1; --border-light: #94a3b8; --shadow-glow: 0 0 20px rgba(0, 184, 212, 0.15);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
         }
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -57,7 +58,9 @@
 
         #home-view { background: transparent; justify-content: center; cursor: pointer; }
         .home-clock { font-size: 5.5rem; font-weight: 800; color: rgba(255, 255, 255, 0.95); text-shadow: 0 8px 30px rgba(0, 0, 0, 0.7); margin-bottom: 10px; letter-spacing: 2px; text-align: center; }
+        body.light-theme .home-clock { color: var(--text-primary); text-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .home-subtitle { font-size: 1.2rem; color: rgba(255, 255, 255, 0.9); text-shadow: 0 4px 15px rgba(0, 0, 0, 0.6); text-align: center; background: rgba(0, 0, 0, 0.5); padding: 12px 28px; border-radius: 30px; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        body.light-theme .home-subtitle { background: rgba(0,0,0,0.1); border-color: rgba(0,0,0,0.2); color: var(--text-primary); text-shadow: none; }
 
         .card { background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 32px; border-radius: var(--radius-lg); width: 100%; max-width: 480px; box-shadow: var(--shadow-lg); animation: slide-up 0.5s ease-out; transition: all var(--transition-normal); position: relative; overflow: hidden; margin: auto; margin-bottom: 20px; flex-shrink: 0; }
         .card:hover { border-color: var(--border-light); box-shadow: var(--shadow-lg), var(--shadow-glow); transform: translateY(-2px); }
@@ -103,6 +106,7 @@
         #resBox h3 { margin: 0; font-size: 1rem; color: var(--text-secondary); }
         #resBox.moroso-box { background: rgba(255, 68, 68, 0.1); border-color: var(--accent-danger); animation: danger-pulse 1.5s infinite; }
         #resBox.moroso-box h2 { color: var(--accent-danger); }
+        @keyframes danger-pulse { 0%, 100% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); } 50% { box-shadow: 0 0 20px rgba(255, 68, 68, 0.5); } }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: none; padding: 24px; overflow-y: auto; flex-direction: column; align-items: center; justify-content: flex-start; backdrop-filter: blur(5px); }
 
@@ -143,6 +147,8 @@
             flex-direction: column; align-items: center; justify-content: center;
             padding: 20px; text-align: center; color: white;
         }
+
+        .custom-logo { max-height: 40px; border-radius: 4px; margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -163,18 +169,23 @@
             `);
             throw new Error("Tenant ID no proporcionado o formato inválido. Sistema detenido por seguridad.");
         }
+
+        // Cargar tema
+        if(localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
     </script>
 
     <!-- Overlay Suspensión SaaS -->
     <div id="saas-block-overlay"></div>
 
     <!-- INPUTS OCULTOS -->
-    <input type="file" id="bgUploader" accept="image/*" style="display:none;" onchange="procesarSubidaFondo(event)">
     <input type="file" id="logoUploader" accept="image/png, image/jpeg" style="display:none;" onchange="procesarSubidaLogo(event)">
+    <input type="file" id="csvUploader" accept=".csv" style="display:none;" onchange="procesarSubidaCSV(event)">
 
     <!-- NAVBAR -->
     <div class="navbar no-print" id="main-navbar">
-        <div class="navbar-title" id="nav-logo-container">🤖 Asistencia IA <span style="font-size: 0.7em; color: var(--text-muted);">| <script>document.write(TENANT_ID);</script></span></div>
+        <div class="navbar-title" id="nav-logo-container">
+            🤖 Asistencia IA <span style="font-size: 0.7em; color: var(--text-muted);">| <script>document.write(TENANT_ID);</script></span>
+        </div>
         <div class="navbar-actions">
             <button class="btn btn-s" onclick="mostrarVista('register-view')" title="Registro General">📝 Registrarse</button>
             <button class="btn btn-w" onclick="mostrarVista('parent-view')" title="Consulta para padres">👨‍👩‍👧 Padres</button>
@@ -296,8 +307,9 @@
         <div class="panel-header">
             <h1>⚙️ Administración de Escuela</h1>
             <div class="panel-header-actions">
+                <button class="btn btn-w" onclick="toggleTema()">🌓 TEMA</button>
                 <button class="btn btn-s" onclick="editarNumeroJunta()">📱 TEL</button>
-                <button class="btn btn-i" onclick="document.getElementById('bgUploader').click()">🖼️ FONDO</button>
+                <button class="btn btn-i" onclick="document.getElementById('logoUploader').click()">🖼️ LOGO</button>
                 <button class="btn btn-m" onclick="mostrarEstadisticas()">📈 STATS</button>
                 <button class="btn btn-d" onclick="cerrarMaster()">❌ SALIR</button>
             </div>
@@ -313,9 +325,8 @@
             <div class="power-bar no-print">
                 <div class="power-bar-actions">
                     <button class="btn btn-i" onclick="agregarMiembroManual()">➕ AGREGAR</button>
-                    <button class="btn btn-m" onclick="sincronizarConNube()">💾 GUARDAR</button>
-                    <button class="btn btn-s" onclick="imprimirTodosLosCarnets()">📇 CARNÉS</button>
-                    <button class="btn btn-w" onclick="exportarCSV()">📥 EXPORTAR CSV</button>
+                    <button class="btn btn-dark" onclick="document.getElementById('csvUploader').click()">📥 IMPORTAR CSV</button>
+                    <button class="btn btn-s" onclick="exportarPDFMiembros()">📄 PDF MIEMBROS</button>
                     <span id="admin-ai-status" class="ai-status" style="margin-left: 15px;">IA No cargada</span>
                 </div>
             </div>
@@ -332,12 +343,14 @@
             <div class="power-bar no-print">
                 <div style="display:flex; gap:10px; align-items:center;">
                     <label style="color: var(--text-secondary); font-weight:bold;">Fecha:</label>
-                    <input type="date" id="reportDate" style="margin:0; max-width:150px;">
+                    <input type="date" id="reportDate" style="margin:0; max-width:150px;" onchange="filtrarVistaReporte('TODOS')">
                 </div>
                 <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;">
                     <button class="btn btn-s" onclick="filtrarVistaReporte('ENTRADA')">Llegaron</button>
                     <button class="btn btn-m" onclick="filtrarVistaReporte('SALIDA')">Salieron</button>
                     <button class="btn btn-i" onclick="filtrarVistaReporte('TODOS')">Todos</button>
+                    <button class="btn btn-w" onclick="exportarPDFReporte()">📄 PDF REPORTE</button>
+                    <button class="btn btn-d" onclick="borrarDiaReporte()">🗑️ BORRAR DÍA</button>
                 </div>
             </div>
             <h2 id="tituloReporte" style="color:var(--accent-primary); text-align:center; margin:20px 0;">Seleccione un filtro</h2>
@@ -361,7 +374,7 @@
             <h2 style="color:var(--accent-danger); margin: 25px 0 10px 0;">⚠️ Intentos Fuera de Rango</h2>
             <div style="overflow-x: auto;">
                 <table>
-                    <thead><tr><th>Fecha/Hora</th><th>Código</th><th>Nombre</th><th>Distancia</th></tr></thead>
+                    <thead><tr><th>Fecha/Hora</th><th>Código</th><th>Nombre</th><th>Distancia</th><th>Acciones</th></tr></thead>
                     <tbody id="tablaLogsLejanos"></tbody>
                 </table>
             </div>
@@ -395,17 +408,6 @@
                 <button class="btn btn-s" onclick="guardarEdicionMiembro()">Guardar Cambios</button>
                 <button class="btn btn-d" onclick="document.getElementById('edit-member-modal').style.display='none'">Cancelar</button>
             </div>
-        </div>
-    </div>
-
-    <!-- MODAL CAPTURA ROSTRO ADMIN -->
-    <div id="face-modal" class="modal-overlay">
-        <div class="card" style="text-align:center; max-width: 500px;">
-            <h2 id="modalFaceTitle">📸 Registrar Rostro</h2>
-            <p>Usuario: <b id="modal-student-name"></b></p>
-            <div id="reg-video-container" class="video-container active"><video id="reg-video" autoplay muted playsinline></video><canvas id="reg-canvas"></canvas></div>
-            <p id="reg-status" class="ai-status">Buscando rostro...</p>
-            <div class="btn-group"><button id="btnCaptureFace" class="btn btn-s" disabled onclick="capturarYGuardarRostro()">Guardar</button><button class="btn btn-d" onclick="cerrarFaceModal()">Cancelar</button></div>
         </div>
     </div>
 
@@ -453,7 +455,7 @@
         const auth = firebase.auth();
         const firestore = firebase.firestore();
 
-        // CONEXIÓN MULTI-TENANT: Todo va a tenants/TENANT_ID/...
+        // CONEXIÓN MULTI-TENANT
         const dbTenant = firestore.collection('tenants').doc(TENANT_ID);
 
         let NUMERO_OFICIAL_JUNTA = "88888888"; 
@@ -464,10 +466,13 @@
 
         document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
         
-        // Funciones stub para evitar errores con los inputs de archivo
-        function procesarSubidaFondo(e) { console.log("Subida de fondo no implementada", e); }
-        function procesarSubidaLogo(e) { console.log("Subida de logo no implementada", e); }
         function agregarMiembroManual() { showCustomAlert("Aviso", "Usa el Registro General en la pantalla principal para capturar los datos y el rostro.", "info"); }
+
+        function toggleTema() {
+            document.body.classList.toggle('light-theme');
+            const mode = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+            localStorage.setItem('theme', mode);
+        }
 
         // ============================================
         // SISTEMA DE ALERTAS / PROMPT CUSTOM
@@ -521,7 +526,6 @@
         // ============================================
         dbTenant.onSnapshot((snap) => {
             if(!snap.exists) {
-                // Si el tenant no existe, bloqueamos la app temporalmente
                 document.getElementById('saas-block-overlay').innerHTML = '<h1 style="color:var(--accent-danger);">⛔ ESCUELA NO ENCONTRADA</h1><p style="margin-top:10px;">Verifique que la URL es correcta.</p>';
                 document.getElementById('saas-block-overlay').style.display = 'flex';
                 return;
@@ -532,17 +536,14 @@
 
             if(data && data.numeroJunta) NUMERO_OFICIAL_JUNTA = data.numeroJunta;
 
-            // Bloquear si el estado no es "Activo"
             if(data && (data.estado === 'Suspendido' || data.estado === 'Mantenimiento')) {
                 overlay.innerHTML = data.htmlMora || `<h1 style="color:var(--accent-danger);">⛔ SERVICIO ${data.estado.toUpperCase()}</h1><p style="margin-top:10px;">Contacte al administrador para regularizar su estado.</p>`;
                 overlay.style.display = 'flex';
-                detenerCamaras(); // Detener cualquier cámara en uso
+                detenerCamaras(); 
             } else {
                 overlay.style.display = 'none';
             }
-        }, (error) => {
-            console.error("Error leyendo estado del Tenant:", error);
-        });
+        }, (error) => { console.error("Error leyendo estado del Tenant:", error); });
 
         // ============================================
         // SINCRONIZACIÓN DE DATOS (FIRESTORE)
@@ -556,6 +557,14 @@
             } 
         });
 
+        dbTenant.collection('config').doc('apariencia').onSnapshot((doc) => {
+            if(doc.exists && doc.data().logo) {
+                const imgStr = doc.data().logo;
+                const container = document.getElementById('nav-logo-container');
+                container.innerHTML = `<img src="${imgStr}" class="custom-logo"> ${TENANT_ID}`;
+            }
+        });
+
         dbTenant.collection('personas').onSnapshot((snapshot) => { 
             db.personas = {};
             snapshot.forEach(doc => { db.personas[doc.id] = doc.data(); });
@@ -563,9 +572,10 @@
             construirFaceMatcher(); 
         });
 
-        dbTenant.collection('logs').orderBy('fechaISO', 'desc').limit(200).onSnapshot((snapshot) => {
+        dbTenant.collection('logs').orderBy('fechaISO', 'desc').limit(500).onSnapshot((snapshot) => {
             logsGlobal = [];
             snapshot.forEach(doc => logsGlobal.push({idDoc: doc.id, ...doc.data()}));
+            filtrarVistaReporte('TODOS');
         });
 
         dbTenant.collection('logs_lejanos').orderBy('hora', 'desc').limit(50).onSnapshot((snapshot) => {
@@ -579,7 +589,92 @@
             if(!tb) return;
             tb.innerHTML = '';
             logsLejanosGlobal.forEach(l => {
-                tb.innerHTML += `<tr><td>${l.hora}</td><td>${l.id || '-'}</td><td>${l.nombre}</td><td style="color:var(--accent-danger); font-weight:bold;">${Math.round(l.distancia)}m</td></tr>`;
+                let tel = db.personas[l.id]?.telefono;
+                let btnWa = tel ? `<button class="btn btn-w" style="padding: 4px 8px; font-size: 0.7rem;" onclick="window.open('https://wa.me/${tel}', '_blank')">💬 WA</button>` : '';
+                tb.innerHTML += `<tr>
+                    <td>${l.hora}</td><td>${l.id || '-'}</td><td>${l.nombre}</td>
+                    <td style="color:var(--accent-danger); font-weight:bold;">${Math.round(l.distancia)}m</td>
+                    <td>
+                        <div class="btn-group" style="margin:0;">
+                            ${btnWa}
+                            <button class="btn btn-d" style="padding: 4px 8px; font-size: 0.7rem;" onclick="borrarLogLejano('${l.idDoc}')">🗑️</button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        function borrarLogLejano(docId) {
+            dbTenant.collection('logs_lejanos').doc(docId).delete();
+        }
+
+        function procesarSubidaLogo(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const b64 = evt.target.result;
+                dbTenant.collection('config').doc('apariencia').set({logo: b64}, {merge:true})
+                .then(() => showCustomAlert("Éxito", "Logo actualizado.", "success"));
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function procesarSubidaCSV(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const text = evt.target.result;
+                const rows = text.split('\n');
+                let count = 0;
+                rows.forEach((row, i) => {
+                    if(i === 0 || !row.trim()) return; 
+                    const cols = row.split(',');
+                    if(cols.length >= 2) {
+                        const id = cols[0].trim();
+                        const nombre = cols[1].trim();
+                        const rol = cols[2] ? cols[2].trim() : 'Estudiante';
+                        const puesto = cols[3] ? cols[3].trim() : '';
+                        const tel = cols[4] ? cols[4].trim() : '';
+                        if(id && nombre) {
+                            dbTenant.collection('personas').doc(id).set({
+                                nombre: nombre, tipoUsuario: rol, puesto: puesto, telefono: tel, estado: 'Activo'
+                            }, {merge:true});
+                            count++;
+                        }
+                    }
+                });
+                showCustomAlert("Importación completada", `Se importaron ${count} registros desde el CSV.`, "success");
+            };
+            reader.readAsText(file);
+        }
+
+        function exportarPDFMiembros() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text(`Directorio - ${TENANT_ID}`, 14, 15);
+            doc.autoTable({ html: '#tabla-miembros-pdf', startY: 20 });
+            doc.save("Directorio_Actualizado.pdf");
+        }
+
+        function exportarPDFReporte() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text(`Reporte de Asistencia: ${document.getElementById('reportDate').value}`, 14, 15);
+            doc.autoTable({ html: '#tabla-logs-final', startY: 20 });
+            doc.save("Reporte_Asistencia.pdf");
+        }
+
+        function duplicarMiembro(idOrig) {
+            const p = db.personas[idOrig];
+            if(!p) return;
+            showCustomPrompt("Duplicar Registro", "Escriba la nueva cédula o ID para la copia:", idOrig + "-COPIA", (nuevoId) => {
+                if(nuevoId && nuevoId !== idOrig) {
+                    dbTenant.collection('personas').doc(nuevoId).set({
+                        ...p, nombre: p.nombre + " (Copia)", descriptor: null 
+                    }).then(() => showCustomAlert("Éxito", "Usuario duplicado correctamente.", "success"));
+                }
             });
         }
 
@@ -609,11 +704,8 @@
             const title = document.getElementById('login-title');
 
             passInput.value = '';
-            if (tipo === 'admin') {
-                title.innerHTML = `🔓 Panel Director`;
-            } else if (tipo === 'escaner') {
-                title.innerHTML = `📷 Escáner Geo Cerca`;
-            }
+            if (tipo === 'admin') title.innerHTML = `🔓 Panel Director`;
+            else if (tipo === 'escaner') title.innerHTML = `📷 Escáner Geo Cerca`;
             modal.style.display = 'flex';
         }
 
@@ -623,35 +715,23 @@
             const email = document.getElementById('loginEmail').value.trim();
             const pass = document.getElementById('loginPass').value;
 
-            if (!email || !pass) {
-                showCustomAlert("Error", "Ingrese correo y contraseña.", "error");
-                return;
-            }
+            if (!email || !pass) return showCustomAlert("Error", "Ingrese correo y contraseña.", "error");
 
             auth.signInWithEmailAndPassword(email, pass)
                 .then(async (userCred) => {
                     cerrarLogin();
-                    
-                    // Verificación Básica: El panel Master de SaaS delega los permisos al Admin
-                    // mediante las reglas de Firestore. Si las reglas fallan, la UI reaccionará, 
-                    // pero podemos hacer un chequeo de cortesía:
                     const tDoc = await dbTenant.get();
                     if(tDoc.exists && contextoLogin === 'admin' && tDoc.data().adminUid !== userCred.user.uid) {
-                        showCustomAlert("Advertencia", "Has iniciado sesión, pero tu cuenta podría no tener permisos de administrador para esta escuela.", "warning");
+                        showCustomAlert("Advertencia", "Tu cuenta podría no tener permisos de administrador SaaS.", "warning");
                     }
-
                     if (contextoLogin === 'admin') {
                         document.getElementById('master-panel').style.display = 'block';
                         inicializarIA();
                         resetIdleTimer();
                         renderAlumnos();
-                    } else if (contextoLogin === 'escaner') {
-                        mostrarVista('scan-view');
-                    }
+                    } else if (contextoLogin === 'escaner') mostrarVista('scan-view');
                 })
-                .catch((error) => {
-                    showCustomAlert("Acceso Denegado", "Credenciales incorrectas.", "error");
-                });
+                .catch(() => showCustomAlert("Acceso Denegado", "Credenciales incorrectas.", "error"));
         }
 
         // ============================================
@@ -672,16 +752,13 @@
             }
         }
 
-        ['mousemove', 'touchstart', 'click', 'keydown', 'scroll'].forEach(evt => {
-            document.addEventListener(evt, resetIdleTimer);
-        });
+        ['mousemove', 'touchstart', 'click', 'keydown', 'scroll'].forEach(evt => { document.addEventListener(evt, resetIdleTimer); });
 
         function updateIdleClock() {
             const now = new Date();
             let h = now.getHours(); let m = now.getMinutes();
             const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12; h = h ? h : 12;
-            m = m < 10 ? '0' + m : m;
+            h = h % 12; h = h ? h : 12; m = m < 10 ? '0' + m : m;
             const clockEl = document.getElementById('home-clock-time');
             if(clockEl) clockEl.innerText = h + ':' + m + ' ' + ampm;
             setTimeout(updateIdleClock, 5000);
@@ -694,8 +771,7 @@
                 const osc = ctx.createOscillator(); const gain = ctx.createGain();
                 osc.connect(gain); gain.connect(ctx.destination);
                 osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(0.08, ctx.currentTime);
-                osc.start(); osc.stop(ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.08, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.12);
             } catch(e) {}
         }
 
@@ -713,11 +789,9 @@
 
         function calcularDistancia(lat1, lon1, lat2, lon2) {
             const R = 6371000;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c; 
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); return R * c; 
         }
 
         let iaCargada = false;
@@ -741,17 +815,12 @@
                 iaCargada = true;
                 actualizarEstadoIA("✅ Inteligencia Artificial Lista");
                 construirFaceMatcher();
-            } catch (err) {
-                console.error(err);
-                actualizarEstadoIA("❌ Error cargando IA. Revise conexión.");
-            }
+            } catch (err) { actualizarEstadoIA("❌ Error cargando IA. Revise conexión."); }
         }
 
         function actualizarEstadoIA(msg) {
-            const els = ['scan-ai-status', 'query-ai-status', 'admin-ai-status'];
-            els.forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.innerText = msg;
+            ['scan-ai-status', 'query-ai-status', 'admin-ai-status'].forEach(id => {
+                const el = document.getElementById(id); if(el) el.innerText = msg;
             });
         }
 
@@ -774,24 +843,19 @@
 
             if (!scannerActivo) {
                 if(!iaCargada) { btn.innerHTML = `⏳ Cargando IA...`; await inicializarIA(); }
-                if(!faceMatcher) { showCustomAlert("Aviso", "No hay rostros registrados en el sistema.", "warning"); return; }
+                if(!faceMatcher) { showCustomAlert("Aviso", "No hay rostros registrados.", "warning"); return; }
                 try {
                     streamActual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                     const video = document.getElementById('scan-video');
-                    video.srcObject = streamActual;
-                    container.classList.add('active', 'scanning');
+                    video.srcObject = streamActual; container.classList.add('active', 'scanning');
                     btn.innerHTML = `🛑 Detener Escáner`; btn.classList.replace('btn-i', 'btn-d');
-                    scannerActivo = true;
-                    video.addEventListener('play', loopReconocimiento);
-                    actualizarEstadoIA("👁️ Escáner Activo.");
-                    resetIdleTimer();
+                    scannerActivo = true; video.addEventListener('play', loopReconocimiento);
+                    actualizarEstadoIA("👁️ Escáner Activo."); resetIdleTimer();
                 } catch (err) { showCustomAlert("Error", "No se pudo acceder a la cámara.", "error"); }
             } else {
-                detenerCamaras();
-                container.classList.remove('active', 'scanning');
+                detenerCamaras(); container.classList.remove('active', 'scanning');
                 btn.innerHTML = `🟢 Iniciar Escáner`; btn.classList.replace('btn-d', 'btn-i');
-                scannerActivo = false; actualizarEstadoIA("IA en espera.");
-                resetIdleTimer();
+                scannerActivo = false; actualizarEstadoIA("IA en espera."); resetIdleTimer();
             }
         }
 
@@ -801,130 +865,80 @@
 
         async function loopReconocimiento() {
             if(!scannerActivo) return;
-            const video = document.getElementById('scan-video'); 
-            const canvas = document.getElementById('scan-canvas');
-            
+            const video = document.getElementById('scan-video'); const canvas = document.getElementById('scan-canvas');
             if(video.paused || video.ended) return setTimeout(loopReconocimiento, 100);
 
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
             
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceExpressions().withFaceDescriptor();
-            
-            const ctx = canvas.getContext('2d'); 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if(detection && !enCooldown) {
-                const resized = faceapi.resizeResults(detection, displaySize);
-                const box = resized.detection.box;
-                
+                const box = faceapi.resizeResults(detection, displaySize).detection.box;
                 const match = faceMatcher.findBestMatch(detection.descriptor);
                 
                 if (match.label !== 'unknown' && match.distance < 0.5) {
-                    let idMatch = match.label;
-                    let persona = db.personas[idMatch];
+                    let idMatch = match.label; let persona = db.personas[idMatch];
                     
                     if(persona.estado === 'Moroso') {
-                        ctx.strokeStyle = "rgba(255, 68, 68, 1)";
-                        ctx.lineWidth = 3; 
-                        ctx.strokeRect(box.x, box.y, box.width, box.height);
-                        
-                        mostrarBloqueoMoroso(persona);
-                        enCooldown = true;
-                        setTimeout(() => { enCooldown = false; }, 4000);
+                        ctx.strokeStyle = "rgba(255, 68, 68, 1)"; ctx.lineWidth = 3; ctx.strokeRect(box.x, box.y, box.width, box.height);
+                        mostrarBloqueoMoroso(persona); enCooldown = true; setTimeout(() => { enCooldown = false; }, 4000);
                         return setTimeout(loopReconocimiento, 100);
                     }
 
-                    ctx.strokeStyle = "rgba(0, 255, 136, 1)"; 
-                    ctx.lineWidth = 3; 
-                    ctx.strokeRect(box.x, box.y, box.width, box.height);
-
+                    ctx.strokeStyle = "rgba(0, 255, 136, 1)"; ctx.lineWidth = 3; ctx.strokeRect(box.x, box.y, box.width, box.height);
                     const exps = detection.expressions;
                     const maxE = Object.keys(exps).reduce((a, b) => exps[a] > exps[b] ? a : b);
-                    let emoji = "😐";
-                    if(maxE==='happy') emoji="😄"; else if(maxE==='sad') emoji="😢"; 
-                    else if(maxE==='angry') emoji="😠"; else if(maxE==='surprised') emoji="😲";
+                    let emoji = maxE==='happy'?"😄":maxE==='sad'?"😢":maxE==='angry'?"😠":maxE==='surprised'?"😲":"😐";
 
-                    enCooldown = true;
-                    registrarAsistenciaConGPS(idMatch, maxE, emoji);
-                    
-                    setTimeout(() => { enCooldown = false; }, 4000);
+                    enCooldown = true; registrarAsistenciaConGPS(idMatch, maxE, emoji); setTimeout(() => { enCooldown = false; }, 4000);
                 } else {
-                    ctx.strokeStyle = "rgba(255, 184, 0, 1)";
-                    ctx.lineWidth = 2; 
-                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    ctx.strokeStyle = "rgba(255, 184, 0, 1)"; ctx.lineWidth = 2; ctx.strokeRect(box.x, box.y, box.width, box.height);
                 }
             }
-            
             setTimeout(loopReconocimiento, 150);
         }
 
         function mostrarBloqueoMoroso(persona) {
             playErrorSound();
             const res = document.getElementById('resBox');
-            res.className = "moroso-box"; 
-            res.style.display = 'block';
-            
+            res.className = "moroso-box"; res.style.display = 'block';
             document.getElementById('resNombre').innerHTML = `⛔ ${persona.nombre}`;
             document.getElementById('resMov').innerHTML = `CORTE DE SERVICIO / INACTIVO`;
-
             mostrarMensajeTemp("Acceso denegado: Usuario inactivo o moroso.", "var(--accent-danger)");
-
-            setTimeout(() => { 
-                res.style.display = 'none'; 
-                res.className = ""; 
-            }, 4000);
+            setTimeout(() => { res.style.display = 'none'; res.className = ""; }, 4000);
         }
 
         function registrarAsistenciaConGPS(id, strEmocion, emoticon) {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition((pos) => {
-                    const latDisp = pos.coords.latitude;
-                    const lngDisp = pos.coords.longitude;
-                    const dist = calcularDistancia(latDisp, lngDisp, geoConfig.lat, geoConfig.lng);
-                    
-                    const hISO = new Date().toLocaleDateString('sv-SE');
+                    const dist = calcularDistancia(pos.coords.latitude, pos.coords.longitude, geoConfig.lat, geoConfig.lng);
                     const esLejano = dist > geoConfig.radio;
-
                     if (esLejano) {
                         dbTenant.collection('logs_lejanos').add({
                             id: id, nombre: db.personas[id]?.nombre || "Desconocido",
                             hora: new Date().toLocaleString(), distancia: Math.round(dist)
                         });
                         mostrarMensajeTemp(`⚠️ Fuera de rango (${Math.round(dist)}m). NO registrado.`, "var(--accent-danger)");
-                        playErrorSound();
-                        return;
+                        playErrorSound(); return;
                     }
-                    completarEscaneoBD(id, hISO, strEmocion, emoticon);
-                }, () => {
                     completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), strEmocion, emoticon);
-                }, { enableHighAccuracy: true, timeout: 5000 });
-            } else {
-                completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), strEmocion, emoticon);
-            }
+                }, () => { completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), strEmocion, emoticon); }, { enableHighAccuracy: true, timeout: 5000 });
+            } else completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), strEmocion, emoticon);
         }
 
         function completarEscaneoBD(id, hISO, strEmocion, emoticon) {
             let tipo = "ENTRADA"; 
             dbTenant.collection('logs').add({ 
-                id: id, nombre: db.personas[id].nombre, 
-                hora: new Date().toLocaleString(), fechaISO: hISO, 
-                tipo: tipo, emocion: strEmocion, emoticon: emoticon
+                id: id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: tipo, emocion: strEmocion, emoticon: emoticon
             }).then(() => {
                 playSuccessSound();
-                const res = document.getElementById('resBox'); 
-                res.className = ""; 
-                res.style.display = 'block'; 
-                res.style.background = "rgba(0, 255, 136, 0.1)";
-                
+                const res = document.getElementById('resBox'); res.className = ""; res.style.display = 'block'; res.style.background = "rgba(0, 255, 136, 0.1)";
                 document.getElementById('resNombre').innerHTML = `✅ ${db.personas[id].nombre}`; 
                 document.getElementById('resMov').innerHTML = `${tipo} Registrada <span style="font-size:1.5rem;">${emoticon}</span>`;
-                
                 setTimeout(() => { res.style.display = 'none'; }, 4000);
-            }).catch(e => {
-                console.error("Error al registrar:", e);
-                showCustomAlert("Error", "No se pudo guardar el registro", "error");
-            });
+            }).catch(e => showCustomAlert("Error", "No se pudo guardar el registro", "error"));
         }
 
         function mostrarMensajeTemp(msg, color) {
@@ -939,25 +953,20 @@
             const tb = document.getElementById('tablaAlumnos');
             if(!tb) return;
             tb.innerHTML = '';
-            
             for (let id in db.personas) {
                 let p = db.personas[id];
-                let estadoStr = p.estado === 'Moroso' 
-                    ? `<span class="status-badge status-moroso-badge">⛔ Inactivo</span>` 
-                    : `<span class="status-badge status-in">✅ Activo</span>`;
-
+                let estadoStr = p.estado === 'Moroso' ? `<span class="status-badge status-moroso-badge">⛔ Inactivo</span>` : `<span class="status-badge status-in">✅ Activo</span>`;
                 tb.innerHTML += `
                     <tr>
-                        <td>${estadoStr}</td>
-                        <td>${id}</td>
-                        <td>${p.tipoUsuario || 'Usuario'}</td>
-                        <td>${p.nombre}</td>
-                        <td>${p.puesto || '-'}</td>
-                        <td>${p.telefono || '-'}</td>
+                        <td>${estadoStr}</td><td>${id}</td><td>${p.tipoUsuario || 'Usuario'}</td>
+                        <td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || '-'}</td>
                         <td>${p.descriptor ? '✅ Registrado' : '❌ Sin Rostro'}</td>
                         <td class="no-print">
-                            <button class="btn btn-m" style="padding: 6px 10px; font-size: 0.75rem;" onclick="abrirEdicionMiembro('${id}')" title="Editar">✏️</button>
-                            <button class="btn btn-d" style="padding: 6px 10px; font-size: 0.75rem;" onclick="borrarMiembro('${id}')" title="Eliminar">🗑️</button>
+                            <div class="btn-group" style="margin:0;">
+                                <button class="btn btn-m" style="padding: 6px 10px; font-size: 0.75rem;" onclick="abrirEdicionMiembro('${id}')" title="Editar">✏️</button>
+                                <button class="btn btn-i" style="padding: 6px 10px; font-size: 0.75rem;" onclick="duplicarMiembro('${id}')" title="Duplicar">📑</button>
+                                <button class="btn btn-d" style="padding: 6px 10px; font-size: 0.75rem;" onclick="borrarMiembro('${id}')" title="Eliminar">🗑️</button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -965,44 +974,29 @@
         }
 
         function abrirEdicionMiembro(id) {
-            const persona = db.personas[id];
-            if(!persona) return;
-
+            const persona = db.personas[id]; if(!persona) return;
             document.getElementById('editId').value = id;
             document.getElementById('editName').value = persona.nombre || '';
             document.getElementById('editRole').value = persona.puesto || '';
             document.getElementById('editPhone').value = persona.telefono || '';
             document.getElementById('editStatus').value = persona.estado === 'Moroso' ? 'Moroso' : 'Activo';
-
             document.getElementById('edit-member-modal').style.display = 'flex';
         }
 
         function guardarEdicionMiembro() {
             const id = document.getElementById('editId').value;
             const newName = document.getElementById('editName').value.trim();
-            const newRole = document.getElementById('editRole').value.trim();
-            const newPhone = document.getElementById('editPhone').value.trim();
-            const newStatus = document.getElementById('editStatus').value;
-
-            if(!newName) { showCustomAlert("Error", "El nombre es obligatorio", "error"); return; }
-
+            if(!newName) return showCustomAlert("Error", "El nombre es obligatorio", "error");
             dbTenant.collection('personas').doc(id).set({
-                nombre: newName, puesto: newRole, telefono: newPhone, estado: newStatus
+                nombre: newName, puesto: document.getElementById('editRole').value.trim(), telefono: document.getElementById('editPhone').value.trim(), estado: document.getElementById('editStatus').value
             }, { merge: true }).then(() => {
-                document.getElementById('edit-member-modal').style.display = 'none';
-                showCustomAlert("Guardado", `Actualizado con éxito.`, "success");
-            }).catch(e => {
-                showCustomAlert("Error de Permisos", "Solo el administrador de esta escuela puede modificar los datos.", "error");
-            });
+                document.getElementById('edit-member-modal').style.display = 'none'; showCustomAlert("Guardado", `Actualizado con éxito.`, "success");
+            }).catch(e => showCustomAlert("Error de Permisos", "Solo el administrador de esta escuela puede modificar los datos.", "error"));
         }
 
         function borrarMiembro(id) {
             showCustomAlert("Confirmación", `¿Borrar a ${id}?`, "warning", () => {
-                dbTenant.collection('personas').doc(id).delete().then(() => {
-                    showCustomAlert("Eliminado", "Usuario borrado.", "info");
-                }).catch(e => {
-                    showCustomAlert("Permiso Denegado", "No tienes permiso para borrar registros.", "error");
-                });
+                dbTenant.collection('personas').doc(id).delete().then(() => showCustomAlert("Eliminado", "Usuario borrado.", "info"));
             }, true);
         }
 
@@ -1014,61 +1008,70 @@
             document.getElementById('sec-geolocalizacion').style.display = num===3 ? 'block' : 'none';
         }
 
-        function cerrarMaster() {
-            document.getElementById('master-panel').style.display = 'none';
-            mostrarVista('home-view');
-        }
+        function cerrarMaster() { document.getElementById('master-panel').style.display = 'none'; mostrarVista('home-view'); }
 
         function filtrarRapido() {
             const txt = document.getElementById('busqueda').value.toLowerCase();
             const trs = document.getElementById('tablaAlumnos').getElementsByTagName('tr');
-            for(let i=0; i<trs.length; i++) {
-                trs[i].style.display = trs[i].innerText.toLowerCase().includes(txt) ? '' : 'none';
-            }
+            for(let i=0; i<trs.length; i++) trs[i].style.display = trs[i].innerText.toLowerCase().includes(txt) ? '' : 'none';
         }
 
         function guardarConfigGeo() {
-            geoConfig.lat = parseFloat(document.getElementById('geoLat').value);
-            geoConfig.lng = parseFloat(document.getElementById('geoLng').value);
-            geoConfig.radio = parseInt(document.getElementById('geoRadio').value);
-            dbTenant.collection('config').doc('geocerca').set(geoConfig, {merge:true})
-            .then(() => showCustomAlert("Geocerca", "Configuración guardada.", "success"))
-            .catch(e => showCustomAlert("Error", "Permiso denegado.", "error"));
+            geoConfig.lat = parseFloat(document.getElementById('geoLat').value); geoConfig.lng = parseFloat(document.getElementById('geoLng').value); geoConfig.radio = parseInt(document.getElementById('geoRadio').value);
+            dbTenant.collection('config').doc('geocerca').set(geoConfig, {merge:true}).then(() => showCustomAlert("Geocerca", "Configuración guardada.", "success"));
         }
 
         function editarNumeroJunta() {
             showCustomPrompt("Teléfono", "WhatsApp del colegio:", NUMERO_OFICIAL_JUNTA, (val) => {
-                if(val) {
-                    dbTenant.set({numeroJunta: val}, {merge:true}).then(() => {
-                        NUMERO_OFICIAL_JUNTA = val;
-                        showCustomAlert("Éxito", "Número guardado.", "success");
-                    });
-                }
+                if(val) dbTenant.set({numeroJunta: val}, {merge:true}).then(() => { NUMERO_OFICIAL_JUNTA = val; showCustomAlert("Éxito", "Número guardado.", "success"); });
             });
         }
 
         function mostrarEstadisticas() {
-            let total = Object.keys(db.personas).length;
-            let activos = Object.values(db.personas).filter(p => p.estado !== 'Moroso').length;
-            let morosos = total - activos;
-            showCustomAlert("Estadísticas", `<b>Total:</b> ${total}<br><b>Activos:</b> ${activos}<br><b style="color:red;">Inactivos:</b> ${morosos}`, "info");
+            let total = Object.keys(db.personas).length; let activos = Object.values(db.personas).filter(p => p.estado !== 'Moroso').length;
+            showCustomAlert("Estadísticas", `<b>Total:</b> ${total}<br><b>Activos:</b> ${activos}<br><b style="color:red;">Inactivos:</b> ${total - activos}`, "info");
         }
 
-        function sincronizarConNube() { showCustomAlert("Listo", "Sincronizado con la nube.", "success"); }
+        function filtrarVistaReporte(filtro) {
+            const fecha = document.getElementById('reportDate').value;
+            const tb = document.getElementById('cuerpoReporte');
+            const th = document.getElementById('headReporte');
+            th.innerHTML = `<tr><th>Hora</th><th>ID</th><th>Nombre</th><th>Tipo</th><th>Emoción</th></tr>`;
+            tb.innerHTML = '';
+            
+            const logsDelDia = logsGlobal.filter(l => l.fechaISO === fecha && (filtro === 'TODOS' || l.tipo === filtro));
+            
+            if(logsDelDia.length === 0) {
+                tb.innerHTML = `<tr><td colspan="5" style="text-align:center;">No hay registros</td></tr>`;
+                return;
+            }
+            logsDelDia.forEach(l => { tb.innerHTML += `<tr><td>${l.hora}</td><td>${l.id}</td><td>${l.nombre}</td><td>${l.tipo}</td><td>${l.emoticon || l.emocion}</td></tr>`; });
+            document.getElementById('tituloReporte').innerText = `Reporte: ${filtro} (${fecha})`;
+        }
 
-        function imprimirTodosLosCarnets() { showCustomAlert("En desarrollo", "Función de PDF.", "info"); }
-        function exportarCSV() { showCustomAlert("En desarrollo", "Exportación CSV.", "info"); }
+        function borrarDiaReporte() {
+            const fecha = document.getElementById('reportDate').value;
+            const logsDelDia = logsGlobal.filter(l => l.fechaISO === fecha);
+            if(logsDelDia.length === 0) return showCustomAlert("Aviso", "No hay registros en este día.", "info");
+
+            showCustomAlert("Atención", `¿Seguro que deseas borrar TODOS los reportes del día ${fecha}?`, "danger", () => {
+                const batch = firestore.batch();
+                logsDelDia.forEach(l => { batch.delete(dbTenant.collection('logs').doc(l.idDoc)); });
+                batch.commit().then(() => {
+                    showCustomAlert("Borrado", "Registros de asistencia eliminados.", "success");
+                    filtrarVistaReporte('TODOS');
+                });
+            }, true);
+        }
 
         // ============================================
         // VISTA PADRES Y CONSULTAS
         // ============================================
-        let currentParentStudentId = null;
-        let currentParentStudentName = null;
+        let currentParentStudentId = null; let currentParentStudentName = null;
 
         function consultarPadre() {
             const inputVal = document.getElementById('parentInput').value.trim();
-            if(!inputVal) return;
-            procesarConsultaPadre(inputVal);
+            if(!inputVal) return; procesarConsultaPadre(inputVal);
         }
 
         function procesarConsultaPadre(idBuscado) {
@@ -1076,7 +1079,6 @@
             if(!persona) { showCustomAlert("No encontrado", "No hay registros.", "warning"); return; }
 
             currentParentStudentId = idBuscado; currentParentStudentName = persona.nombre;
-            
             document.getElementById('parentStudentName').innerText = `👤 ${persona.nombre}`;
             document.getElementById('parentStudentPuesto').innerText = `Rol: ${persona.tipoUsuario||'Estudiante'} | Puesto: ${persona.puesto||'N/A'}`;
             document.getElementById('parentResult').style.display = 'block';
@@ -1098,8 +1100,7 @@
         }
 
         function limpiarConsultaPadres() {
-            document.getElementById('parentInput').value = '';
-            document.getElementById('parentResult').style.display = 'none';
+            document.getElementById('parentInput').value = ''; document.getElementById('parentResult').style.display = 'none';
         }
 
         async function toggleQueryScanner() {
@@ -1112,27 +1113,20 @@
                 try {
                     streamActual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                     const video = document.getElementById('query-video');
-                    video.srcObject = streamActual;
-                    container.classList.add('active', 'scanning');
+                    video.srcObject = streamActual; container.classList.add('active', 'scanning');
                     btn.innerHTML = `🛑 Detener Consulta`; btn.classList.replace('btn-m', 'btn-d');
-                    queryScannerActivo = true;
-                    video.addEventListener('play', loopQueryReconocimiento);
-                    resetIdleTimer();
+                    queryScannerActivo = true; video.addEventListener('play', loopQueryReconocimiento); resetIdleTimer();
                 } catch (err) { showCustomAlert("Error", "Cámara inaccesible.", "error"); }
             } else {
-                detenerCamaras();
-                container.classList.remove('active', 'scanning');
+                detenerCamaras(); container.classList.remove('active', 'scanning');
                 btn.innerHTML = `📷 Iniciar Consulta Facial`; btn.classList.replace('btn-d', 'btn-m');
-                queryScannerActivo = false;
-                resetIdleTimer();
+                queryScannerActivo = false; resetIdleTimer();
             }
         }
 
         async function loopQueryReconocimiento() {
             if(!queryScannerActivo) return;
-            const video = document.getElementById('query-video'); 
-            const canvas = document.getElementById('query-canvas');
-            
+            const video = document.getElementById('query-video'); const canvas = document.getElementById('query-canvas');
             if(video.paused || video.ended) return setTimeout(loopQueryReconocimiento, 100);
 
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
@@ -1146,14 +1140,10 @@
                 const match = faceMatcher.findBestMatch(detection.descriptor);
                 
                 ctx.strokeStyle = match.distance < 0.5 ? "rgba(0, 255, 136, 1)" : "rgba(255, 184, 0, 1)";
-                ctx.lineWidth = 3; 
-                ctx.strokeRect(resized.detection.box.x, resized.detection.box.y, resized.detection.box.width, resized.detection.box.height);
+                ctx.lineWidth = 3; ctx.strokeRect(resized.detection.box.x, resized.detection.box.y, resized.detection.box.width, resized.detection.box.height);
 
                 if (match.label !== 'unknown' && match.distance < 0.5) {
-                    enCooldown = true;
-                    toggleQueryScanner(); 
-                    procesarConsultaPadre(match.label);
-                    setTimeout(() => { enCooldown = false; }, 3000);
+                    enCooldown = true; toggleQueryScanner(); procesarConsultaPadre(match.label); setTimeout(() => { enCooldown = false; }, 3000);
                 }
             }
             setTimeout(loopQueryReconocimiento, 200);
@@ -1161,8 +1151,7 @@
         
         function toggleStudentField() {
             const role = document.getElementById('regRole').value;
-            const el = document.getElementById('regStudentId');
-            el.style.display = (role === 'Padre/Encargado') ? 'block' : 'none';
+            document.getElementById('regStudentId').style.display = (role === 'Padre/Encargado') ? 'block' : 'none';
         }
     </script>
 </body>
