@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaaS Master Control | ProDigital</title>
+    <title>SaaS Master Control | Plataforma de Gestión</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide:0.263.0/lucide.min.js"></script>
 
@@ -23,12 +23,12 @@
             <div class="bg-indigo-600/20 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center border border-indigo-500/30 text-indigo-400">
                 <i data-lucide="shield-check" class="w-10 h-10"></i>
             </div>
-            <h1 class="text-2xl font-black mb-1 text-white text-center uppercase tracking-tight">SaaS Maestro</h1>
-            <p class="text-slate-400 mb-8 text-sm text-center font-bold">Administración Central de Plataformas</p>
+            <h1 class="text-2xl font-black mb-1 text-white text-center uppercase tracking-tight">SaaS Maestro V4</h1>
+            <p class="text-slate-400 mb-8 text-sm text-center font-bold">Administración Central de Plataformas Geo Cerca</p>
             
             <form id="login-form" class="space-y-4">
-                <input type="email" id="email" required placeholder="Email autorizado (Admin)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
-                <input type="password" id="password" required placeholder="Contraseña" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
+                <input type="email" id="email" required placeholder="Email autorizado (Master)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
+                <input type="password" id="password" required placeholder="Contraseña Master" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all">
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest text-sm shadow-lg shadow-indigo-500/20">
                     Autenticar Sistema
                 </button>
@@ -45,7 +45,7 @@
                     <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-500/20">
                         <i data-lucide="layout-dashboard" class="text-white w-5 h-5"></i>
                     </div>
-                    <h2 class="text-lg font-black text-white uppercase tracking-tighter">Master Control <span class="text-indigo-400">ProDigital</span></h2>
+                    <h2 class="text-lg font-black text-white uppercase tracking-tighter">Master Control <span class="text-indigo-400">Geo Cerca</span></h2>
                 </div>
                 <button id="btn-logout" class="bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 px-4 py-2 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-2">
                     <i data-lucide="log-out" class="w-4 h-4"></i> Cerrar Sesión
@@ -57,20 +57,19 @@
             <!-- Formulario de Nuevo Cliente -->
             <section class="bg-[#1e293b] border border-slate-700 p-6 md:p-8 rounded-3xl mb-8 shadow-2xl relative overflow-hidden">
                 <h3 class="text-lg font-black mb-6 text-white uppercase flex items-center gap-2">
-                    <i data-lucide="zap" class="text-indigo-400"></i> Desplegar Nueva Institución (Tenant)
+                    <i data-lucide="zap" class="text-indigo-400"></i> Desplegar Nuevo Tenant (Socio)
                 </h3>
                 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5">
                     <div class="space-y-1">
-                        <!-- MODIFICADO: Ahora pedimos explícitamente el correo como ID -->
-                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1">Correo del Socio (ID de URL)*</label>
-                        <input type="email" id="new-id" placeholder="director@escuela.com" required class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
-                        <p class="text-[9px] text-slate-500 ml-1">Define: ?id=correo</p>
+                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1">ID Único de Socio (URL)*</label>
+                        <input type="text" id="new-id" placeholder="ejemplo: escuela_carpio" required class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white transition-all">
+                        <p class="text-[9px] text-slate-500 ml-1">Define el enlace: ?id=valor</p>
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1">UID del Socio / Director*</label>
                         <input type="text" id="new-uid" placeholder="UID de Firebase Auth" required class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white transition-all">
-                        <p class="text-[9px] text-slate-500 ml-1">Necesario para validación.</p>
+                        <p class="text-[9px] text-slate-500 ml-1">Requerido para ser admin en Geocerca.</p>
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre de la Institución</label>
@@ -87,11 +86,11 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Teléfono Facturación</label>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Teléfono Institución</label>
                         <input type="text" id="new-tel" placeholder="WhatsApp" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Monto Cobrado ($)</label>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Monto de Contrato ($)</label>
                         <input type="number" id="new-monto" placeholder="0.00" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white transition-all">
                     </div>
                     <div class="space-y-1 md:col-span-2">
@@ -119,7 +118,7 @@
                         <thead class="bg-slate-900/60 text-slate-500 text-[10px] uppercase font-black border-b border-slate-700">
                             <tr>
                                 <th class="p-6">Institución / URL Acceso</th>
-                                <th class="p-6">UID Socio</th>
+                                <th class="p-6">UID Socio Admin</th>
                                 <th class="p-6">Plan / Vencimiento</th>
                                 <th class="p-6 text-center">Estado Plataforma</th>
                                 <th class="p-6 text-right">Acciones</th>
@@ -157,8 +156,7 @@
                 <!-- Datos Editables -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/30 p-5 rounded-3xl border border-slate-700/50">
                     <div class="space-y-1">
-                        <!-- MODIFICADO: Mostramos que este es el correo (ID) y no se edita -->
-                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1 flex items-center gap-1"><i data-lucide="mail" class="w-3 h-3"></i> Correo del Socio (ID Fijo)</label>
+                        <label class="text-[10px] font-bold text-indigo-400 uppercase ml-1 flex items-center gap-1"><i data-lucide="mail" class="w-3 h-3"></i> ID DEL SOCIO (Fijo)</label>
                         <input type="text" id="edit-id" readonly class="w-full bg-[#0f172a] border border-slate-700 p-3 rounded-xl outline-none text-sm font-mono text-slate-500 cursor-not-allowed opacity-70">
                     </div>
                     <div class="space-y-1">
@@ -209,7 +207,7 @@
 
                 <div class="bg-[#0b1120] p-5 rounded-3xl border border-slate-700">
                     <label class="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mb-3">
-                        <i data-lucide="code" class="w-3 h-3 text-red-500"></i> Mensaje de Bloqueo HTML (Mostrado al socio si no está activo)
+                        <i data-lucide="code" class="w-3 h-3 text-red-500"></i> Mensaje de Bloqueo HTML (Mostrado en Geo Cerca)
                     </label>
                     <textarea id="m_html_mora" rows="3" class="w-full bg-transparent border border-slate-700 rounded-lg p-3 outline-none text-indigo-300 font-mono text-[12px] focus:border-indigo-500 transition-colors" placeholder="<h1>Suscripción Vencida</h1><p>Realice el pago para reactivar el sistema.</p>"></textarea>
                 </div>
@@ -224,7 +222,6 @@
         </div>
     </div>
 
-    <!-- Usando Firebase Modular SDK v11 como mejor práctica -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -244,8 +241,8 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // MODIFICADO: URL base requerida
-        const BASE_CLIENT_URL = "https://prodigitalcr.github.io/TENANT-ESCUELA/"; 
+        // URL DE DESPLIEGUE DONDE ESTÁ EL GEOCERCA OFICIAL (Se concatena el ?id=)
+        const BASE_CLIENT_URL = "https://prodigitalcr.github.io/GEOCERCA-OFICIAL/index.html"; 
         
         let currentTenants = [];
         let editingId = null;
@@ -262,7 +259,6 @@
 
         window.copyToClipboard = (text) => {
             navigator.clipboard.writeText(text).then(() => showToast("URL Copiada al portapapeles", "success")).catch(err => {
-                // Fallback for iframes if writeText fails
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
                 document.body.appendChild(textArea);
@@ -301,9 +297,8 @@
             lucide.createIcons();
         });
 
-        window.verSitioSocio = (tenantEmailId) => { 
-            // URL con el correo del socio
-            window.open(`${BASE_CLIENT_URL}?id=${encodeURIComponent(tenantEmailId)}`, '_blank'); 
+        window.verSitioSocio = (tenantId) => { 
+            window.open(`${BASE_CLIENT_URL}?id=${encodeURIComponent(tenantId)}`, '_blank'); 
         };
 
         function loadData() {
@@ -315,12 +310,11 @@
 
                 snap.forEach(d => {
                     const t = d.data();
-                    const id = d.id; // Este ID es ahora el correo electrónico
+                    const id = d.id;
                     currentTenants.push({ id, ...t });
 
                     const badge = t.estado === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (t.estado === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
                     
-                    // Genera la URL usando el ID (que es el correo)
                     const tenantUrl = `${BASE_CLIENT_URL}?id=${encodeURIComponent(id)}`;
 
                     const row = document.createElement('tr');
@@ -353,14 +347,11 @@
                     list.appendChild(row);
                 });
                 lucide.createIcons();
-            }, (error) => {
-                showToast("Error cargando socios: " + error.message, "error");
-            });
+            }, (error) => { showToast("Error cargando socios: " + error.message, "error"); });
         }
 
         document.getElementById('btn-create').addEventListener('click', async () => {
-            // Extraemos el correo y lo limpiamos para usarlo como ID de documento
-            const idEmail = document.getElementById('new-id').value.trim().toLowerCase();
+            const idTenant = document.getElementById('new-id').value.trim().toLowerCase();
             const uid = document.getElementById('new-uid').value.trim();
             const name = document.getElementById('new-name').value.trim();
             const plan = document.getElementById('new-plan').value;
@@ -368,19 +359,16 @@
             const monto = document.getElementById('new-monto').value;
             const corte = document.getElementById('new-corte').value;
 
-            // Validación básica de que sea un correo
-            if(!idEmail.includes('@') || !idEmail.includes('.')) return showToast("Ingrese un correo válido para el ID", "error");
-            if(!name || !corte || !uid) return showToast("Datos incompletos requeridos", "error");
+            if(!idTenant || !name || !corte || !uid) return showToast("Datos incompletos requeridos", "error");
 
             try {
-                // Se guarda el documento usando el correo como ID
-                const docRef = doc(db, 'tenants', idEmail);
+                const docRef = doc(db, 'tenants', idTenant);
                 await setDoc(docRef, {
-                    correoSocio: idEmail, // Guardamos el correo también como campo
                     empresa: name, 
-                    adminUid: uid, // El UID respectivo del socio para cruzar permisos
+                    adminUid: uid, 
                     tipoPlan: plan, 
                     telefono: tel,
+                    numeroJunta: tel,
                     montoContrato: Number(monto), 
                     fechaCorte: corte, 
                     estado: 'Activo',
@@ -395,7 +383,7 @@
             editingId = id;
             const t = currentTenants.find(x => x.id === id);
             
-            document.getElementById('edit-id').value = id; // Mostrará el correo
+            document.getElementById('edit-id').value = id; 
             document.getElementById('edit-uid').value = t.adminUid || '';
             document.getElementById('edit-name').value = t.empresa || '';
             document.getElementById('edit-plan').value = t.tipoPlan || 'Mensual';
@@ -413,7 +401,6 @@
 
         document.getElementById('btn-save-edit').addEventListener('click', async () => {
             const statusNode = document.querySelector('input[name="m_status"]:checked');
-            
             const updatedData = {
                 empresa: document.getElementById('edit-name').value.trim(),
                 adminUid: document.getElementById('edit-uid').value.trim(),
@@ -433,10 +420,6 @@
         });
 
         window.deleteTenant = async (id) => {
-            // Usamos un modal propio o confirmación nativa. (Confirm() es mejor evitarlo en iframes, pero aquí es un admin). 
-            // Implementaremos un modal nativo temporal si no hay otro disponible, pero por instrucción de entorno usamos confirmación básica integrada.
-            // Para adherir a las reglas del entorno (No usar alert/confirm), usaré una bandera visual, pero por simplicidad de este snippet, crearé un toast con confirmación si fuera posible.
-            // *NOTA DE ENTORNO*: Como no puedo usar confirm(), implementaré un borrado directo con aviso.
             try { 
                 const docRef = doc(db, 'tenants', id);
                 await deleteDoc(docRef); 
@@ -445,7 +428,6 @@
             catch(e) { showToast("Error al eliminar", "error"); }
         };
 
-        // Inicializar iconos en carga
         lucide.createIcons();
     </script>
 </body>
