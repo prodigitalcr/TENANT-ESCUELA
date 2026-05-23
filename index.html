@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0e27">
-    <meta name="description" content="Sistema de asistencia con IA - Escuela La Carpio">
-    <title>Asistencia Facial - Escuela La Carpio</title>
+    <meta name="description" content="Sistema de asistencia con IA - Plataforma SaaS">
+    <title>Asistencia Facial Inteligente</title>
     
-    <!-- Firebase (Usando versión 8 por compatibilidad con el código base) -->
+    <!-- Firebase (Cambiado de Realtime Database a Firestore) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     
     <!-- Face-API.js (Reconocimiento Facial) -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -302,6 +302,23 @@
 </head>
 <body>
 
+    <!-- Manejo Seguro de URL y Tenant -->
+    <script>
+        const initUrlParams = new URLSearchParams(window.location.search);
+        const TEMP_TENANT_ID = initUrlParams.get('id');
+
+        if (!TEMP_TENANT_ID || TEMP_TENANT_ID.length !== 2) {
+            document.write(`
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#0a0e27; color:white; text-align:center; font-family:sans-serif; padding: 20px;">
+                    <h1 style="color:var(--accent-danger);">⛔ ACCESO DENEGADO</h1>
+                    <p style="font-size:1.1rem; max-width:500px; margin-top:10px;">Debe ingresar mediante el enlace oficial de su institución educativa.</p>
+                    <p style="color: gray; margin-top: 15px; font-size:0.9rem;">Ejemplo de enlace válido: susitio.com/?id=01</p>
+                </div>
+            `);
+            throw new Error("Tenant ID no proporcionado o formato inválido. El sistema se detuvo por seguridad.");
+        }
+    </script>
+
     <!-- INPUTS OCULTOS PARA FONDOS Y LOGOS -->
     <input type="file" id="bgUploader" accept="image/*" style="display:none;" onchange="procesarSubidaFondo(event)">
     <input type="file" id="logoUploader" accept="image/png, image/jpeg" style="display:none;" onchange="procesarSubidaLogo(event)">
@@ -525,7 +542,7 @@
                 </div>
                 <div style="display:flex; gap:5px; margin-top:10px;">
                     <button class="btn btn-w" onclick="exportarPDFReporte()">📕 PDF REPORTE</button>
-                    <button class="btn btn-dark" onclick="if(confirm('¿Borrar historial del día?')) borrarHistorialDia();">🗑️ Borrar Día</button>
+                    <button class="btn btn-dark" onclick="borrarHistorialDia()">🗑️ Borrar Día</button>
                 </div>
             </div>
             <h2 id="tituloReporte" style="color:var(--accent-primary); text-align:center; margin:20px 0;">Seleccione un filtro</h2>
@@ -600,14 +617,13 @@
 
     <script>
         // ============================================
-        // CONFIGURACIÓN FIREBASE (Con tus credenciales y reglas)
+        // CONFIGURACIÓN FIREBASE Y MULTI-TENANT (FIRESTORE)
         // ============================================
         let NUMERO_OFICIAL_JUNTA = "88888888"; 
         
         const firebaseConfig = {
             apiKey: "AIzaSyBpGu9Bnr5pQhNBK4kYpoh4GuLkR4CED4c",
             authDomain: "escuela-la-carpio.firebaseapp.com",
-            databaseURL: "https://escuela-la-carpio-default-rtdb.firebaseio.com",
             projectId: "escuela-la-carpio",
             storageBucket: "escuela-la-carpio.firebasestorage.app",
             messagingSenderId: "163331007154",
@@ -617,7 +633,12 @@
         
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const database = firebase.database();
+        const firestore = firebase.firestore();
+
+        // CAPTURAR EL TENANT ID DESDE LA URL (Asignado en línea 455 por seguridad)
+        const urlParams = new URLSearchParams(window.location.search);
+        const TENANT_ID = urlParams.get('id');
+        const dbTenant = firestore.collection('tenants').doc(TENANT_ID);
 
         let db = { personas: {} };
         let logsGlobal = [];
@@ -628,35 +649,50 @@
 
         document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
         
-        // Listener Config
-        database.ref('config/numeroOficial').on('value', (s) => { if(s.val()) NUMERO_OFICIAL_JUNTA = s.val(); });
-        database.ref('config/geocerca').on('value', (s) => { 
-            if(s.val()) { 
-                geoConfig = s.val(); 
+        // Listeners Firestore Enrutados
+        dbTenant.collection('config').doc('general').onSnapshot((doc) => { 
+            if(doc.exists && doc.data().numeroOficial) NUMERO_OFICIAL_JUNTA = doc.data().numeroOficial; 
+        });
+
+        dbTenant.collection('config').doc('geocerca').onSnapshot((doc) => { 
+            if(doc.exists) { 
+                geoConfig = doc.data(); 
                 document.getElementById('geoLat').value = geoConfig.lat;
                 document.getElementById('geoLng').value = geoConfig.lng;
                 document.getElementById('geoRadio').value = geoConfig.radio;
             } 
         });
 
+        dbTenant.collection('personas').onSnapshot((snapshot) => { 
+            db.personas = {};
+            snapshot.forEach(doc => { db.personas[doc.id] = doc.data(); });
+            renderAlumnos(); 
+            construirFaceMatcher(); 
+        });
+        
+        dbTenant.collection('logs').onSnapshot((snapshot) => { 
+            logsGlobal = []; 
+            snapshot.forEach(doc => { let val = doc.data(); val.key = doc.id; logsGlobal.push(val); });
+            renderAlumnos(); 
+        });
+
+        dbTenant.collection('logs_lejanos').onSnapshot((snapshot) => {
+            logsLejanosGlobal = [];
+            snapshot.forEach(doc => { let val = doc.data(); val.key = doc.id; logsLejanosGlobal.push(val); });
+            renderGeolocalizacion();
+        });
+
         // Configuración de Tema Claro/Oscuro por defecto
-        if (localStorage.getItem('theme') === 'light') {
-            document.body.classList.add('light-theme');
-        }
+        if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-theme'); }
 
         // Cargar imagen de fondo y logo si existen
-        if(localStorage.getItem('CUSTOM_BG')) {
-            document.body.style.backgroundImage = `url(${localStorage.getItem('CUSTOM_BG')})`;
-        }
+        if(localStorage.getItem('CUSTOM_BG')) { document.body.style.backgroundImage = `url(${localStorage.getItem('CUSTOM_BG')})`; }
         
         function cargarLogoPersonalizado() {
             const logoBase64 = localStorage.getItem('CUSTOM_LOGO');
             const navContainer = document.getElementById('nav-logo-container');
-            if(logoBase64) {
-                navContainer.innerHTML = `<img src="${logoBase64}" alt="Logo Oficial">`;
-            } else {
-                navContainer.innerHTML = `🤖 Asistencia IA`;
-            }
+            if(logoBase64) { navContainer.innerHTML = `<img src="${logoBase64}" alt="Logo Oficial">`; } 
+            else { navContainer.innerHTML = `🤖 Asistencia IA`; }
         }
         cargarLogoPersonalizado();
 
@@ -685,18 +721,13 @@
             modal.style.display = 'flex';
         }
 
-        function cerrarLogin() {
-            document.getElementById('login-modal').style.display = 'none';
-        }
+        function cerrarLogin() { document.getElementById('login-modal').style.display = 'none'; }
 
         function procesarLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const pass = document.getElementById('loginPass').value;
 
-            if (!email || !pass) {
-                alert("Por favor, ingrese el correo y la contraseña.");
-                return;
-            }
+            if (!email || !pass) { alert("Por favor, ingrese el correo y la contraseña."); return; }
 
             firebase.auth().signInWithEmailAndPassword(email, pass)
                 .then((userCredential) => {
@@ -709,9 +740,7 @@
                         mostrarVista('scan-view');
                     }
                 })
-                .catch((error) => {
-                    alert("Acceso Denegado. Contraseña o correo incorrectos.\n\n" + error.message);
-                });
+                .catch((error) => { alert("Acceso Denegado. Contraseña o correo incorrectos.\n\n" + error.message); });
         }
 
         // ============================================
@@ -728,15 +757,11 @@
                document.getElementById('face-modal').style.display !== 'flex' &&
                document.getElementById('login-modal').style.display !== 'flex') {
                 
-                idleTimeout = setTimeout(() => {
-                    mostrarVista('home-view');
-                }, IDLE_TIME);
+                idleTimeout = setTimeout(() => { mostrarVista('home-view'); }, IDLE_TIME);
             }
         }
 
-        ['mousemove', 'touchstart', 'click', 'keydown', 'scroll'].forEach(evt => {
-            document.addEventListener(evt, resetIdleTimer);
-        });
+        ['mousemove', 'touchstart', 'click', 'keydown', 'scroll'].forEach(evt => { document.addEventListener(evt, resetIdleTimer); });
 
         function updateIdleClock() {
             const now = new Date();
@@ -756,8 +781,7 @@
         function playSuccessSound() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
+                const osc = ctx.createOscillator(); const gain = ctx.createGain();
                 osc.connect(gain); gain.connect(ctx.destination);
                 osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
                 gain.gain.setValueAtTime(0.08, ctx.currentTime);
@@ -809,9 +833,7 @@
             const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c; 
         }
@@ -844,18 +866,12 @@
                 iaCargada = true;
                 actualizarEstadoIA("✅ Inteligencia Artificial Lista");
                 construirFaceMatcher();
-            } catch (err) {
-                actualizarEstadoIA("❌ Error cargando IA.");
-            }
+            } catch (err) { actualizarEstadoIA("❌ Error cargando IA."); }
         }
 
         function actualizarEstadoIA(msg) {
-            const el1 = document.getElementById('scan-ai-status');
-            const el2 = document.getElementById('query-ai-status');
-            const el3 = document.getElementById('admin-ai-status');
-            if(el1) el1.innerText = msg;
-            if(el2) el2.innerText = msg;
-            if(el3) el3.innerText = msg;
+            const el1 = document.getElementById('scan-ai-status'); const el2 = document.getElementById('query-ai-status'); const el3 = document.getElementById('admin-ai-status');
+            if(el1) el1.innerText = msg; if(el2) el2.innerText = msg; if(el3) el3.innerText = msg;
         }
 
         function construirFaceMatcher() {
@@ -876,33 +892,9 @@
                     labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(id + "_p2", [floatArrayP2]));
                 }
             }
-            if (labeledDescriptors.length > 0) {
-                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
-            } else {
-                faceMatcher = null;
-            }
+            if (labeledDescriptors.length > 0) { faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5); } 
+            else { faceMatcher = null; }
         }
-
-        // ============================================
-        // LÓGICA DE BASE DE DATOS BÁSICA
-        // ============================================
-        database.ref('personas').on('value', (s) => { 
-            db.personas = s.val() || {}; 
-            renderAlumnos(); 
-            construirFaceMatcher(); 
-        });
-        
-        database.ref('logs').on('value', (s) => { 
-            logsGlobal = []; 
-            s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
-            renderAlumnos(); 
-        });
-
-        database.ref('logs_lejanos').on('value', (s) => {
-            logsLejanosGlobal = [];
-            s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
-            renderGeolocalizacion();
-        });
 
         // ============================================
         // REGISTRO DE USUARIOS (MULTI-PERFIL / FUSIÓN IA)
@@ -963,17 +955,13 @@
                 faceapi.draw.drawDetections(canvas, resized);
                 faceapi.draw.drawFaceLandmarks(canvas, resized);
                 window.currentRegDescriptor = Array.from(detection.descriptor); 
-            } else {
-                window.currentRegDescriptor = null;
-            }
+            } else { window.currentRegDescriptor = null; }
             
             setTimeout(loopRegPub, 150);
         }
 
         function capturarPerfilRegistro() {
-            if(!window.currentRegDescriptor) {
-                alert("Rostro no detectado con claridad."); playErrorSound(); return;
-            }
+            if(!window.currentRegDescriptor) { alert("Rostro no detectado con claridad."); playErrorSound(); return; }
             
             playSuccessSound(); regDescriptors.push(window.currentRegDescriptor); regPhase++;
             const btn = document.getElementById('btnCaptureProfile');
@@ -1015,25 +1003,18 @@
             }
             
             const finalDescArray = Array.from(avgDesc);
+            const newUser = { nombre: nombre, puesto: section, telefono: phone, tipoUsuario: rol, descriptor: finalDescArray };
             
-            const newUser = {
-                nombre: nombre, puesto: section, telefono: phone, tipoUsuario: rol, descriptor: finalDescArray
-            };
-            
-            database.ref('personas/' + id).update(newUser);
+            dbTenant.collection('personas').doc(id).set(newUser, { merge: true });
             
             if (rol === 'Padre/Encargado' && studentId) {
                 if (db.personas[studentId]) {
                     const stu = db.personas[studentId];
-                    if (!stu.descriptorPadre1) { database.ref('personas/' + studentId + '/descriptorPadre1').set(finalDescArray); } 
-                    else { database.ref('personas/' + studentId + '/descriptorPadre2').set(finalDescArray); }
+                    if (!stu.descriptorPadre1) { dbTenant.collection('personas').doc(studentId).set({ descriptorPadre1: finalDescArray }, { merge: true }); } 
+                    else { dbTenant.collection('personas').doc(studentId).set({ descriptorPadre2: finalDescArray }, { merge: true }); }
                     alert(`✅ Registro exitoso.\nEnlazado con estudiante ID ${studentId}.`);
-                } else {
-                    alert("⚠️ Registro guardado, pero el ID del estudiante no existe.");
-                }
-            } else {
-                alert("✅ Registro completado exitosamente.");
-            }
+                } else { alert("⚠️ Registro guardado, pero el ID del estudiante no existe."); }
+            } else { alert("✅ Registro completado exitosamente."); }
             
             document.getElementById('regId').value = ''; document.getElementById('regName').value = '';
             document.getElementById('regRole').value = ''; document.getElementById('regSection').value = '';
@@ -1083,7 +1064,6 @@
 
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
-            
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceExpressions().withFaceDescriptor();
             
             const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1134,7 +1114,7 @@
                     const esLejano = dist > geoConfig.radio;
 
                     if (esLejano) {
-                        database.ref('logs_lejanos').push({
+                        dbTenant.collection('logs_lejanos').add({
                             id: id, nombre: db.personas[id]?.nombre || "Desconocido",
                             hora: new Date().toLocaleString(), distancia: Math.round(dist),
                             lat: latDisp, lng: lngDisp
@@ -1162,7 +1142,7 @@
             else if (!tieneS) tipo = "SALIDA"; 
             else { mostrarMensajeTemp("Ya registró Entrada y Salida hoy.", "var(--accent-warning)"); if(scannerActivo) toggleScanner(); return; }
             
-            database.ref('logs').push({ 
+            dbTenant.collection('logs').add({ 
                 id: id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), 
                 fechaISO: hISO, tipo: tipo, lejano: esLejano,
                 distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon: emoticon
@@ -1283,7 +1263,7 @@
         }
 
         // ============================================
-        // REGISTRO FACIAL - ADMIN (MODIFICACIÓN RÁPIDA)
+        // REGISTRO FACIAL - ADMIN
         // ============================================
         async function abrirRegistroRostro(id, tipo = 'estudiante') {
             if(!iaCargada) await inicializarIA();
@@ -1378,7 +1358,7 @@
                             <div style="display:flex; gap: 4px;">
                                 <button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono || ''}')" title="WhatsApp">💬</button>
                                 <button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Ver Carnet">📇</button>
-                                <button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { database.ref('personas/'+'${id}').remove(); }" title="Eliminar">🗑️</button>
+                                <button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { dbTenant.collection('personas').doc('${id}').delete(); }" title="Eliminar">🗑️</button>
                             </div>
                         </td>
                     </tr>
@@ -1415,12 +1395,15 @@
 
         function eliminarLogLejano(key) {
             if(confirm("¿Está seguro de que desea eliminar permanentemente este registro de escaneo lejano?")) {
-                database.ref('logs_lejanos/' + key).remove();
+                dbTenant.collection('logs_lejanos').doc(key).delete();
                 alert("Registro lejano eliminado con éxito.");
             }
         }
 
-        function editarNumeroJunta() { let n = prompt("Número de contacto general para WhatsApp:", NUMERO_OFICIAL_JUNTA); if(n) { database.ref('config/numeroOficial').set(n); alert("Actualizado."); } }
+        function editarNumeroJunta() { 
+            let n = prompt("Número de contacto general para WhatsApp:", NUMERO_OFICIAL_JUNTA); 
+            if(n) { dbTenant.collection('config').doc('general').set({numeroOficial: n}, {merge:true}); alert("Actualizado."); } 
+        }
         
         function procesarSubidaFondo(event) {
             const file = event.target.files[0];
@@ -1480,9 +1463,9 @@
                         <button class="btn btn-s" onclick="setTheme('light')">☀️ Modo Claro</button>
                     </div>
                     <hr style="margin: 15px 0;">
-                    <p><b>Institución:</b> Escuela La Carpio</p>
+                    <p><b>Tenant ID:</b> ${TENANT_ID}</p>
                     <p><b>Licencia:</b> prodigital-72284602</p>
-                    <p><b>Versión:</b> Sistema Facial Inteligente 3.5 (Geocerca Activa y Firebase Auth)</p>
+                    <p><b>Versión:</b> SaaS Multi-Tenant (Firestore)</p>
                 </div>
             `;
             let win = window.open("", "Configuración de Sistema", "width=400,height=300");
@@ -1503,7 +1486,7 @@
             const radio = parseInt(document.getElementById('geoRadio').value);
             if (isNaN(lat) || isNaN(lng) || isNaN(radio)) { alert("Ingrese valores numéricos válidos."); return; }
             geoConfig = { lat, lng, radio };
-            database.ref('config/geocerca').set(geoConfig);
+            dbTenant.collection('config').doc('geocerca').set(geoConfig);
             alert("Ubicación y Geocerca configuradas de forma exitosa.\n\nRecuerde: Ahora cualquier escaneo que exceda el radio será almacenado en el 'Historial Lejano' y su Asistencia Oficial será rechazada.");
         }
 
@@ -1514,7 +1497,16 @@
                 renderAlumnos(); 
             } 
         }
-        function sincronizarConNube() { database.ref('personas').set(db.personas); alert("Datos guardados en la nube."); }
+
+        async function sincronizarConNube() { 
+            const batch = firestore.batch();
+            Object.entries(db.personas).forEach(([id, data]) => {
+                const docRef = dbTenant.collection('personas').doc(id);
+                batch.set(docRef, data, {merge: true});
+            });
+            await batch.commit();
+            alert("Datos guardados en la nube con éxito."); 
+        }
         
         function importarCSV() { 
             const f = document.getElementById('csvFile').files[0]; const r = new FileReader(); 
@@ -1525,7 +1517,7 @@
                         if(c[0]) { db.personas[c[0].trim()] = { nombre: c[1]?.trim() || '', puesto: c[2]?.trim() || '', telefono: c[3]?.trim() || '', tipoUsuario: c[4]?.trim() || 'Estudiante' }; }
                     } 
                 }); 
-                renderAlumnos(); alert("Base de datos importada exitosamente."); 
+                renderAlumnos(); alert("Base de datos importada exitosamente. Haga clic en Guardar."); 
             }; r.readAsText(f); 
         }
 
@@ -1545,20 +1537,28 @@
             doc.save(`Usuarios_${new Date().toLocaleDateString('sv-SE')}.pdf`);
         }
         
-        function duplicarMiembro() { const id = prompt('Código a duplicar:'); if(id && db.personas[id]) { const newId = prompt('Nuevo código para el duplicado:'); if(newId) { db.personas[newId] = {...db.personas[id]}; renderAlumnos(); alert('Usuario duplicado'); } } }
-        function mostrarConfirmacionBorrar() { if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos (Usuarios y Logs)?\n\nPresione OK para confirmar.')) { database.ref('personas').remove(); database.ref('logs').remove(); database.ref('logs_lejanos').remove(); location.reload(); } }
+        function duplicarMiembro() { const id = prompt('Código a duplicar:'); if(id && db.personas[id]) { const newId = prompt('Nuevo código para el duplicado:'); if(newId) { db.personas[newId] = {...db.personas[id]}; renderAlumnos(); alert('Usuario duplicado. No olvide Guardar.'); } } }
+        
+        async function mostrarConfirmacionBorrar() { 
+            if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos de esta institución (Usuarios y Logs)?\n\nPresione OK para confirmar.')) { 
+                const pSnap = await dbTenant.collection('personas').get(); pSnap.forEach(d => d.ref.delete());
+                const lSnap = await dbTenant.collection('logs').get(); lSnap.forEach(d => d.ref.delete());
+                const llSnap = await dbTenant.collection('logs_lejanos').get(); llSnap.forEach(d => d.ref.delete());
+                alert("Base de datos limpia."); location.reload(); 
+            } 
+        }
         
         function enviarWA(tel) { if(!tel || tel==='') { alert("No hay número registrado para este usuario."); return;} window.open(`https://wa.me/506${tel.replace(/\D/g,'')}`, '_blank'); }
         function enviarWA_Ausente(tel, nombreEstudiante) {
             if(!tel || tel==='') { alert("No hay número registrado para este usuario."); return;} 
-            const msj = encodeURIComponent(`Hola, le escribimos de la Escuela La Carpio para informarle que el usuario ${nombreEstudiante} se encuentra ausente o sin registro de ingreso el día de hoy.`);
+            const msj = encodeURIComponent(`Hola, le escribimos para informarle que el usuario ${nombreEstudiante} se encuentra ausente o sin registro de ingreso el día de hoy.`);
             window.open(`https://wa.me/506${tel.replace(/\D/g,'')}?text=${msj}`, '_blank');
         }
 
         function justificarAusencia(id, nombre) {
             const hISO = document.getElementById('reportDate').value;
             if(confirm(`¿Desea justificar la ausencia de ${nombre} para la fecha ${hISO}?`)) {
-                database.ref('logs').push({ id: id, nombre: nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
+                dbTenant.collection('logs').add({ id: id, nombre: nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
                 alert('La ausencia ha sido justificada con éxito. Se ha marcado con una ⭐.');
             }
         }
@@ -1566,7 +1566,7 @@
         function descargarCarnet(id) {
             const p = db.personas[id];
             const win = window.open('','','width=350,height=500');
-            win.document.write(`<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#0a0e27;}.card{width:280px;height:420px;background:#1a1f3a;border-radius:16px;box-shadow:0 16px 48px rgba(0,0,0,0.5);overflow:hidden;position:relative;border:1px solid #2a3250;}.header{background:#00d9ff;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#0a0e27;text-align:center;font-weight:bold;}.qr-container{background:#1a1f3a;padding:15px;border-radius:10px;margin-top:20px;display:inline-block;border:1px solid #2a3250;}.info{padding:20px;text-align:center;color:#e8eef5;}.id-label{font-size:1.6rem;font-weight:900;color:#00d9ff;margin:10px 0;}.footer{position:absolute;bottom:0;width:100%;height:15px;background:linear-gradient(90deg,#00d9ff 33%,#1a1f3a 33%,#1a1f3a 66%,#ff4444 66%);}</style></head><body><div class="card"><div class="header">ESCUELA LA CARPIO<br><span style="font-size:0.8rem; font-weight:normal;">${p.tipoUsuario || 'Estudiante'}</span></div><div style="text-align:center;"><div class="qr-container"><div id="q"></div></div></div><div class="info"><div class="id-label">${id}</div><div style="font-weight:bold;font-size:1.2rem;">${p.nombre}</div><div style="color:#a8b2c1;margin-top:5px;">${p.puesto||''}</div></div><div class="footer"></div></div><script>new QRCode(document.getElementById("q"),{text:"${id}",width:140,height:140});setTimeout(()=>window.print(),800);<\/script></body></html>`);
+            win.document.write(`<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#0a0e27;}.card{width:280px;height:420px;background:#1a1f3a;border-radius:16px;box-shadow:0 16px 48px rgba(0,0,0,0.5);overflow:hidden;position:relative;border:1px solid #2a3250;}.header{background:#00d9ff;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#0a0e27;text-align:center;font-weight:bold;}.qr-container{background:#1a1f3a;padding:15px;border-radius:10px;margin-top:20px;display:inline-block;border:1px solid #2a3250;}.info{padding:20px;text-align:center;color:#e8eef5;}.id-label{font-size:1.6rem;font-weight:900;color:#00d9ff;margin:10px 0;}.footer{position:absolute;bottom:0;width:100%;height:15px;background:linear-gradient(90deg,#00d9ff 33%,#1a1f3a 33%,#1a1f3a 66%,#ff4444 66%);}</style></head><body><div class="card"><div class="header">PLATAFORMA DE ASISTENCIA<br><span style="font-size:0.8rem; font-weight:normal;">${p.tipoUsuario || 'Estudiante'}</span></div><div style="text-align:center;"><div class="qr-container"><div id="q"></div></div></div><div class="info"><div class="id-label">${id}</div><div style="font-weight:bold;font-size:1.2rem;">${p.nombre}</div><div style="color:#a8b2c1;margin-top:5px;">${p.puesto||''}</div></div><div class="footer"></div></div><script>new QRCode(document.getElementById("q"),{text:"${id}",width:140,height:140});setTimeout(()=>window.print(),800);<\/script></body></html>`);
             win.document.close();
         }
 
@@ -1607,11 +1607,11 @@
             document.getElementById('parentStudentPuesto').innerText = (p.tipoUsuario || "Perfil") + " / " + (p.puesto || "N/A");
             document.getElementById('btnConsultaWA').onclick = () => { window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${encodeURIComponent('Hola, quisiera realizar una consulta sobre el usuario: '+p.nombre+' (ID: '+id+').')}`, '_blank'); };
             
-            database.ref('logs').orderByChild('id').equalTo(id).once('value', (s) => {
+            dbTenant.collection('logs').where('id', '==', id).get().then((s) => {
                 const list = document.getElementById('parentLogList'); list.innerHTML = "";
-                if(s.exists()){ 
+                if(!s.empty){ 
                     s.forEach(c => { 
-                        let l=c.val(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(Lejos de Escuela: ${l.distanciaMetros}m)</span>` : "";
+                        let l=c.data(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(Lejos de Escuela: ${l.distanciaMetros}m)</span>` : "";
                         let statusColor = l.tipo === 'ENTRADA' ? '#00ff88' : (l.tipo === 'SALIDA' ? '#ff4444' : '#ffb800');
                         list.innerHTML = `<div style="padding:10px; border-bottom:1px solid #3a4560;"><span>${l.hora}</span> - <b style="color:${statusColor}">${l.tipo}</b>${alertTag}</div>` + list.innerHTML; 
                     }); 
@@ -1628,7 +1628,11 @@
             return horaLog.includes(`${m}/${d}/${y}`) || horaLog.includes(`${m.padStart(2,'0')}/${d}/${y}`) || horaLog.includes(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`);
         }
 
-        function borrarHistorialDia() { const hISO = document.getElementById('reportDate').value; logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => database.ref('logs/'+l.key).remove()); alert('Registros del día eliminados.'); }
+        function borrarHistorialDia() { 
+            const hISO = document.getElementById('reportDate').value; 
+            logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => dbTenant.collection('logs').doc(l.key).delete()); 
+            alert('Registros del día eliminados.'); 
+        }
 
         function filtrarVistaReporte(tipo) {
             const fechaBuscada = document.getElementById('reportDate').value;
@@ -1692,12 +1696,11 @@
         resetIdleTimer();
 
         // ============================================
-        // LÓGICA DE BLOQUEO SaaS (INTEGRACIÓN)
+        // LÓGICA DE BLOQUEO SaaS (INTEGRACIÓN MULTI-TENANT)
         // ============================================
-        const ID_CLIENTE_SAAS = "escuela_carpio"; // Debe coincidir con el ID que pongas en tu Panel Master
-
-        database.ref('clientes/' + ID_CLIENTE_SAAS).on('value', (snap) => {
-            const data = snap.val();
+        // Escucha directamente en la raíz de clientes el estado de pago de la escuela
+        firestore.collection('clientes').doc(TENANT_ID).onSnapshot((snap) => {
+            const data = snap.data();
             let overlay = document.getElementById('saas-block-overlay');
             
             if(!overlay) {
