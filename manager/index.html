@@ -463,8 +463,8 @@
 
             try {
                 await db.collection('tenants').doc(editingId).set({
-                    estado: status,
-                    htmlMora: hMora,
+                    estado: status},{ merge: true });
+                    htmlMora: hMora},{ merge: true });
                     htmlMantenimiento: hMantenimiento
                 }, { merge: true });
                 showToast("Estado y configuraciones guardadas exitosamente", "success");
