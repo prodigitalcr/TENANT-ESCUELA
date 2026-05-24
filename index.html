@@ -429,7 +429,6 @@
         // ============================================
         // CONFIGURACIÓN FIREBASE SAAS (TENANT ESCUELA)
         // ============================================
-        // Configuración actualizada insertada en el formato compatible con SDK v8.10.0
         const firebaseConfig = {
             apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
             authDomain: "tenant-escuela.firebaseapp.com",
@@ -462,21 +461,19 @@
         // LÓGICA DE DETECCIÓN DE TENANT (URL Y AUTH)
         // ============================================
         const urlParams = new URLSearchParams(window.location.search);
-        let urlTenant = urlParams.get('tenant') || urlParams.get('id');
+        let urlTenant = urlParams.get('tenant') || urlParams.get('id') || urlParams.get('socio');
         
-        // Si hay tenant en URL, cargamos ese contexto inmediatamente para que padres y escaner lo usen
         if (urlTenant) {
             iniciarListenersTenant(urlTenant);
         }
 
         function iniciarListenersTenant(nuevoTenantId) {
             if(!nuevoTenantId) return;
-            TENANT_ID = nuevoTenantId;
+            TENANT_ID = nuevoTenantId.toLowerCase().trim();
             dbTenant = firestore.collection('tenants').doc(TENANT_ID);
 
             document.getElementById('admin-tenant-label').innerText = `(${TENANT_ID})`;
 
-            // Limpiar listeners anteriores para no mezclar bases de datos
             unsubscribes.forEach(unsub => unsub());
             unsubscribes = [];
 
@@ -502,7 +499,7 @@
                 } 
             }));
 
-            // 2. Cargar Personas (Base de datos del Tenant actual)
+            // 2. Cargar Personas
             unsubscribes.push(dbTenant.collection('personas').onSnapshot(snapshot => { 
                 db.personas = {};
                 snapshot.forEach(doc => { db.personas[doc.id] = doc.data(); });
@@ -523,40 +520,53 @@
                 renderGeolocalizacion();
             }));
 
-            // 4. LÓGICA DE BLOQUEO SAAS
+            // 4. LÓGICA DE BLOQUEO SAAS (REFORZADA)
             unsubscribes.push(firestore.collection('clientes').doc(TENANT_ID).onSnapshot(snap => {
                 const data = snap.data();
                 let overlay = document.getElementById('saas-block-overlay');
                 if(!overlay) {
                     overlay = document.createElement('div'); overlay.id = 'saas-block-overlay';
-                    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999999;display:none;background:#0a0e27; overflow-y:auto; flex-direction:column; align-items:center; justify-content:center; color:white; text-align:center; padding:20px;';
+                    // Z-index ultra alto y fondo no transparente para evitar saltos del bloqueo
+                    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999999;display:none;background:#0a0e27; flex-direction:column; align-items:center; justify-content:center; color:white; text-align:center; padding:20px;';
                     document.body.appendChild(overlay);
                 }
                 
-                if(!data) return; // Permitir acceso si el registro SaaS aún no existe
-
-                let estado = data.estado || 'Activo';
+                // Si el cliente no existe aún en la cartera SaaS, permitir acceso por defecto
+                let estado = data ? (data.estado || 'Activo') : 'Activo';
                 const hoy = new Date().toISOString().split('T')[0];
                 
-                // Auto-bloqueo si la fecha expiró (Morosidad automática)
-                if(data.fechaVencimiento && data.fechaVencimiento < hoy) {
+                // Auto-bloqueo si la fecha expiró
+                if(data && data.fechaVencimiento && data.fechaVencimiento < hoy) {
                     estado = 'Suspendido';
                 }
 
+                const nav = document.getElementById('main-navbar');
+
                 if(estado === 'Suspendido') {
-                    overlay.innerHTML = data.htmlMora || '<h1>⛔ SERVICIO SUSPENDIDO</h1><p>La suscripción de esta institución ha vencido o presenta morosidad. Contacte a Prodigital.</p>';
-                    overlay.style.display = 'flex'; detenerCamaras();
+                    if(nav) nav.style.display = 'none'; // Oculta barra para que no salten el enlace
+                    document.body.style.overflow = 'hidden';
+                    overlay.innerHTML = data?.htmlMora || '<h1>⛔ SERVICIO SUSPENDIDO</h1><p>La suscripción de esta institución ha vencido o presenta morosidad.</p><p>Contacte a la administración SaaS.</p>';
+                    overlay.style.display = 'flex'; 
+                    detenerCamaras();
                 } else if (estado === 'Mantenimiento') {
+                    if(nav) nav.style.display = 'none';
+                    document.body.style.overflow = 'hidden';
                     overlay.innerHTML = '<h1>🛠️ EN MANTENIMIENTO</h1><p>Estamos realizando actualizaciones en la plataforma. Volveremos pronto.</p>';
-                    overlay.style.display = 'flex'; detenerCamaras();
+                    overlay.style.display = 'flex'; 
+                    detenerCamaras();
                 } else {
-                    overlay.style.display = 'none'; overlay.innerHTML = '';
+                    if(nav) nav.style.display = 'flex';
+                    document.body.style.overflow = 'auto';
+                    overlay.style.display = 'none'; 
+                    overlay.innerHTML = '';
                 }
+            }, error => {
+                console.error("Error validando el acceso SaaS:", error);
             }));
         }
 
         // ============================================
-        // SISTEMA DE LOGIN (Mapeo de Correos -> Tenant)
+        // SISTEMA DE LOGIN
         // ============================================
         let contextoLogin = '';
 
@@ -583,13 +593,11 @@
                 cerrarLogin();
                 let nuevoTenant = null;
 
-                // Lógica de Enrutamiento de Correos
                 if (email === 'prodigital@test.com') {
-                    // Carga el Panel Maestro de Socios en lugar de preguntar
                     document.getElementById('super-admin-view').style.display = 'block';
                     cargarListaClientesSaaS();
                     resetIdleTimer();
-                    return; // Detenemos aquí
+                    return; 
                 } else if (email === 'direccion@test.com') {
                     nuevoTenant = 'direccion@test.com';
                 } else if (email === 'direccion01@test.com') {
@@ -597,7 +605,6 @@
                 } else if (email === 'escaner@test.com') {
                     nuevoTenant = TENANT_ID || prompt("No se detectó Tenant en URL. Ingrese el ID del colegio a escanear:");
                 } else {
-                    // Por defecto, asumimos que cualquier otro correo es dueño de su propio tenant
                     nuevoTenant = email; 
                 }
 
@@ -773,6 +780,28 @@
         function cerrarVistaProtegida(id) { document.getElementById(id).style.display = 'none'; mostrarVista('home-view'); detenerCamaras(); }
         function cerrarMaster() { document.getElementById('master-panel').style.display = 'none'; detenerCamaras(); resetIdleTimer(); }
 
+        // Agregadas funciones que faltaban y generaban el "texto rojo" en la consola
+        function sincronizarConNube() {
+            alert("Los cambios (como agregar, eliminar o editar) se guardan automáticamente en Firebase en tiempo real.");
+            playSuccessSound();
+        }
+
+        function agregarMiembroManual() {
+            alert("Por favor use la pestaña '📝 Registrarse' en el inicio para agregar nuevos miembros de forma segura.");
+        }
+
+        function imprimirTodosLosCarnets() {
+            window.print();
+        }
+
+        function exportarCSV() {
+            alert("Función en desarrollo.");
+        }
+
+        function importarCSV() {
+            alert("Función en desarrollo.");
+        }
+
         // MÉTODOS DE ADMINISTRADOR (Render, Guardar Fondo en Nube)
         function renderAlumnos() {
             const t = document.getElementById('tablaAlumnos'); t.innerHTML = "";
@@ -844,7 +873,9 @@
                     
                     // Auto-suspender en base de datos si venció y sigue "Activo"
                     if (data.fechaVencimiento && data.fechaVencimiento < hoy && data.estado === 'Activo') {
-                        firestore.collection('clientes').doc(id).update({estado: 'Suspendido'});
+                        // Usamos set merge para evitar errores en caso de campos faltantes
+                        firestore.collection('clientes').doc(id).set({estado: 'Suspendido'}, {merge: true})
+                        .catch(e => console.warn("Aviso auto-suspensión: ", e));
                         data.estado = 'Suspendido';
                     }
 
@@ -881,37 +912,56 @@
             if(!correo) return;
             const id = correo.toLowerCase().trim();
             
-            // Asigna 1 mes gratis por defecto a nuevas escuelas
             const fecVence = new Date();
             fecVence.setMonth(fecVence.getMonth() + 1);
             
+            // Usando merge true y manejando errores visuales (Catch)
             firestore.collection('clientes').doc(id).set({
                 nombreEscuela: "Nueva Escuela Asignada",
                 fechaVencimiento: fecVence.toISOString().split('T')[0],
                 estado: "Activo"
-            }).then(() => playSuccessSound());
+            }, { merge: true })
+            .then(() => { 
+                playSuccessSound(); 
+                alert("✅ Nuevo socio agregado exitosamente.");
+            })
+            .catch(error => {
+                playErrorSound();
+                alert("❌ Permiso Denegado: No tienes acceso para agregar. \n" + error.message);
+                console.error("Firebase Error:", error);
+            });
         }
 
         function guardarCliente(id) {
             const nombre = document.getElementById(`nombre_${id}`).value;
             const vence = document.getElementById(`vence_${id}`).value;
             const estado = document.getElementById(`estado_${id}`).value;
-            firestore.collection('clientes').doc(id).update({
+            
+            // Usando Catch para reportar errores
+            firestore.collection('clientes').doc(id).set({
                 nombreEscuela: nombre,
                 fechaVencimiento: vence,
                 estado: estado
-            }).then(() => playSuccessSound());
+            }, { merge: true })
+            .then(() => {
+                playSuccessSound();
+                alert(`✅ Datos guardados correctamente para ${id}.`);
+            })
+            .catch(error => {
+                playErrorSound();
+                alert("❌ Permiso Denegado al guardar: \n" + error.message);
+                console.error("Firebase Error:", error);
+            });
         }
 
         function abrirUrlCliente(id) {
-            // Construye la URL independiente para el cliente
             const url = window.location.origin + window.location.pathname + '?tenant=' + encodeURIComponent(id);
             window.open(url, '_blank');
         }
 
         function entrarComoCliente(id) {
             document.getElementById('super-admin-view').style.display = 'none';
-            iniciarListenersTenant(id); // Carga la base de datos independiente de este cliente
+            iniciarListenersTenant(id); 
             document.getElementById('master-panel').style.display = 'block';
             inicializarIA();
         }
