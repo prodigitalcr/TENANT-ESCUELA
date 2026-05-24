@@ -465,7 +465,7 @@
                 await db.collection('tenants').doc(editingId).set({
                     estado: status,
                     htmlMora: hMora,
-                    htmlMantenimiento: hMantenimiento
+                    htmlMantenimiento: hMantenimiento 
                 }, { merge: true });
                 showToast("Estado y configuraciones guardadas exitosamente", "success");
                 closeModal('manageModal');
