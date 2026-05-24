@@ -996,5 +996,35 @@
         resetIdleTimer();
 
     </script>
+
+    <!-- CÓDIGO AÑADIDO: Lógica de validación de Tenant en tiempo real -->
+    <script>
+      (function() {
+          // 1. Obtener el ID del Tenant (Escuela) desde la URL
+          const urlParamsTenant = new URLSearchParams(window.location.search);
+          const tenantIdValidacion = urlParamsTenant.get('tenant') || urlParamsTenant.get('id');
+
+          if (tenantIdValidacion) {
+              // 2. Escuchar en tiempo real los cambios que haces desde tu Panel Maestro
+              // Se usa 'firestore' en lugar de 'db' debido a la forma en que el proyecto inicializa Firebase
+              firestore.collection('tenants').doc(tenantIdValidacion).onSnapshot((doc) => {
+                  if (doc.exists) {
+                      const data = doc.data();
+                      
+                      // 3. Validar el estado
+                      if (data.estado === 'Suspendido' && data.htmlMora) {
+                          // Si está moroso, borra toda la página y muestra tu código HTML de cobro
+                          document.body.innerHTML = data.htmlMora;
+                      } 
+                      else if (data.estado === 'Mantenimiento' && data.htmlMantenimiento) {
+                          // Si está en mantenimiento, borra la página y muestra el mensaje
+                          document.body.innerHTML = data.htmlMantenimiento;
+                      }
+                      // Si el estado es 'Activo', la app funciona normal
+                  }
+              });
+          }
+      })();
+    </script>
 </body>
 </html>
