@@ -180,8 +180,9 @@
                             <input type="radio" name="m_status" value="Activo" class="hidden peer">
                             <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-emerald-600/20 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">EN LÍNEA</div>
                         </label>
+                        <!-- MODIFICADO: value="Suspendido" -> value="Moroso" para coincidir con tu JS -->
                         <label class="cursor-pointer group">
-                            <input type="radio" name="m_status" value="Suspendido" class="hidden peer">
+                            <input type="radio" name="m_status" value="Moroso" class="hidden peer">
                             <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-red-600/20 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">MOROSO</div>
                         </label>
                         <label class="cursor-pointer group">
@@ -231,6 +232,34 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // =========================================================================
+        // DETECTAR EL ID DEL SOCIO EN LA URL E INYECTAR HTML DE BLOQUEO SI APLICA
+        // =========================================================================
+        const urlParams = new URLSearchParams(window.location.search);
+        const tenantId = urlParams.get('tenant') || urlParams.get('id'); // Soporte para '?tenant=' o '?id='
+
+        if (tenantId) {
+            db.collection('tenants').doc(tenantId).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    
+                    // Si el estado es Moroso, inyectamos el HTML de mora
+                    if (data.estado === 'Moroso') {
+                        document.body.innerHTML = data.htmlMora || '<div style="display:flex;height:100vh;align-items:center;justify-content:center;"><h1>Acceso restringido por falta de pago</h1></div>';
+                    } 
+                    // Si el estado es Mantenimiento, inyectamos el HTML de mantenimiento
+                    else if (data.estado === 'Mantenimiento') {
+                        document.body.innerHTML = data.htmlMantenimiento || '<div style="display:flex;height:100vh;align-items:center;justify-content:center;"><h1>Sistema en Mantenimiento</h1></div>';
+                    }
+                    // Si el estado vuelve a Activo y la página estaba bloqueada, recargamos la app
+                    else if (data.estado === 'Activo' && !document.getElementById('toast-container')) {
+                        window.location.reload();
+                    }
+                }
+            });
+        }
+        // =========================================================================
+
         // Ruta base donde alojarás la plataforma de escuelas.
         const BASE_CLIENT_URL = "https://prodigitalcr.github.io/TENANT-ESCUELA/"; 
         
@@ -276,7 +305,7 @@
 
         auth.onAuthStateChanged((user) => {
             if (user) {
-                // Muestra el correo para que sepas si de verdad entraste como prodigital@test.com
+                // Muestra el correo para que sepas si de verdad entraste
                 document.getElementById('header-email-display').innerText = `Logueado como: ${user.email}`;
                 document.getElementById('auth-overlay').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
@@ -303,10 +332,9 @@
                     currentTenants.push({ id, ...t });
 
                     const badge = t.estado === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (t.estado === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
-                    // Actualizado para reflejar EN LÍNEA visualmente
                     const textoEstado = t.estado === 'Activo' ? 'EN LÍNEA' : (t.estado === 'Mantenimiento' ? 'MANTENIM.' : 'MOROSO');
                     const waLink = `https://wa.me/${t.telefono ? t.telefono.replace(/\D/g,'') : ''}?text=${encodeURIComponent('Hola ' + t.empresa + ', te contactamos de soporte técnico SaaS.')}`;
-                    const tenantUrl = `${BASE_CLIENT_URL}?id=${id}`;
+                    const tenantUrl = `${BASE_CLIENT_URL}?tenant=${id}`; // Actualizado a '?tenant=' 
 
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-800/30 transition-all border-b border-slate-700/30 group";
@@ -370,7 +398,7 @@
             if(!id || !name || !corte) return showToast("Complete ID, Nombre y Fecha", "error");
 
             try {
-                // Escribe en la colección principal tenants utilizando set con merge para evitar sobreescrituras parciales fallidas
+                // Escribe en la colección principal tenants utilizando set con merge
                 await db.collection('tenants').doc(id).set({
                     empresa: name,
                     adminUid: uid,
@@ -387,7 +415,7 @@
                 ['new-id', 'new-uid', 'new-name', 'new-tel', 'new-monto', 'new-corte'].forEach(el => document.getElementById(el).value = "");
             } catch (e) {
                 if (e.code === 'permission-denied') {
-                    showToast("Sin permisos: Inicia sesión con el correo Super Admin (REGLAS)", "error");
+                    showToast("Sin permisos: Inicia sesión con el correo Super Admin", "error");
                 } else {
                     showToast("Error al desplegar escuela: " + e.message, "error");
                 }
@@ -401,7 +429,7 @@
             
             // Llenar información de cabecera en el Modal
             document.getElementById('modal-tenant-name').innerText = t.empresa;
-            document.getElementById('modal-tenant-url').innerText = `${BASE_CLIENT_URL}?id=${id}`;
+            document.getElementById('modal-tenant-url').innerText = `${BASE_CLIENT_URL}?tenant=${id}`;
             document.getElementById('modal-tenant-uid').innerText = t.adminUid || 'No Asignado';
 
             // Llenar valores
@@ -434,7 +462,6 @@
             const hMantenimiento = formatForDesktopView(document.getElementById('m_html_mantenimiento').value);
 
             try {
-                // Cambiado a .set(..., {merge: true}) para evitar problemas de documentos incompletos
                 await db.collection('tenants').doc(editingId).set({
                     estado: status,
                     htmlMora: hMora,
