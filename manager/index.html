@@ -6,6 +6,12 @@
     <title>SaaS Master Control | ProDigital</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide:0.263.0/lucide.min.js"></script>
+    
+    <!-- Firebase JS SDK v8 compat (Para asegurar 100% compatibilidad con la app cliente) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
     <style>
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -16,16 +22,17 @@
 
     <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2"></div>
 
+    <!-- Login -->
     <div id="auth-overlay" class="fixed inset-0 bg-[#0b1120] z-[100] flex flex-col items-center justify-center p-6">
         <div class="bg-[#1e293b] p-8 md:p-10 rounded-3xl border border-slate-700/50 w-full max-w-md shadow-2xl">
             <div class="bg-indigo-600/20 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center border border-indigo-500/30 text-indigo-400">
                 <i data-lucide="shield-check" class="w-10 h-10"></i>
             </div>
-            <h1 class="text-2xl font-black mb-1 text-white text-center uppercase tracking-tight">SaaS ProDigital</h1>
-            <p class="text-slate-400 mb-8 text-sm text-center font-bold">Panel de Soporte Maestro</p>
+            <h1 class="text-2xl font-black mb-1 text-white text-center uppercase tracking-tight">SaaS Maestro</h1>
+            <p class="text-slate-400 mb-8 text-sm text-center font-bold">Administración Central de Escuelas</p>
             
-            <form onsubmit="handleLogin(event)" class="space-y-4">
-                <input type="email" id="email" required placeholder="Email autorizado" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white">
+            <form id="login-form" class="space-y-4">
+                <input type="email" id="email" required placeholder="Email autorizado (Admin)" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white">
                 <input type="password" id="password" required placeholder="Contraseña" class="w-full p-4 rounded-xl bg-[#0f172a] border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white">
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition-all uppercase tracking-widest text-sm">
                     Autenticar Sistema
@@ -35,6 +42,7 @@
         </div>
     </div>
 
+    <!-- Main Dashboard -->
     <div id="main-content" class="hidden flex-col min-h-screen">
         <header class="bg-[#1e293b]/90 border-b border-slate-700 p-4 sticky top-0 backdrop-blur-xl z-40">
             <div class="max-w-7xl mx-auto flex justify-between items-center">
@@ -42,36 +50,33 @@
                     <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-500/20">
                         <i data-lucide="layout-dashboard" class="text-white w-5 h-5"></i>
                     </div>
-                    <h2 class="text-lg font-black text-white uppercase tracking-tighter">Master Control <span class="text-indigo-400">v2.0</span></h2>
+                    <h2 class="text-lg font-black text-white uppercase tracking-tighter">Master Control <span class="text-indigo-400">Escuelas</span></h2>
                 </div>
-                <button onclick="handleLogout()" class="bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 px-4 py-2 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-2">
+                <button id="btn-logout" class="bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 px-4 py-2 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-2">
                     <i data-lucide="log-out" class="w-4 h-4"></i> Cerrar Sesión
                 </button>
             </div>
         </header>
 
         <main class="max-w-7xl mx-auto p-4 md:p-8 w-full flex-1">
+            <!-- Formulario de Nuevo Cliente -->
             <section class="bg-[#1e293b] border border-slate-700 p-6 md:p-8 rounded-3xl mb-8 shadow-2xl relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-8 opacity-5">
-                    <i data-lucide="user-plus" class="w-24 h-24"></i>
-                </div>
-                
                 <h3 class="text-lg font-black mb-6 text-white uppercase flex items-center gap-2">
-                    <i data-lucide="zap" class="text-indigo-400"></i> Desplegar Nueva Instancia
+                    <i data-lucide="zap" class="text-indigo-400"></i> Desplegar Nueva Escuela (Tenant)
                 </h3>
                 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5">
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">ID Único (URL/Carpeta)</label>
-                        <input type="text" id="new-id" placeholder="ej: ferreteria_sj" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">ID Único (Carpeta/URL)</label>
+                        <input type="text" id="new-id" placeholder="ej: escuela_carpio" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono text-white">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1">UID Admin (CRÍTICO)</label>
-                        <input type="text" id="new-uid" placeholder="ej: WjX83nKls..." class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white">
+                        <label class="text-[10px] font-bold text-emerald-500 uppercase ml-1">UID Admin Director</label>
+                        <input type="text" id="new-uid" placeholder="Correo o UID del director" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono text-white">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre Comercial</label>
-                        <input type="text" id="new-name" placeholder="Nombre de la empresa" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre Institución</label>
+                        <input type="text" id="new-name" placeholder="Nombre completo" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Plan de Servicio</label>
@@ -88,7 +93,7 @@
                         <input type="text" id="new-tel" placeholder="50688888888" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Cuota (₡)</label>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Mensualidad ($ / ₡)</label>
                         <input type="number" id="new-monto" placeholder="0.00" class="w-full bg-[#0b1120] border border-slate-700 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white">
                     </div>
                     <div class="space-y-1 md:col-span-2">
@@ -97,19 +102,17 @@
                     </div>
                 </div>
 
-                <button onclick="createTenant()" class="mt-8 w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-10 py-4 rounded-2xl transition-all uppercase text-xs tracking-widest shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2">
-                    Iniciar Plataforma y Bloquear UID <i data-lucide="plus" class="w-4 h-4"></i>
+                <button id="btn-create" class="mt-8 w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-black px-10 py-4 rounded-2xl transition-all uppercase text-xs tracking-widest shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2">
+                    Activar Nueva Plataforma Escolar <i data-lucide="plus" class="w-4 h-4"></i>
                 </button>
             </section>
 
+            <!-- Tabla de Clientes -->
             <div class="bg-[#1e293b] rounded-3xl border border-slate-700/50 overflow-hidden shadow-2xl">
                 <div class="p-6 border-b border-slate-700 bg-slate-900/40 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
-                        <h4 class="text-white font-black uppercase text-sm tracking-widest">Sistemas Monitorizados</h4>
-                        <p class="text-slate-500 text-[10px] font-bold uppercase mt-1">Gestión de restricciones y acceso global (Doble Bloqueo)</p>
-                    </div>
-                    <div class="bg-indigo-500/10 text-indigo-400 px-4 py-2 rounded-full text-[10px] font-black uppercase border border-indigo-500/20 animate-pulse">
-                        Sincronización Activa
+                        <h4 class="text-white font-black uppercase text-sm tracking-widest">Sistemas Escolares Monitorizados</h4>
+                        <p class="text-slate-500 text-[10px] font-bold uppercase mt-1">Control de acceso y facturación (Multi-Tenant Firestore)</p>
                     </div>
                 </div>
                 
@@ -117,15 +120,16 @@
                     <table class="w-full text-left">
                         <thead class="bg-slate-900/60 text-slate-500 text-[10px] uppercase font-black border-b border-slate-700">
                             <tr>
-                                <th class="p-6">Socio / ID</th>
-                                <th class="p-6">UID Admin (Base Datos)</th>
+                                <th class="p-6">Institución / ID URL</th>
+                                <th class="p-6">Admin Asignado</th>
                                 <th class="p-6">Plan / Vigencia</th>
-                                <th class="p-6">Inversión</th>
-                                <th class="p-6 text-center">Disponibilidad</th>
+                                <th class="p-6">Monto</th>
+                                <th class="p-6 text-center">Estado del Servicio</th>
                                 <th class="p-6 text-right">Gestión</th>
                             </tr>
                         </thead>
                         <tbody id="tenant-list" class="divide-y divide-slate-700/40">
+                            <!-- Datos inyectados por JS -->
                         </tbody>
                     </table>
                 </div>
@@ -133,6 +137,7 @@
         </main>
     </div>
 
+    <!-- Modal de Configuración (Bloqueos) -->
     <div id="manageModal" class="fixed inset-0 bg-[#0b1120]/95 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto">
         <div class="bg-[#1e293b] border border-slate-600 w-full max-w-2xl rounded-[2.5rem] p-8 my-auto shadow-2xl relative">
             <div class="flex justify-between items-center mb-8">
@@ -140,7 +145,7 @@
                     <div class="bg-indigo-500/20 p-3 rounded-2xl text-indigo-400">
                         <i data-lucide="settings-2"></i>
                     </div>
-                    <h2 class="text-xl font-black text-white uppercase tracking-tight">Ajustes de Servicio</h2>
+                    <h2 class="text-xl font-black text-white uppercase tracking-tight">Ajustes del Servicio B2B</h2>
                 </div>
                 <button onclick="closeModal('manageModal')" class="text-slate-500 hover:text-white transition-colors">
                     <i data-lucide="x-circle" class="w-8 h-8"></i>
@@ -149,7 +154,7 @@
             
             <div class="space-y-6">
                 <div class="bg-slate-900/30 p-2 rounded-2xl border border-slate-700/50">
-                    <label class="text-[10px] font-black text-slate-500 uppercase mb-3 block px-2">Estado de Acceso</label>
+                    <label class="text-[10px] font-black text-slate-500 uppercase mb-3 block px-2">Estado de Acceso para la Escuela</label>
                     <div class="grid grid-cols-3 gap-2">
                         <label class="cursor-pointer group">
                             <input type="radio" name="m_status" value="Activo" class="hidden peer">
@@ -157,7 +162,7 @@
                         </label>
                         <label class="cursor-pointer group">
                             <input type="radio" name="m_status" value="Suspendido" class="hidden peer">
-                            <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-red-600/20 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">MOROSO</div>
+                            <div class="py-4 text-center rounded-xl border border-slate-700 bg-slate-800/50 peer-checked:bg-red-600/20 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-black text-[10px] uppercase transition-all group-hover:border-slate-500">SUSPENDIDO (MOROSO)</div>
                         </label>
                         <label class="cursor-pointer group">
                             <input type="radio" name="m_status" value="Mantenimiento" class="hidden peer">
@@ -168,64 +173,45 @@
 
                 <div class="grid grid-cols-1 gap-4">
                     <div class="bg-[#0b1120] p-5 rounded-3xl border border-slate-700">
-                        <div class="flex justify-between items-center mb-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2">
-                                <i data-lucide="code" class="w-3 h-3 text-red-500"></i> Mensaje de Morosidad (HTML)
-                            </label>
-                            <label class="cursor-pointer text-[9px] bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-500 transition-all">
-                                Cargar Archivo <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mora')" class="hidden">
-                            </label>
-                        </div>
-                        <textarea id="m_html_mora" rows="4" class="w-full bg-transparent border-0 outline-none text-indigo-300 font-mono text-[10px] resize-none" placeholder="Pega aquí el código HTML para clientes morosos..."></textarea>
-                    </div>
-
-                    <div class="bg-[#0b1120] p-5 rounded-3xl border border-slate-700">
-                        <div class="flex justify-between items-center mb-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2">
-                                <i data-lucide="wrench" class="w-3 h-3 text-amber-500"></i> Mensaje de Mantenimiento (HTML)
-                            </label>
-                            <label class="cursor-pointer text-[9px] bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-500 transition-all">
-                                Cargar Archivo <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mant')" class="hidden">
-                            </label>
-                        </div>
-                        <textarea id="m_html_mant" rows="4" class="w-full bg-transparent border-0 outline-none text-amber-300 font-mono text-[10px] resize-none" placeholder="Pega aquí el código HTML para mantenimiento programado..."></textarea>
+                        <label class="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mb-3">
+                            <i data-lucide="code" class="w-3 h-3 text-red-500"></i> Pantalla de Bloqueo por Falta de Pago (HTML/Texto)
+                        </label>
+                        <textarea id="m_html_mora" rows="4" class="w-full bg-transparent border border-slate-700 rounded-lg p-3 outline-none text-indigo-300 font-mono text-[12px] resize-none" placeholder="Pega aquí el código HTML o mensaje para mostrarle a la escuela bloqueada..."></textarea>
                     </div>
                 </div>
 
                 <div class="flex gap-4 pt-4">
                     <button onclick="closeModal('manageModal')" class="flex-1 py-5 bg-slate-800 rounded-2xl font-bold text-slate-400 uppercase text-xs tracking-widest hover:bg-slate-700 transition-all">Cancelar</button>
-                    <button onclick="saveChanges()" class="flex-[2] py-5 bg-indigo-600 rounded-2xl font-black text-white uppercase text-xs tracking-widest hover:bg-indigo-500 shadow-xl shadow-indigo-500/20 transition-all">Aplicar Doble Bloqueo (URL y UID)</button>
+                    <button id="btn-save-edit" class="flex-[2] py-5 bg-indigo-600 rounded-2xl font-black text-white uppercase text-xs tracking-widest hover:bg-indigo-500 shadow-xl shadow-indigo-500/20 transition-all">Aplicar Bloqueo a Institución</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
+        // CONFIGURACIÓN CENTRAL FIREBASE (De CREDENCIALES.txt)
         const firebaseConfig = {
-            apiKey: "AIzaSyCtPXuvsDuLDkpIJBlEEHFll6N-NofQ3bI",
-            authDomain: "prestamos-c97ed.firebaseapp.com",
-            projectId: "prestamos-c97ed",
-            storageBucket: "prestamos-c97ed.firebasestorage.app",
-            messagingSenderId: "511457800969",
-            appId: "1:511457800969:web:18b8e97383fdb630b319d8",
-            measurementId: "G-N0HK4HPLP1"
+            apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
+            authDomain: "tenant-escuela.firebaseapp.com",
+            projectId: "tenant-escuela",
+            storageBucket: "tenant-escuela.firebasestorage.app",
+            messagingSenderId: "456023877565",
+            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4",
+            measurementId: "G-ZK03Q0855K"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-        const APP_MASTER_ID = "MASTER_ADMIN_SaaS";
-        const BASE_URL = "https://prodigitalcr.github.io/PRESTAMOS/"; 
+        // Ruta base donde alojarás la plataforma de escuelas.
+        const BASE_CLIENT_URL = "https://tu-dominio-escuelas.com/"; 
         
         let currentTenants = [];
         let editingId = null;
 
-        window.showToast = (msg, type = 'success') => {
+        // Utilidades UI
+        const showToast = (msg, type = 'success') => {
             const container = document.getElementById('toast-container');
             const t = document.createElement('div');
             t.className = `p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase tracking-wider ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} transition-all transform animate-bounce`;
@@ -234,67 +220,26 @@
             setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3500);
         };
 
-        window.formatForDesktopView = (html) => {
-            if (!html || html.trim() === '') return html;
-            let formatted = html;
-            
-            if (/<meta[^>]*name=["']viewport["'][^>]*>/i.test(formatted)) {
-                formatted = formatted.replace(/<meta[^>]*name=["']viewport["'][^>]*>/gi, '<meta name="viewport" content="width=1024">');
-            } else if (/<head>/i.test(formatted)) {
-                formatted = formatted.replace(/<head>/i, '<head>\n    <meta name="viewport" content="width=1024">');
-            } else if (/<html/i.test(formatted)) {
-                formatted = formatted.replace(/<html[^>]*>/i, '$&\n<head>\n    <meta name="viewport" content="width=1024">\n</head>');
-            } else {
-                formatted = `<!DOCTYPE html>\n<html lang="es">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=1024">\n    <style>body { margin: 0; padding: 0; background-color: #ffffff; min-height: 100vh; font-family: system-ui, -apple-system, sans-serif; }</style>\n</head>\n<body>\n    ${formatted}\n</body>\n</html>`;
-            }
-            return formatted;
+        const copyToClipboard = (text) => {
+            navigator.clipboard.writeText(text).then(() => showToast("URL Copiada al Portapapeles", "success")).catch(() => showToast("Error al copiar URL", "error"));
         };
 
-        window.copyToClipboard = (text) => {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast("URL Copiada al Portapapeles", "success");
-            }).catch(err => {
-                showToast("Error al copiar URL", "error");
-            });
-        };
-
-        const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (e) {
-                console.error("Auth init error:", e);
-            }
-        };
-        initAuth();
-
-        window.handleLogin = async (e) => {
+        // Auth Lógica
+        document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value;
-            if(email !== 'norercarlop04@gmail.com') {
-                const errBox = document.getElementById('auth-error');
-                errBox.innerText = "Error: Acceso Denegado (Solo Administrador)";
-                errBox.classList.remove('hidden');
-                return;
-            }
-            try {
-                await setPersistence(auth, browserLocalPersistence);
-                await signInWithEmailAndPassword(auth, email, pass);
-            } catch (err) {
+            auth.signInWithEmailAndPassword(email, pass).catch(err => {
                 const errBox = document.getElementById('auth-error');
                 errBox.innerText = "Error: Credenciales Incorrectas";
                 errBox.classList.remove('hidden');
-            }
-        };
+            });
+        });
 
-        window.handleLogout = () => signOut(auth);
+        document.getElementById('btn-logout').addEventListener('click', () => auth.signOut());
 
-        onAuthStateChanged(auth, (user) => {
-            if (user && user.email === 'norercarlop04@gmail.com') {
+        auth.onAuthStateChanged((user) => {
+            if (user) {
                 document.getElementById('auth-overlay').classList.add('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
                 loadData();
@@ -305,23 +250,11 @@
             lucide.createIcons();
         });
 
-        // NUEVA FUNCIÓN PARA ABRIR LA URL USANDO EL TENANT (CARPETA) CORRECTO Y PASANDO EL UID OCULTO
-        window.verSitioSocio = (tenantId, socioUid) => {
-            // Siempre abre usando el Tenant ID en la URL (ej: ?tenant=ferreteria_sj)
-            let urlDestino = `${BASE_URL}?tenant=${tenantId}`;
-            
-            // Adjuntamos el UID para que el sistema destino sepa a quién bloquear o destruir la sesión al cerrar
-            if (socioUid && socioUid.trim() !== '') {
-                urlDestino += `&uid=${socioUid.trim()}`;
-            } else {
-                showToast("Advertencia: Este socio no tiene un UID de Firebase registrado.", "error");
-            }
-            
-            window.open(urlDestino, '_blank');
-        };
+        const verSitioSocio = (tenantId) => { window.open(`${BASE_CLIENT_URL}?id=${tenantId}`, '_blank'); };
 
+        // Core Data: Escucha la colección maestra 'tenants'
         function loadData() {
-            onSnapshot(collection(db, 'artifacts', APP_MASTER_ID, 'public', 'data', 'tenants'), (snap) => {
+            db.collection('tenants').onSnapshot((snap) => {
                 const list = document.getElementById('tenant-list');
                 list.innerHTML = "";
                 currentTenants = [];
@@ -332,11 +265,8 @@
                     currentTenants.push({ id, ...t });
 
                     const badge = t.estado === 'Activo' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : (t.estado === 'Mantenimiento' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
-                    
-                    const waLink = `https://wa.me/${t.telefono ? t.telefono.replace(/\D/g,'') : ''}?text=${encodeURIComponent('Hola ' + t.empresa + ', te contactamos de ProDigital soporte técnico.')}`;
-                    
-                    // CORRECCIÓN: La URL a copiar SIEMPRE muestra el ID (nombre de carpeta) para que sea la correcta
-                    const tenantUrl = `${BASE_URL}?tenant=${id}`;
+                    const waLink = `https://wa.me/${t.telefono ? t.telefono.replace(/\D/g,'') : ''}?text=${encodeURIComponent('Hola ' + t.empresa + ', te contactamos de soporte técnico SaaS.')}`;
+                    const tenantUrl = `${BASE_CLIENT_URL}?id=${id}`;
 
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-800/30 transition-all border-b border-slate-700/30 group";
@@ -349,35 +279,30 @@
                             </div>
                         </td>
                         <td class="p-6">
-                            <div class="text-[10px] font-mono font-bold ${t.adminUid ? 'text-emerald-400' : 'text-red-400'} truncate max-w-[120px]" title="${t.adminUid || 'No asignado'}">${t.adminUid || '¡FALTA UID!'}</div>
+                            <div class="text-[10px] font-mono font-bold ${t.adminUid ? 'text-emerald-400' : 'text-red-400'} truncate max-w-[120px]">${t.adminUid || 'No Asignado'}</div>
                         </td>
                         <td class="p-6">
                             <div class="text-[10px] text-slate-300 font-bold uppercase">${t.tipoPlan}</div>
                             <div class="text-[9px] text-slate-500 font-mono mt-0.5">Vence: ${t.fechaCorte}</div>
                         </td>
                         <td class="p-6">
-                            <div class="text-indigo-300 font-mono text-sm font-black">₡${Number(t.montoContrato || 0).toLocaleString()}</div>
+                            <div class="text-indigo-300 font-mono text-sm font-black">${t.montoContrato || 0}</div>
                         </td>
                         <td class="p-6 text-center">
-                            <span class="px-4 py-1.5 rounded-full border ${badge} text-[9px] font-black uppercase tracking-widest">
-                                ${t.estado}
-                            </span>
+                            <span class="px-4 py-1.5 rounded-full border ${badge} text-[9px] font-black uppercase tracking-widest">${t.estado}</span>
                         </td>
                         <td class="p-6">
                             <div class="flex justify-end gap-2 items-center">
-                                <a href="${waLink}" target="_blank" class="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-lg" title="Contactar Socio por WhatsApp">
+                                <a href="${waLink}" target="_blank" class="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-lg" title="WhatsApp">
                                     <i data-lucide="message-circle" class="w-4 h-4"></i>
                                 </a>
-                                
-                                <!-- CORRECCIÓN: Botón "Ver Sitio" ahora usa el enlace con ID de carpeta -->
-                                <button onclick="verSitioSocio('${id}', '${t.adminUid || ''}')" class="p-2.5 bg-slate-700/50 text-slate-300 rounded-xl hover:bg-white hover:text-black transition-all shadow-lg" title="Ver el Sitio Real">
+                                <button onclick="verSitioSocio('${id}')" class="p-2.5 bg-slate-700/50 text-slate-300 rounded-xl hover:bg-white hover:text-black transition-all shadow-lg" title="Visitar App del Cliente">
                                     <i data-lucide="external-link" class="w-4 h-4"></i>
                                 </button>
-                                
-                                <button onclick="openEdit('${id}')" class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-lg" title="Configurar (Bloquear/Activar)">
+                                <button onclick="openEdit('${id}')" class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-lg" title="Bloquear / Editar">
                                     <i data-lucide="settings" class="w-4 h-4"></i>
                                 </button>
-                                <button onclick="deleteTenant('${id}')" class="p-2.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-lg" title="Eliminar Socio Manualmente">
+                                <button onclick="deleteTenant('${id}')" class="p-2.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-lg" title="Eliminar Cliente">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -389,19 +314,8 @@
             });
         }
 
-        window.processHTML = (e, target) => {
-            const file = e.target.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const html = formatForDesktopView(ev.target.result);
-                document.getElementById(target).value = html;
-                showToast("HTML cargado y adaptado para vista de PC");
-            };
-            reader.readAsText(file);
-        };
-
-        window.createTenant = async () => {
+        // Crear nueva Institución
+        document.getElementById('btn-create').addEventListener('click', async () => {
             const id = document.getElementById('new-id').value.trim().toLowerCase().replace(/\s/g, '_');
             const uid = document.getElementById('new-uid').value.trim();
             const name = document.getElementById('new-name').value.trim();
@@ -410,10 +324,11 @@
             const monto = document.getElementById('new-monto').value;
             const corte = document.getElementById('new-corte').value;
 
-            if(!id || !uid || !name || !corte) return showToast("Complete los datos requeridos", "error");
+            if(!id || !name || !corte) return showToast("Complete ID, Nombre y Fecha", "error");
 
             try {
-                const payload = {
+                // Escribe en la colección principal tenants. La app cliente leerá desde aquí.
+                await db.collection('tenants').doc(id).set({
                     empresa: name,
                     adminUid: uid,
                     tipoPlan: plan,
@@ -421,118 +336,45 @@
                     montoContrato: Number(monto),
                     fechaCorte: corte,
                     estado: 'Activo',
-                    htmlMora: '',
-                    mensajeSuspension: '',
-                    htmlMantenimiento: ''
-                };
+                    htmlMora: ''
+                });
                 
-                // 1. Guardar en estructura de Control Global Maestro
-                await setDoc(doc(db, 'artifacts', APP_MASTER_ID, 'public', 'data', 'tenants', id), payload);
-                
-                // 2. Guardar en el documento raíz de la URL
-                await setDoc(doc(db, 'artifacts', id, 'public', 'data', 'usuarios', 'admin_data'), {
-                    estadoTenant: 'Activo',
-                    nombreEmpresa: name,
-                    tenantId: id,
-                    adminUid: uid,
-                    htmlMora: '',
-                    mensajeSuspension: '',
-                    htmlMantenimiento: ''
-                }, { merge: true });
+                showToast("Nueva escuela activada en Firestore");
+                ['new-id', 'new-uid', 'new-name', 'new-tel', 'new-monto', 'new-corte'].forEach(el => document.getElementById(el).value = "");
+            } catch (e) { showToast("Error al desplegar escuela: " + e.message, "error"); }
+        });
 
-                // 3. (CRÍTICO) Guardar directamente en la ruta del UID
-                await setDoc(doc(db, 'artifacts', uid, 'public', 'data', 'usuarios', 'admin_data'), {
-                    estadoTenant: 'Activo',
-                    nombreEmpresa: name,
-                    tenantId: uid,
-                    adminUid: uid,
-                    htmlMora: '',
-                    mensajeSuspension: '',
-                    htmlMantenimiento: ''
-                }, { merge: true });
-
-                showToast("Nueva plataforma activada con Doble Enlace UID");
-                document.getElementById('new-id').value = "";
-                document.getElementById('new-uid').value = "";
-                document.getElementById('new-name').value = "";
-                document.getElementById('new-tel').value = "";
-                document.getElementById('new-monto').value = "";
-                document.getElementById('new-corte').value = "";
-            } catch (e) { 
-                console.error("Error al crear inquilino:", e);
-                showToast("Error al desplegar socio: " + e.message, "error"); 
-            }
-        };
-
+        // Editar y Bloquear
         window.openEdit = (id) => {
             editingId = id;
             const t = currentTenants.find(x => x.id === id);
-            document.getElementById('m_html_mora').value = t.htmlMora || t.mensajeSuspension || '';
-            document.getElementById('m_html_mant').value = t.htmlMantenimiento || '';
+            document.getElementById('m_html_mora').value = t.htmlMora || '';
             const rads = document.getElementsByName('m_status');
             for(let r of rads) if(r.value === t.estado) r.checked = true;
             document.getElementById('manageModal').classList.remove('hidden');
-            lucide.createIcons();
         };
 
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
-        window.saveChanges = async () => {
+        document.getElementById('btn-save-edit').addEventListener('click', async () => {
             const status = document.querySelector('input[name="m_status"]:checked').value;
-            let hMora = document.getElementById('m_html_mora').value;
-            let hMant = document.getElementById('m_html_mant').value;
-
-            hMora = formatForDesktopView(hMora);
-            hMant = formatForDesktopView(hMant);
-            
-            document.getElementById('m_html_mora').value = hMora;
-            document.getElementById('m_html_mant').value = hMant;
-
-            const t = currentTenants.find(x => x.id === editingId);
-            const uid = t ? t.adminUid : '';
+            const hMora = document.getElementById('m_html_mora').value;
 
             try {
-                // 1. Actualizar Registro Maestro Global
-                await setDoc(doc(db, 'artifacts', APP_MASTER_ID, 'public', 'data', 'tenants', editingId), {
+                await db.collection('tenants').doc(editingId).update({
                     estado: status,
-                    htmlMora: hMora,
-                    mensajeSuspension: hMora,
-                    htmlMantenimiento: hMant
-                }, { merge: true });
-
-                // 2. Sincronizar App del Socio en la ruta URL (Carpeta Tenant Original)
-                await setDoc(doc(db, 'artifacts', editingId, 'public', 'data', 'usuarios', 'admin_data'), {
-                    estadoTenant: status,
-                    adminUid: uid,
-                    htmlMora: hMora,
-                    mensajeSuspension: hMora,
-                    htmlMantenimiento: hMant
-                }, { merge: true });
-
-                // 3. (CRÍTICO) Disparo al UID Exacto para bloqueo total
-                if (uid && uid.trim() !== '') {
-                    await setDoc(doc(db, 'artifacts', uid.trim(), 'public', 'data', 'usuarios', 'admin_data'), {
-                        estadoTenant: status,
-                        adminUid: uid,
-                        htmlMora: hMora,
-                        mensajeSuspension: hMora,
-                        htmlMantenimiento: hMant
-                    }, { merge: true });
-                }
-
-                showToast("DOBLE BLOQUEO APLICADO: URL y UID sincronizados globalmente", "success");
+                    htmlMora: hMora
+                });
+                showToast("Bloqueos aplicados correctamente", "success");
                 closeModal('manageModal');
-            } catch (e) { 
-                console.error("Error al sincronizar cambios:", e);
-                showToast("Error de sincronización: " + e.message, "error"); 
-            }
-        };
+            } catch (e) { showToast("Error de sincronización: " + e.message, "error"); }
+        });
 
         window.deleteTenant = async (id) => {
-            if(confirm(`¿Estás seguro de eliminar permanentemente a ${id.toUpperCase()}? Esta acción no se puede deshacer.`)) {
+            if(confirm(`¿Estás seguro de eliminar permanentemente a ${id.toUpperCase()}? Se cortará su acceso por completo.`)) {
                 try {
-                    await deleteDoc(doc(db, 'artifacts', APP_MASTER_ID, 'public', 'data', 'tenants', id));
-                    showToast("Socio eliminado del sistema");
+                    await db.collection('tenants').doc(id).delete();
+                    showToast("Institución eliminada");
                 } catch(e) { showToast("Error al eliminar", "error"); }
             }
         };
