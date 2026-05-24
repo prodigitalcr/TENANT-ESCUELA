@@ -197,7 +197,7 @@
         <div class="card" style="max-width: 400px; text-align: center;">
             <h2 id="login-title">🔒 Control de Acceso</h2>
             <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom: 20px;">
-                Ingrese sus credenciales. El sistema detectará su institución automáticamente.
+                Ingrese sus credenciales. El sistema validará su UID de director automáticamente.
             </p>
             <input type="email" id="loginEmail" placeholder="Correo electrónico" required>
             <input type="password" id="loginPass" placeholder="Contraseña" required>
@@ -382,17 +382,17 @@
         </div>
     </div>
 
-    <!-- PANEL SUPER ADMIN (SAAS - CARTERA DE SOCIOS) -->
+    <!-- PANEL SUPER ADMIN BACKUP (CARTERA DE SOCIOS) -->
     <div id="super-admin-view" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 3000; padding: 24px; overflow-y: auto;">
         <div class="panel-header">
-            <h1>👑 Control Maestro SaaS (Cartera de Socios)</h1>
+            <h1>👑 Control Maestro SaaS (Fallback)</h1>
             <div class="panel-header-actions">
                 <button class="btn btn-i" onclick="agregarNuevoCliente()">➕ NUEVO SOCIO</button>
                 <button class="btn btn-d" onclick="cerrarSuperAdmin()">❌ SALIR</button>
             </div>
         </div>
         <div class="power-bar">
-            <p style="color:var(--text-secondary);">Gestione las escuelas afiliadas. Cada director (correo) cuenta con una base de datos 100% independiente y aislada.</p>
+            <p style="color:var(--text-secondary);">Para una administración completa use la plataforma dedicada SAAS6. Esta vista es un respaldo rápido.</p>
         </div>
         <table style="background: var(--bg-card);">
             <thead>
@@ -490,6 +490,7 @@
                 }
             }));
 
+            // 2. Cargar Geocerca
             unsubscribes.push(dbTenant.collection('config').doc('geocerca').onSnapshot(doc => { 
                 if(doc.exists) { 
                     geoConfig = doc.data(); 
@@ -499,7 +500,7 @@
                 } 
             }));
 
-            // 2. Cargar Personas
+            // 3. Cargar Personas
             unsubscribes.push(dbTenant.collection('personas').onSnapshot(snapshot => { 
                 db.personas = {};
                 snapshot.forEach(doc => { db.personas[doc.id] = doc.data(); });
@@ -507,7 +508,7 @@
                 construirFaceMatcher(); 
             }));
             
-            // 3. Cargar Logs
+            // 4. Cargar Logs (Asistencia normal y lejanos)
             unsubscribes.push(dbTenant.collection('logs').onSnapshot(snapshot => { 
                 logsGlobal = []; 
                 snapshot.forEach(doc => { let val = doc.data(); val.key = doc.id; logsGlobal.push(val); });
@@ -520,41 +521,53 @@
                 renderGeolocalizacion();
             }));
 
-            // 4. LÓGICA DE BLOQUEO SAAS (REFORZADA)
-            unsubscribes.push(firestore.collection('clientes').doc(TENANT_ID).onSnapshot(snap => {
+            // ============================================
+            // 5. LÓGICA DE BLOQUEO SAAS DEFINITIVA
+            // ============================================
+            // Escucha directamente el documento base del tenant configurado en SAAS6.html
+            unsubscribes.push(dbTenant.onSnapshot(snap => {
                 const data = snap.data();
                 let overlay = document.getElementById('saas-block-overlay');
+                
+                // Generar el escudo de bloqueo visual
                 if(!overlay) {
                     overlay = document.createElement('div'); overlay.id = 'saas-block-overlay';
-                    // Z-index ultra alto y fondo no transparente para evitar saltos del bloqueo
                     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999999;display:none;background:#0a0e27; flex-direction:column; align-items:center; justify-content:center; color:white; text-align:center; padding:20px;';
                     document.body.appendChild(overlay);
                 }
                 
-                // Si el cliente no existe aún en la cartera SaaS, permitir acceso por defecto
+                // Si el socio no existe, permitimos uso básico inicial
                 let estado = data ? (data.estado || 'Activo') : 'Activo';
                 const hoy = new Date().toISOString().split('T')[0];
                 
-                // Auto-bloqueo si la fecha expiró
-                if(data && data.fechaVencimiento && data.fechaVencimiento < hoy) {
+                // Auto-bloqueo por vencimiento cruzando fechaCorte del Master SAAS6
+                if(data && data.fechaCorte && data.fechaCorte < hoy) {
                     estado = 'Suspendido';
                 }
 
                 const nav = document.getElementById('main-navbar');
 
+                // Acción según estado:
                 if(estado === 'Suspendido') {
-                    if(nav) nav.style.display = 'none'; // Oculta barra para que no salten el enlace
+                    if(nav) nav.style.display = 'none'; // Desaparecer navbar
                     document.body.style.overflow = 'hidden';
+                    
+                    // Inyectar el HTML de mora configurado desde SAAS6.html (textarea)
                     overlay.innerHTML = data?.htmlMora || '<h1>⛔ SERVICIO SUSPENDIDO</h1><p>La suscripción de esta institución ha vencido o presenta morosidad.</p><p>Contacte a la administración SaaS.</p>';
                     overlay.style.display = 'flex'; 
                     detenerCamaras();
+                    document.getElementById('master-panel').style.display = 'none'; // Cerrar panel si estaba abierto
+                    
                 } else if (estado === 'Mantenimiento') {
                     if(nav) nav.style.display = 'none';
                     document.body.style.overflow = 'hidden';
                     overlay.innerHTML = '<h1>🛠️ EN MANTENIMIENTO</h1><p>Estamos realizando actualizaciones en la plataforma. Volveremos pronto.</p>';
                     overlay.style.display = 'flex'; 
                     detenerCamaras();
+                    document.getElementById('master-panel').style.display = 'none';
+                    
                 } else {
+                    // ACTIVO: Devolver accesibilidad
                     if(nav) nav.style.display = 'flex';
                     document.body.style.overflow = 'auto';
                     overlay.style.display = 'none'; 
@@ -566,7 +579,7 @@
         }
 
         // ============================================
-        // SISTEMA DE LOGIN
+        // SISTEMA DE LOGIN Y CONTROL DE UID
         // ============================================
         let contextoLogin = '';
 
@@ -591,31 +604,41 @@
 
             auth.signInWithEmailAndPassword(email, pass).then((userCredential) => {
                 cerrarLogin();
-                let nuevoTenant = null;
+                const uid = userCredential.user.uid;
 
+                // Redirigir al super admin si inicia aquí por accidente
                 if (email === 'prodigital@test.com') {
                     document.getElementById('super-admin-view').style.display = 'block';
                     cargarListaClientesSaaS();
                     resetIdleTimer();
                     return; 
-                } else if (email === 'direccion@test.com') {
-                    nuevoTenant = 'direccion@test.com';
-                } else if (email === 'direccion01@test.com') {
-                    nuevoTenant = 'direccion01@test.com';
-                } else if (email === 'escaner@test.com') {
-                    nuevoTenant = TENANT_ID || prompt("No se detectó Tenant en URL. Ingrese el ID del colegio a escanear:");
-                } else {
-                    nuevoTenant = email; 
                 }
 
-                if (!nuevoTenant) { alert("Acceso cancelado."); return; }
+                // Definir Tenant (si no hay en la URL, asumimos que el correo es el Tenant)
+                let nuevoTenant = TENANT_ID || email; 
                 
-                iniciarListenersTenant(nuevoTenant);
+                if (!TENANT_ID) iniciarListenersTenant(nuevoTenant); // Arranca listeners si estaba vacío
 
+                // ==========================================
+                // CONTROL DE ACCESOS Y UID ENLAZADOS
+                // ==========================================
                 if (contextoLogin === 'admin') {
-                    document.getElementById('master-panel').style.display = 'block';
-                    inicializarIA(); resetIdleTimer();
+                    // Validar explícitamente en la base de datos si el UID de esta sesión es el Director del Tenant
+                    dbTenant.get().then(doc => {
+                        if (doc.exists && doc.data().adminUid === uid) {
+                            document.getElementById('master-panel').style.display = 'block';
+                            inicializarIA(); resetIdleTimer();
+                        } else {
+                            // Si el UID no es el dueño exacto asignado en el SAAS Master, se rechaza.
+                            playErrorSound();
+                            alert("❌ ACCESO DENEGADO:\nSu cuenta no tiene permisos para administrar esta URL. Asegúrese de que este es su colegio asignado.");
+                            auth.signOut();
+                        }
+                    }).catch(e => {
+                        alert("Error verificando permisos de socio: " + e.message);
+                    });
                 } else if (contextoLogin === 'escaner') {
+                    // El escáner (cuenta secundaria del colegio) entra sin restricción de UID maestro
                     mostrarVista('scan-view');
                 }
             }).catch((error) => { alert("Error: Contraseña o correo incorrectos.\n" + error.message); });
@@ -859,10 +882,10 @@
         }
 
         // ============================================
-        // FUNCIONES SUPER ADMIN SAAS (CARTERA DE SOCIOS)
+        // FUNCIONES SUPER ADMIN FALLBACK (Adaptadas a Colección "tenants")
         // ============================================
         function cargarListaClientesSaaS() {
-            firestore.collection('clientes').onSnapshot(snap => {
+            firestore.collection('tenants').onSnapshot(snap => {
                 const tbody = document.getElementById('tablaClientesSaaS');
                 tbody.innerHTML = '';
                 const hoy = new Date().toISOString().split('T')[0];
@@ -871,10 +894,8 @@
                     const data = doc.data();
                     const id = doc.id;
                     
-                    // Auto-suspender en base de datos si venció y sigue "Activo"
-                    if (data.fechaVencimiento && data.fechaVencimiento < hoy && data.estado === 'Activo') {
-                        // Usamos set merge para evitar errores en caso de campos faltantes
-                        firestore.collection('clientes').doc(id).set({estado: 'Suspendido'}, {merge: true})
+                    if (data.fechaCorte && data.fechaCorte < hoy && data.estado === 'Activo') {
+                        firestore.collection('tenants').doc(id).set({estado: 'Suspendido'}, {merge: true})
                         .catch(e => console.warn("Aviso auto-suspensión: ", e));
                         data.estado = 'Suspendido';
                     }
@@ -885,8 +906,8 @@
                     tbody.insertAdjacentHTML('beforeend', `
                         <tr>
                             <td><b style="color:var(--accent-primary);">${id}</b></td>
-                            <td><input type="text" id="nombre_${id}" value="${data.nombreEscuela || ''}" style="margin-bottom:0; padding:8px;"></td>
-                            <td><input type="date" id="vence_${id}" value="${data.fechaVencimiento || ''}" style="margin-bottom:0; padding:8px;"></td>
+                            <td><input type="text" id="nombre_${id}" value="${data.empresa || ''}" style="margin-bottom:0; padding:8px;"></td>
+                            <td><input type="date" id="vence_${id}" value="${data.fechaCorte || ''}" style="margin-bottom:0; padding:8px;"></td>
                             <td>
                                 <select id="estado_${id}" style="margin-bottom:0; padding:8px;">
                                     <option value="Activo" ${data.estado==='Activo'?'selected':''}>🟢 Activo</option>
@@ -915,11 +936,11 @@
             const fecVence = new Date();
             fecVence.setMonth(fecVence.getMonth() + 1);
             
-            // Usando merge true y manejando errores visuales (Catch)
-            firestore.collection('clientes').doc(id).set({
-                nombreEscuela: "Nueva Escuela Asignada",
-                fechaVencimiento: fecVence.toISOString().split('T')[0],
-                estado: "Activo"
+            firestore.collection('tenants').doc(id).set({
+                empresa: "Nueva Escuela Asignada",
+                fechaCorte: fecVence.toISOString().split('T')[0],
+                estado: "Activo",
+                htmlMora: "<h1>Suspensión</h1>"
             }, { merge: true })
             .then(() => { 
                 playSuccessSound(); 
@@ -937,10 +958,9 @@
             const vence = document.getElementById(`vence_${id}`).value;
             const estado = document.getElementById(`estado_${id}`).value;
             
-            // Usando Catch para reportar errores
-            firestore.collection('clientes').doc(id).set({
-                nombreEscuela: nombre,
-                fechaVencimiento: vence,
+            firestore.collection('tenants').doc(id).set({
+                empresa: nombre,
+                fechaCorte: vence,
                 estado: estado
             }, { merge: true })
             .then(() => {
@@ -955,7 +975,7 @@
         }
 
         function abrirUrlCliente(id) {
-            const url = window.location.origin + window.location.pathname + '?tenant=' + encodeURIComponent(id);
+            const url = window.location.origin + window.location.pathname + '?id=' + encodeURIComponent(id);
             window.open(url, '_blank');
         }
 
