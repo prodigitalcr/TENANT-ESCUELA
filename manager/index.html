@@ -7,8 +7,9 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide:0.263.0/lucide.min.js"></script>
+    
+    <!-- Lucide Icons (¡CDN Corregido!) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     
     <!-- Firebase SDK v8 (Compat para máxima estabilidad con tu configuración) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -515,7 +516,7 @@
 
     <!-- MAIN CONTROL JAVASCRIPT CON ARQUITECTURA MULTITENANT Y CONTROL REMOTO -->
     <script>
-        // Configuración de Credenciales de Firebase proporcionada por el usuario
+        // Configuración de Credenciales de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
             authDomain: "tenant-escuela.firebaseapp.com",
@@ -539,8 +540,8 @@
         let currentUser = null;
         let isSuperAdmin = false;
         let activeTenantEmail = "";
-        let dbUnsubscribes = []; // Mantener referencia a listeners activos para desvincularlos en logout
-        let localMembersList = []; // Cache local para filtros instantáneos
+        let dbUnsubscribes = []; 
+        let localMembersList = []; 
         let editingTenantId = "";
 
         // Al iniciar la página, renderizar todos los iconos Lucide
@@ -553,7 +554,7 @@
         function initAuthListener() {
             auth.onAuthStateChanged(async (user) => {
                 showLoading(true);
-                // Cerrar todos los listeners previos para evitar fugas de memoria o errores de lectura
+                // Cerrar todos los listeners previos
                 dbUnsubscribes.forEach(unsub => unsub());
                 dbUnsubscribes = [];
 
@@ -565,9 +566,10 @@
                     if (email === SUPER_ADMIN_EMAIL) {
                         isSuperAdmin = true;
                         setupSuperAdminDashboard();
+                        showLoading(false); // Ocultar loader aquí si es SuperAdmin
                     } else {
                         isSuperAdmin = false;
-                        // Es un socio (Tenant), se debe verificar su estado de cobros (Activo / Moroso / Mantenimiento)
+                        // El loader se ocultará asíncronamente en checkTenantStatus cuando reciba datos
                         await checkTenantStatus(email);
                     }
                 } else {
@@ -576,8 +578,8 @@
                     isSuperAdmin = false;
                     activeTenantEmail = "";
                     showScreen("auth-screen");
+                    showLoading(false); // Ocultar loader al desloguearse
                 }
-                showLoading(false);
             });
         }
 
@@ -607,6 +609,9 @@
                 
                 // Suscribirse en tiempo real al estado del Tenant para bloqueo inmediato
                 const unsubscribe = tenantDocRef.onSnapshot((docSnapshot) => {
+                    // Asegurarnos de apagar el Loader una vez llegan los datos reales
+                    showLoading(false);
+
                     if (!docSnapshot.exists) {
                         // El Super Admin no le ha creado documento, denegar acceso por seguridad
                         showBlockScreen(`
@@ -650,6 +655,7 @@
                         setupTenantDashboard(tenantData);
                     }
                 }, (error) => {
+                    showLoading(false);
                     showToast("Error de permisos en el Tenant: " + error.message, "error");
                     handleLogout();
                 });
@@ -657,6 +663,7 @@
                 dbUnsubscribes.push(unsubscribe);
 
             } catch (err) {
+                showLoading(false);
                 showToast("Fallo de conexión al verificar estado: " + err.message, "error");
                 handleLogout();
             }
@@ -1098,9 +1105,6 @@
             showLoading(true);
             try {
                 // 1. Crear el usuario en la Autenticación de Firebase
-                // NOTA: Firebase Auth no permite crear un usuario diferente sin desloguear el actual de forma directa,
-                // a menos que se use Firebase Admin SDK en el servidor.
-                // Como workaround para un archivo HTML estático 100% autoejecutable, usamos la API REST de registro de Firebase Auth
                 const registerUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
                 const response = await fetch(registerUrl, {
                     method: 'POST',
