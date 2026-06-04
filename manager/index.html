@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GEOCERCA SaaS | Master Control Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide:0.263.0/lucide.min.js"></script>
+    <!-- URL CORREGIDA PARA LUCIDE ICONS (Seguridad de Carga) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Leaflet CSS para Mapas Interactivos -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -402,14 +403,21 @@
         let markerEditor = null;
         let circleEditor = null;
 
-        // Custom Toasts
+        // Tolerancia a fallos: Renderización Segura de Iconos
+        window.refreshIcons = () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        };
+
+        // Custom Toasts con seguridad
         window.showToast = (msg, type = 'success') => {
             const container = document.getElementById('toast-container');
             const t = document.createElement('div');
             t.className = `p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase tracking-wider ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} transition-all transform animate-bounce flex items-center gap-2`;
             t.innerHTML = `<i data-lucide="${type === 'success' ? 'check' : 'alert-octagon'}" class="w-4 h-4"></i> ${msg}`;
             container.appendChild(t);
-            lucide.createIcons();
+            window.refreshIcons(); // Fallback de seguridad inyectado aquí
             setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3500);
         };
 
@@ -455,7 +463,6 @@
                     showToast("SISTEMA AUTENTICADO", "success");
                 } else {
                     // AISLAMIENTO LÓGICO ESTRICTO: Se expulsa cualquier intento no autorizado.
-                    // (Puerta trasera de auto-creación eliminada por seguridad de la arquitectura SaaS)
                     await signOut(auth);
                     errBox.innerText = "Acceso Denegado: Credenciales no registradas como Super Admin.";
                     errBox.classList.remove('hidden');
@@ -486,13 +493,12 @@
                 document.getElementById('auth-overlay').classList.remove('hidden');
                 document.getElementById('main-content').classList.add('hidden');
             }
-            lucide.createIcons();
+            window.refreshIcons();
         });
 
         // Configuración de Maps interactivos Leaflet
         function initCreatorMap() {
             if (mapCreator) return;
-            // Coordenadas iniciales de Costa Rica por defecto
             const defaultLat = 9.9347;
             const defaultLng = -84.0875;
 
@@ -513,7 +519,6 @@
                 radius: 150
             }).addTo(mapCreator);
 
-            // Escuchar el arrastre de marcador
             markerCreator.on('drag', function(e) {
                 const pos = markerCreator.getLatLng();
                 document.getElementById('new-lat').value = pos.lat.toFixed(6);
@@ -521,7 +526,6 @@
                 circleCreator.setLatLng(pos);
             });
 
-            // Escuchar click en el mapa para mover marcador
             mapCreator.on('click', function(e) {
                 const pos = e.latlng;
                 markerCreator.setLatLng(pos);
@@ -530,7 +534,6 @@
                 document.getElementById('new-lng').value = pos.lng.toFixed(6);
             });
 
-            // Ajustar tamaño del circulo al cambiar input de radio
             document.getElementById('new-radio').addEventListener('input', function(e) {
                 const r = parseInt(e.target.value) || 0;
                 circleCreator.setRadius(r);
@@ -555,7 +558,6 @@
             }
 
             try {
-                // Estructura de configuración SaaS
                 const payloadConfig = {
                     empresa: name,
                     telefono: tel,
@@ -563,28 +565,18 @@
                     montoContrato: monto,
                     fechaCorte: corte,
                     blocked: false,
-                    geocerca: {
-                        lat: lat,
-                        lng: lng,
-                        radio: radio
-                    },
+                    geocerca: { lat: lat, lng: lng, radio: radio },
                     status: 'activo',
                     htmlMora: '',
                     htmlMantenimiento: ''
                 };
 
-                // Guardar en la estructura multitenant /tenants/{tenantId}/config
                 await set(ref(database, 'tenants/' + id + '/config'), payloadConfig);
-                
-                // Configurar estado inicial /tenants/{tenantId}/status para sincronización
                 await set(ref(database, 'tenants/' + id + '/status'), 'activo');
-
-                // ENLACE REDUNDANTE EXTRA: soporte para 'tenantDB/{id}/blocked' que utiliza el script cliente
                 await set(ref(database, 'tenantDB/' + id + '/blocked'), false);
 
                 showToast(`Instancia '${name}' desplegada y activa.`);
                 
-                // Limpiar formulario
                 document.getElementById('new-id').value = "";
                 document.getElementById('new-name').value = "";
                 document.getElementById('new-tel').value = "";
@@ -617,7 +609,6 @@
 
                     currentTenants[id] = { id, ...config, status };
 
-                    // Construcción de la fila
                     const isBlocked = config.blocked === true;
                     let badgeClass = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
                     let stateText = "Funcional (Activo)";
@@ -686,7 +677,7 @@
                 });
 
                 updateStats();
-                lucide.createIcons();
+                window.refreshIcons();
             });
         }
 
@@ -811,7 +802,7 @@
                 }
             }, 300);
 
-            lucide.createIcons();
+            window.refreshIcons();
         };
 
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
