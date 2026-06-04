@@ -4,221 +4,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0e27">
-    <meta name="description" content="Sistema de asistencia con IA - Plataforma SaaS">
-    <title>Asistencia Facial Inteligente</title>
-    
-    <!-- Firebase -->
+    <meta name="description" content="Sistema de asistencia facial multi‑tenant – GEOCERCA">
+    <title>GEOCERCA – Asistencia Facial (Multi‑tenant)</title>
+
+    <!-- ==============================================================
+         LIBRERÍAS EXTERNAS
+         ============================================================== -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    
-    <!-- Face-API.js -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <!-- QR Code -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    
+
+    <!-- ==============================================================
+         ESTILOS (tema oscuro / claro)
+         ============================================================== -->
     <style>
-        /* ============================================
-           VARIABLES Y TEMA MINIMALISTA NEGRO / CLARO
-           ============================================ */
-        :root {
-            --bg-dark: #0a0e27;
-            --bg-darker: #050810;
-            --bg-card: #1a1f3a;
-            --bg-hover: #242d4a;
-            --text-primary: #e8eef5;
-            --text-secondary: #a8b2c1;
-            --text-muted: #7a8299;
-            --accent-primary: #00d9ff;
-            --accent-secondary: #00b8d4;
-            --accent-success: #00ff88;
-            --accent-warning: #ffb800;
-            --accent-danger: #ff4444;
-            --border-subtle: #2a3250;
-            --border-light: #3a4560;
-            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
-            --shadow-glow: 0 0 20px rgba(0, 217, 255, 0.15);
-            --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
-            --transition-fast: 0.2s ease; --transition-normal: 0.35s ease;
+        :root{
+            --bg-dark:#0a0e27; --bg-darker:#050810; --bg-card:#1a1f3a;
+            --bg-hover:#242d4a; --text-primary:#e8eef5; --text-secondary:#a8b2c1;
+            --accent-primary:#00d9ff; --accent-success:#00ff88; --accent-danger:#ff4444;
+            --border-subtle:#2a3250; --radius-lg:16px; --transition-fast:.2s cubic-bezier(0.4,0,0.2,1);
         }
-
-        body.light-theme {
-            --bg-dark: #f0f4f8; --bg-darker: #e2e8f0; --bg-card: #ffffff; --bg-hover: #f1f5f9;
-            --text-primary: #1e293b; --text-secondary: #475569; --text-muted: #64748b;
-            --border-subtle: #cbd5e1; --border-light: #94a3b8;
-            --shadow-glow: 0 0 20px rgba(0, 184, 212, 0.15);
+        body.light-theme{
+            --bg-dark:#f0f4f8; --bg-card:#ffffff; --text-primary:#1e293b; --accent-primary:#00b8d4;
         }
-
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes glow-pulse {
-            0%, 100% { box-shadow: 0 0 10px rgba(0, 217, 255, 0.2), var(--shadow-md); }
-            50% { box-shadow: 0 0 30px rgba(0, 217, 255, 0.4), var(--shadow-lg); }
-        }
-        @keyframes success-pop {
-            0% { transform: scale(0.8); opacity: 0; }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; width: 100%; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            font-size: 15px; color: var(--text-primary);
-            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
-            background-size: cover; background-position: center; background-attachment: fixed;
-            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-            animation: fade-in 0.6s ease-out; transition: background var(--transition-normal), color var(--transition-fast);
-        }
-
-        .navbar {
-            background: rgba(10, 14, 39, 0.95); border-bottom: 1px solid var(--border-subtle);
-            padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
-            backdrop-filter: blur(10px); z-index: 100; gap: 16px; box-shadow: var(--shadow-md);
-        }
-        body.light-theme .navbar { background: rgba(240, 244, 248, 0.95); }
-        .navbar-title { font-weight: 600; font-size: 1.1rem; color: var(--accent-primary); text-transform: uppercase; flex: 1; display: flex; align-items: center; gap: 10px; }
-        .navbar-title img { max-height: 45px; border-radius: 8px; object-fit: contain; background: white; padding: 2px;}
-        .navbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-        #scan-view, #parent-view, #register-view, #home-view {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-            padding: 24px; overflow-y: auto; animation: fade-in 0.4s ease-out;
-        }
-        #scan-view, #parent-view, #register-view { display: none; }
-
-        #home-view { background: transparent; justify-content: center; }
-        .home-clock { font-size: 5.5rem; font-weight: 800; color: rgba(255, 255, 255, 0.95); text-shadow: 0 8px 30px rgba(0, 0, 0, 0.7); text-align: center; }
-        .home-subtitle { font-size: 1.2rem; color: rgba(255, 255, 255, 0.9); text-shadow: 0 4px 15px rgba(0, 0, 0, 0.6); text-align: center; background: rgba(0, 0, 0, 0.5); padding: 12px 28px; border-radius: 30px; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); margin-top: 10px;}
-
-        .card {
-            background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 32px;
-            border-radius: var(--radius-lg); width: 100%; max-width: 480px; box-shadow: var(--shadow-lg);
-            animation: slide-up 0.5s ease-out; position: relative; overflow: hidden; margin: auto; margin-bottom: 20px; flex-shrink: 0;
-        }
-        .card h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 24px; color: var(--accent-primary); }
-
-        input, select {
-            width: 100%; padding: 12px 16px; font-size: 0.95rem; background: var(--bg-hover);
-            border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary);
-            outline: none; transition: all var(--transition-fast); margin-bottom: 15px; box-sizing: border-box;
-        }
-        input:focus, select:focus { border-color: var(--accent-primary); background: rgba(0, 217, 255, 0.05); }
-
-        .btn {
-            padding: 11px 20px; border: 1px solid transparent; border-radius: var(--radius-md);
-            cursor: pointer; font-weight: 600; color: var(--text-primary); display: inline-flex;
-            align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem;
-            transition: all var(--transition-fast); text-transform: uppercase;
-        }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-m { background: var(--accent-primary); color: var(--bg-dark); }
-        .btn-s { background: var(--accent-success); color: var(--bg-dark); }
-        .btn-d { background: var(--accent-danger); color: white; }
-        .btn-i { background: var(--accent-secondary); color: white; }
-        .btn-w { background: var(--accent-warning); color: var(--bg-dark); }
-        .btn-dark { background: transparent; border: 1px solid var(--border-light); color: var(--text-primary); }
-        .btn-full { width: 100%; margin-top: 10px; margin-bottom: 10px; }
-        .btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-        .btn-group .btn { flex: 1; min-width: 110px; }
-
-        .video-container {
-            position: relative; width: 100%; height: 320px; border-radius: var(--radius-lg);
-            overflow: hidden; background: #000; border: 2px solid var(--border-subtle);
-            display: none; box-shadow: var(--shadow-lg); transition: all 0.3s;
-        }
-        .video-container.active { display: block; border-color: var(--accent-primary); animation: glow-pulse 2s infinite; }
-        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
-        .scan-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, transparent 45%, rgba(0, 217, 255, 0.4) 50%, transparent 55%);
-            background-size: 100% 200%; animation: scanline 2.5s linear infinite; pointer-events: none; opacity: 0; transition: opacity 0.3s;
-        }
-        .video-container.scanning .scan-overlay { opacity: 1; }
-        .ai-status { font-size: 0.85rem; color: var(--accent-warning); text-align: center; margin-top: 10px; font-weight: bold; }
-
-        #resBox { margin-top: 15px; display: none; padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-light); background: var(--bg-hover); animation: success-pop 0.4s ease-out; text-align: center; }
-        #resBox h2 { margin: 0 0 5px 0; color: var(--accent-success); }
-        
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: none; padding: 24px; overflow-y: auto; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-
-        #master-panel { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 14, 39, 0.95); z-index: 1000; padding: 24px; overflow-y: auto; backdrop-filter: blur(10px); }
-        body.light-theme #master-panel { background: rgba(240, 244, 248, 0.95); }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 20px; }
-        .tabs-container { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border-subtle); }
-        .tab-btn { padding: 12px 20px; cursor: pointer; border: none; background: transparent; border-bottom: 2px solid transparent; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
-        .tab-btn.active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); }
-        .power-bar { background: var(--bg-hover); padding: 16px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; border: 1px solid var(--border-subtle); }
-        .power-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-        table { width: 100%; border-collapse: collapse; margin-top: 12px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); }
-        thead { background: var(--bg-hover); border-bottom: 1px solid var(--border-light); }
-        th { padding: 14px 16px; text-align: left; font-size: 0.8rem; color: var(--accent-primary); text-transform: uppercase; }
-        td { border-bottom: 1px solid var(--border-subtle); padding: 12px 16px; }
-        .status-badge { padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
-        .status-in { background: rgba(0, 255, 136, 0.15); color: var(--accent-success); border: 1px solid rgba(0, 255, 136, 0.3); }
-        .status-none { background: rgba(255, 68, 68, 0.15); color: var(--accent-danger); border: 1px solid rgba(255, 68, 68, 0.3); }
-        ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: var(--bg-card); } ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
-        .credits-footer { margin-top: 15px; text-align: center; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
-        @media print { .no-print { display: none !important; } body { background: white; color: black; } }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:var(--bg-dark);color:var(--text-primary);display:flex;flex-direction:column;}
+        .navbar{background:rgba(10,14,39,.95);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;z-index:100;}
+        body.light-theme .navbar{background:rgba(240,244,248,.95);}
+        .navbar-title{font-weight:600;color:var(--accent-primary);display:flex;align-items:center;gap:10px;}
+        .navbar-actions .btn{margin-left:6px;}
+        #home-view{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;}
+        .home-clock{font-size:5.5rem;font-weight:800;color:#fff;letter-spacing:2px;text-align:center;}
+        .home-subtitle{font-size:1.2rem;color:#fff;text-align:center;background:rgba(0,0,0,.5);padding:12px 28px;border-radius:30px;backdrop-filter:blur(8px);}
+        .card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:32px;margin:20px auto;max-width:480px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+        .card h2{font-size:1.3rem;color:var(--accent-primary);margin-bottom:24px;}
+        input,select{width:100%;padding:12px 16px;margin-bottom:15px;border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-hover);color:var(--text-primary);}
+        input:focus,select:focus{border-color:var(--accent-primary);background:rgba(0,217,255,.05);}
+        .btn{padding:11px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;text-transform:uppercase;transition:var(--transition-fast);}
+        .btn-m{background:var(--accent-primary);color:var(--bg-dark);}
+        .btn-s{background:var(--accent-success);color:var(--bg-dark);}
+        .btn-d{background:var(--accent-danger);color:#fff;}
+        .btn-i{background:#00b8d4;color:#fff;}
+        .btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 20px rgba(0,217,255,.3);}
+        .btn:disabled{opacity:.5;cursor:not-allowed;}
+        .video-container{position:relative;width:100%;height:320px;background:#000;border:2px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;display:none;}
+        .video-container.active{display:block;border-color:var(--accent-primary);animation:glow-pulse 2s infinite;}
+        video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+        canvas{position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1);}
+        .scan-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(to bottom,transparent 45%,rgba(0,217,255,.4) 50%,transparent 55%);background-size:100% 200%;animation:scanline 2.5s linear infinite;opacity:0;pointer-events:none;transition:opacity .3s;}
+        .video-container.scanning .scan-overlay{opacity:1;}
+        .ai-status{font-size:.85rem;color:var(--accent-warning);text-align:center;margin-top:10px;font-weight:bold;}
+        #resBox{margin-top:15px;padding:20px;border-radius:8px;border:1px solid var(--border-subtle);background:var(--bg-hover);display:none;animation:success-pop .4s ease-out;text-align:center;}
+        #resBox h2{margin:0 0 5px;font-size:1.2rem;color:var(--accent-success);}
+        #resBox h3{margin:0;font-size:1rem;color:var(--text-secondary);}
+        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+        .credits-footer{margin-top:15px;text-align:center;font-size:.75rem;color:var(--text-muted);}
+        #blockedOverlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;}
+        #blockedOverlay.hidden{display:none;}
+        #blockedOverlay .card{max-width:380px;background:#fff;color:#111;padding:30px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.4);}
+        @keyframes glow-pulse{0%,100%{box-shadow:0 0 10px rgba(0,217,255,.2)}50%{box-shadow:0 0 30px rgba(0,217,255,.4)}}
+        @keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}
+        @keyframes success-pop{0%{transform:scale(.8);opacity:0}50%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
     </style>
 </head>
 <body>
 
-    <!-- INPUTS OCULTOS PARA FONDOS Y LOGOS -->
+    <!-- INPUTS OCULTOS (fondo / logo) -->
     <input type="file" id="bgUploader" accept="image/*" style="display:none;" onchange="procesarSubidaFondo(event)">
     <input type="file" id="logoUploader" accept="image/png, image/jpeg" style="display:none;" onchange="procesarSubidaLogo(event)">
 
-    <!-- NAVBAR -->
+    <!-- BARRA DE NAVEGACIÓN -->
     <div class="navbar no-print" id="main-navbar">
         <div class="navbar-title" id="nav-logo-container">🤖 Asistencia IA</div>
         <div class="navbar-actions">
-            <button class="btn btn-s" onclick="mostrarVista('register-view')" title="Registro General">📝 Registrarse</button>
-            <button class="btn btn-w" onclick="mostrarVista('parent-view')" title="Consulta para padres">👨‍👩‍👧 Padres/Consulta</button>
-            <button class="btn btn-i" onclick="abrirLogin('escaner')" title="Acceso al escáner">📷 Escáner Facial</button>
-            <button class="btn btn-m" onclick="abrirLogin('admin')" title="Panel administrativo">🔓 Admin</button>
+            <button class="btn btn-s" onclick="mostrarVista('register-view')">📝 Registrarse</button>
+            <button class="btn btn-w" onclick="mostrarVista('parent-view')">👨‍👩‍👧 Padres/Consulta</button>
+            <button class="btn btn-i" onclick="abrirLogin('escaner')">📷 Escáner Facial</button>
+            <button class="btn btn-m" onclick="abrirLogin('admin')">🔓 Admin</button>
         </div>
     </div>
 
-    <!-- VISTA INACTIVA (HOME/LOGIN LIMPIO) -->
+    <!-- VISTA DE INACTIVIDAD (HOME) -->
     <div id="home-view" onclick="mostrarVista('parent-view')">
         <div class="home-clock" id="home-clock-time">--:--</div>
         <div class="home-subtitle">👆 Toque la pantalla o navegue en el menú superior para empezar</div>
     </div>
 
-    <!-- MODAL DE INICIO DE SESIÓN -->
+    <!-- MODAL DE INICIO DE SESIÓN (ADMIN / ESCÁNER) -->
     <div id="login-modal" class="modal-overlay">
-        <div class="card" style="max-width: 400px; text-align: center;">
+        <div class="card" style="max-width:400px;text-align:center;">
             <h2 id="login-title">🔒 Control de Acceso</h2>
-            <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom: 20px;">
-                Ingrese sus credenciales. El sistema validará su UID de director automáticamente.
-            </p>
+            <p style="color:var(--text-secondary);font-size:.9rem;margin-bottom:20px;">Ingrese sus credenciales autorizadas.</p>
             <input type="email" id="loginEmail" placeholder="Correo electrónico" required>
             <input type="password" id="loginPass" placeholder="Contraseña" required>
-            
-            <div class="btn-group">
-                <button class="btn btn-m" style="flex:2;" onclick="procesarLogin()">Ingresar al Sistema</button>
+            <div style="margin-top:15px;">
+                <button class="btn btn-m" style="flex:2;" onclick="procesarLogin()">Ingresar</button>
                 <button class="btn btn-d" style="flex:1;" onclick="cerrarLogin()">Cancelar</button>
             </div>
         </div>
     </div>
 
-    <!-- VISTA DE REGISTRO MULTI-PERFIL -->
-    <div id="register-view">
-        <div class="card" style="max-width: 650px; width: 100%;">
-            <h2 style="text-align: center;">📝 Registro Oficial de Usuarios</h2>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
+    <!-- REGISTRO MULTIPERFIL -->
+    <div id="register-view" style="display:none;">
+        <div class="card" style="max-width:650px;width:100%;">
+            <h2 style="text-align:center;">📝 Registro Oficial de Usuarios</h2>
+            <p style="text-align:center;color:var(--text-secondary);margin-bottom:20px;font-size:.9rem;">
+                Todos los usuarios deberán registrarse aquí. Se capturarán 4 ángulos de su rostro para mayor precisión.
+            </p>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;">
                 <input type="text" id="regId" placeholder="Cédula / Identificación" required>
                 <input type="text" id="regName" placeholder="Nombre Completo" required>
             </div>
-            
+
             <select id="regRole" onchange="toggleStudentField()">
                 <option value="">-- Seleccione su Perfil --</option>
                 <option value="Estudiante">Estudiante</option>
@@ -230,801 +133,746 @@
                 <option value="Visitante">Visitante</option>
             </select>
 
-            <input type="text" id="regStudentId" placeholder="Cédula de su hijo/a (Obligatorio para enlazar)" style="display:none; border-color: var(--accent-warning);">
-            <input type="text" id="regSection" placeholder="Sección / Puesto / Motivo">
+            <input type="text" id="regStudentId" placeholder="Cédula de su hijo/a (Obligatorio para enlazar)" style="display:none;border-color:var(--accent-warning);">
+            <input type="text" id="regSection" placeholder="Sección / Puesto / Motivo de visita">
             <input type="text" id="regPhone" placeholder="Número de WhatsApp">
 
-            <div id="reg-cam-container" class="video-container" style="margin-top: 15px;">
+            <div id="reg-cam-container" class="video-container" style="margin-top:15px;">
                 <video id="reg-video-pub" autoplay muted playsinline></video>
                 <canvas id="reg-canvas-pub"></canvas>
+                <div class="scan-overlay"></div>
             </div>
 
-            <div id="reg-instructions" style="text-align:center; margin-top: 15px; color: var(--accent-warning); font-weight: bold;">
+            <div id="reg-instructions" style="text-align:center;margin-top:15px;color:var(--accent-warning);font-weight:bold;font-size:1.1rem;">
                 Llene sus datos personales y presione "1️⃣ Iniciar Cámara".
             </div>
 
-            <div class="btn-group" style="margin-top: 20px;">
+            <div class="btn-group" style="margin-top:20px;">
                 <button id="btnStartRegCam" class="btn btn-i" onclick="iniciarCamaraRegistro()">1️⃣ Iniciar Cámara</button>
-                <button id="btnCaptureProfile" class="btn btn-m" onclick="capturarPerfilRegistro()" disabled>📸 Capturar (0/4)</button>
+                <button id="btnCaptureProfile" class="btn btn-m" onclick="capturarPerfilRegistro()" disabled>📸 Capturar Perfil (0/4)</button>
                 <button id="btnSaveRegistry" class="btn btn-s" onclick="guardarRegistroCompleto()" disabled>💾 Guardar Registro</button>
                 <button class="btn btn-d" onclick="cerrarVistaProtegida('register-view')">❌ Cancelar</button>
             </div>
         </div>
+        <div class="credits-footer">prodigital‑72284602 • Derechos Reservados</div>
     </div>
 
-    <!-- VISTA DE ESCANEO FACIAL -->
-    <div id="scan-view">
-        <div class="card" style="max-width: 550px;">
-            <h2 style="text-align: center;" id="scan-title">🤖 Escáner de Asistencia</h2>
+    <!-- ESCÁNER DE ASISTENCIA -->
+    <div id="scan-view" style="display:none;">
+        <div class="card" style="max-width:550px;">
+            <h2 style="text-align:center;">🤖 Asistencia de Estudiantes</h2>
+
             <div id="scan-video-container" class="video-container">
                 <video id="scan-video" autoplay muted playsinline></video>
                 <canvas id="scan-canvas"></canvas>
                 <div class="scan-overlay"></div>
             </div>
+
             <p id="scan-ai-status" class="ai-status">Esperando activación...</p>
+
             <button id="btnCamaraMain" class="btn btn-i btn-full" onclick="toggleScanner()">🟢 Iniciar Escáner</button>
+
             <div id="resBox">
-                <h2 id="resNombre"></h2><h3 id="resMov"></h3>
+                <h2 id="resNombre"></h2>
+                <h3 id="resMov"></h3>
             </div>
+
             <div class="btn-group">
+                <button class="btn btn-w" onclick="mostrarAyuda('escaneo')">❓ Ayuda</button>
                 <button class="btn btn-d" onclick="cerrarVistaProtegida('scan-view')">Cerrar</button>
             </div>
         </div>
+        <div class="credits-footer">prodigital‑72284602 • Derechos Reservados</div>
     </div>
 
-    <!-- VISTA DE CONSULTA PADRES -->
-    <div id="parent-view">
-        <div class="card" style="max-width: 520px;">
+    <!-- CONSULTA PADRES / ESTUDIANTE -->
+    <div id="parent-view" style="display:none;">
+        <div class="card" style="max-width:520px;">
             <h2>👁️ Consulta de Asistencia por Rostro / ID</h2>
+
             <div id="query-video-container" class="video-container">
                 <video id="query-video" autoplay muted playsinline></video>
                 <canvas id="query-canvas"></canvas>
                 <div class="scan-overlay"></div>
             </div>
-            <p id="query-ai-status" class="ai-status" style="margin-bottom: 12px;">La cámara permite reconocerte automáticamente.</p>
+            <p id="query-ai-status" class="ai-status">La cámara de consulta permite reconocerte a ti o a tus padres automáticamente.</p>
+
             <button id="btnCamaraQuery" class="btn btn-m btn-full" onclick="toggleQueryScanner()">📷 Iniciar Consulta Facial</button>
-            <div style="text-align: center; margin: 15px 0; color: var(--text-muted); font-size: 0.85rem;">- O CONSULTA MANUAL -</div>
-            <input type="text" id="parentInput" placeholder="Cédula del estudiante..." style="text-align:center;">
+
+            <div style="text-align:center;margin:15px 0;color:var(--text-muted);font-size:.85rem;">
+                - O CONSULTA MANUAL POR CÉDULA -
+            </div>
+
+            <input type="text" id="parentInput" placeholder="Cédula o código del estudiante..." style="text-align:center;">
             <button class="btn btn-s btn-full" onclick="consultarPadre()">Buscar por ID</button>
-            
-            <div id="parentResult" style="display:none; margin-top:20px;">
-                <div style="background: var(--bg-hover); padding:16px; border-radius:10px; margin-bottom:15px;">
-                    <h3 id="parentStudentName" style="color:var(--accent-primary);"></h3>
+
+            <div id="parentResult" style="display:none;margin-top:20px;">
+                <div style="background:var(--bg-hover);padding:16px;border-radius:10px;border:1px solid var(--border-subtle);margin-bottom:15px;">
+                    <h3 id="parentStudentName" style="color:var(--accent-primary);margin-bottom:5px;"></h3>
                     <p id="parentStudentPuesto" style="color:var(--text-secondary);"></p>
                     <button id="btnConsultaWA" class="btn btn-w btn-full">💬 Consultar por WhatsApp</button>
                 </div>
-                <div id="parentLogList" style="max-height: 200px; overflow-y:auto; border:1px solid var(--border-subtle); padding:10px;"></div>
+                <div id="parentLogList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border-subtle);border-radius:10px;padding:10px;"></div>
             </div>
+
             <button class="btn btn-dark btn-full" onclick="limpiarConsultaPadres()">🔄 Nueva Consulta</button>
         </div>
+        <div class="credits-footer">prodigital‑72284602 • Derechos Reservados</div>
     </div>
 
-    <!-- PANEL MAESTRO (ADMIN) -->
-    <div id="master-panel">
-        <div class="panel-header">
-            <h1>⚙️ Administración SaaS <span id="admin-tenant-label" style="font-size: 0.9rem; color:var(--text-secondary);"></span></h1>
-            <div class="panel-header-actions">
-                <button class="btn btn-s" onclick="editarNumeroJunta()">📱 TEL CONTACTO</button>
-                <button class="btn btn-i" onclick="document.getElementById('bgUploader').click()">🖼️ CAMBIAR FONDO</button>
-                <button class="btn btn-m" onclick="document.getElementById('logoUploader').click()">🎨 CAMBIAR LOGO</button>
-                <button class="btn btn-m" onclick="mostrarEstadisticas()">📈 STATS</button>
-                <button class="btn btn-d" onclick="cerrarMaster()">❌ SALIR</button>
-            </div>
-        </div>
-
-        <div class="tabs-container">
-            <button id="tab1" class="tab-btn active" onclick="cambiarTab(1)">👥 Miembros</button>
-            <button id="tab2" class="tab-btn" onclick="cambiarTab(2)">📊 Reportes</button>
-            <button id="tab3" class="tab-btn" onclick="cambiarTab(3)">🌍 Geocerca</button>
-        </div>
-
-        <!-- SECCIÓN MIEMBROS -->
-        <div id="sec-alumnos">
-            <div class="power-bar no-print">
-                <div class="power-bar-actions">
-                    <button class="btn btn-i" onclick="agregarMiembroManual()">➕ AGREGAR</button>
-                    <button class="btn btn-m" onclick="sincronizarConNube()">💾 GUARDAR CAMBIOS</button>
-                    <button class="btn btn-s" onclick="imprimirTodosLosCarnets()">📇 CARNÉS</button>
-                    <button class="btn btn-dark" onclick="document.getElementById('csvFile').click()">📤 IMPORTAR CSV</button>
-                    <button class="btn btn-w" onclick="exportarCSV()">📥 EXPORTAR CSV</button>
-                    <input type="file" id="csvFile" accept=".csv" style="display:none;" onchange="importarCSV()">
-                    <span id="admin-ai-status" class="ai-status" style="margin-left: 15px;">IA No cargada</span>
-                </div>
-            </div>
-            <input type="text" id="busqueda" placeholder="🔍 Buscar miembro..." onkeyup="filtrarRapido()">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Estado</th><th>Código</th><th>Rol</th><th>Nombre</th><th>Sección</th><th>WhatsApp</th><th>IA Estudiante</th><th>IA Encargados</th><th class="no-print">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaAlumnos"></tbody>
-            </table>
-        </div>
-
-        <!-- SECCIÓN REPORTE -->
-        <div id="sec-reporte" style="display:none;">
-            <div class="power-bar no-print">
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <label style="color: var(--text-secondary); font-weight:bold;">Fecha:</label>
-                    <input type="date" id="reportDate" style="margin:0; max-width:150px;">
-                </div>
-                <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;">
-                    <button class="btn btn-s" onclick="filtrarVistaReporte('ENTRADA')">✅ Llegaron</button>
-                    <button class="btn btn-m" onclick="filtrarVistaReporte('SALIDA')">🚪 Salieron</button>
-                    <button class="btn btn-d" onclick="filtrarVistaReporte('AUSENTES')">❌ Ausentes</button>
-                    <button class="btn btn-i" onclick="filtrarVistaReporte('TODOS')">📋 Todos</button>
-                </div>
-            </div>
-            <h2 id="tituloReporte" style="color:var(--accent-primary); text-align:center; margin:20px 0;">Seleccione un filtro</h2>
-            <table id="tabla-logs-final">
-                <thead id="headReporte"></thead>
-                <tbody id="cuerpoReporte"></tbody>
-            </table>
-        </div>
-
-        <!-- SECCIÓN GEOLOCALIZACIÓN -->
-        <div id="sec-geolocalizacion" style="display:none;">
-            <div class="power-bar">
-                <h3 style="color: var(--accent-primary); margin-bottom: 10px;">📍 Geocerca del Tenant</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div><label>Latitud:</label><input type="number" step="any" id="geoLat" value="9.9388"></div>
-                    <div><label>Longitud:</label><input type="number" step="any" id="geoLng" value="-84.1200"></div>
-                    <div><label>Radio (m):</label><input type="number" id="geoRadio" value="150"></div>
-                </div>
-                <button class="btn btn-s" onclick="guardarConfigGeo()">💾 Guardar Geocerca</button>
-            </div>
-            <h2 style="color:var(--accent-primary); margin: 25px 0 10px 0;">🌍 Escaneos Lejanos Rechazados</h2>
-            <table>
-                <thead><tr><th>Fecha/Hora</th><th>Código</th><th>Nombre</th><th>Distancia</th><th>Acciones</th></tr></thead>
-                <tbody id="tablaLogsLejanos"></tbody>
-            </table>
+    <!-- OVERLAY DE BLOQUEO (tenant sin suscripción) -->
+    <div id="blockedOverlay" class="hidden">
+        <div class="card">
+            <h2 style="color:#ff4444;font-size:2rem;margin-bottom:1rem;">⚠️ Acceso Bloqueado</h2>
+            <p id="blockedMessage" style="font-size:1rem;color:#333;">
+                La suscripción de su institución está temporalmente inactiva.<br>
+                Por favor, contacte al administrador del SaaS para restablecer el acceso.
+            </p>
+            <button class="btn btn-m" style="margin-top:1rem;" onclick="location.reload()">Reintentar</button>
         </div>
     </div>
 
-    <!-- PANEL SUPER ADMIN BACKUP (CARTERA DE SOCIOS) -->
-    <div id="super-admin-view" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 3000; padding: 24px; overflow-y: auto;">
-        <div class="panel-header">
-            <h1>👑 Control Maestro SaaS (Fallback)</h1>
-            <div class="panel-header-actions">
-                <button class="btn btn-i" onclick="agregarNuevoCliente()">➕ NUEVO SOCIO</button>
-                <button class="btn btn-d" onclick="cerrarSuperAdmin()">❌ SALIR</button>
-            </div>
-        </div>
-        <div class="power-bar">
-            <p style="color:var(--text-secondary);">Para una administración completa use la plataforma dedicada SAAS6. Esta vista es un respaldo rápido.</p>
-        </div>
-        <table style="background: var(--bg-card);">
-            <thead>
-                <tr>
-                    <th>ID (Correo Director)</th>
-                    <th>Nombre Institución</th>
-                    <th>Vencimiento</th>
-                    <th>Estado Plataforma</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="tablaClientesSaaS"></tbody>
-        </table>
-    </div>
-
-    <!-- MODAL DE CAPTURA DE ROSTRO (ADMIN) -->
-    <div id="face-modal" class="modal-overlay">
-        <div class="card" style="text-align:center; max-width: 500px;">
-            <h2 id="modalFaceTitle">📸 Registrar Rostro</h2>
-            <p style="color:var(--text-secondary); margin-bottom: 15px;">Usuario: <b id="modal-student-name"></b></p>
-            <div id="reg-video-container" class="video-container active">
-                <video id="reg-video" autoplay muted playsinline></video>
-                <canvas id="reg-canvas"></canvas>
-            </div>
-            <p id="reg-status" style="margin-top: 15px; color: var(--accent-warning);">Buscando rostro...</p>
-            <div class="btn-group">
-                <button id="btnCaptureFace" class="btn btn-s" disabled onclick="capturarYGuardarRostro()">💾 Guardar Rostro</button>
-                <button class="btn btn-d" onclick="cerrarFaceModal()">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- ==============================================================
+         LÓGICA DE LA APLICACIÓN (JavaScript)
+         ============================================================== -->
     <script>
-        // ============================================
-        // CONFIGURACIÓN FIREBASE SAAS (TENANT ESCUELA)
-        // ============================================
+        // -----------------------------------------------------------------
+        // 1️⃣ CONFIGURACIÓN DE FIREBASE (tus credenciales reales)
+        // -----------------------------------------------------------------
         const firebaseConfig = {
-            apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
-            authDomain: "tenant-escuela.firebaseapp.com",
-            databaseURL: "https://tenant-escuela-default-rtdb.firebaseio.com",
-            projectId: "tenant-escuela",
-            storageBucket: "tenant-escuela.firebasestorage.app",
-            messagingSenderId: "456023877565",
-            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4",
-            measurementId: "G-ZK03Q0855K"
+            apiKey: "AIzaSyBpGu9Bnr5pQhNBK4kYpoh4GuLkR4CED4c",
+            authDomain: "escuela-la-carpio.firebaseapp.com",
+            databaseURL: "https://escuela-la-carpio-default-rtdb.firebaseio.com",
+            projectId: "escuela-la-carpio",
+            storageBucket: "escuela-la-carpio.firebasestorage.app",
+            messagingSenderId: "163331007154",
+            appId: "1:163331007154:web:2465b1068d6b356cbadfab",
+            measurementId: "G-8EBFX04XVC"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const firestore = firebase.firestore();
+        const database = firebase.database();
 
-        // Variables Globales Multi-Tenant
-        let TENANT_ID = null; 
-        let dbTenant = null;
-        let unsubscribes = [];
-        
-        let NUMERO_OFICIAL_JUNTA = "88888888"; 
-        let db = { personas: {} };
-        let logsGlobal = [];
-        let logsLejanosGlobal = [];
-        let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 150 };
-
-        document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
-
-        // ============================================
-        // LÓGICA DE DETECCIÓN DE TENANT (URL Y AUTH)
-        // ============================================
-        const urlParams = new URLSearchParams(window.location.search);
-        let urlTenant = urlParams.get('tenant') || urlParams.get('id') || urlParams.get('socio');
-        
-        if (urlTenant) {
-            iniciarListenersTenant(urlTenant);
+        // -----------------------------------------------------------------
+        // 2️⃣ DETECCIÓN DE TENANT (sub‑dominio)
+        // -----------------------------------------------------------------
+        function detectarTenantInput() {
+            const host = window.location.host;                       // ej. carpio.geocer.ca
+            const parts = host.split('.');
+            // Si existen 3+ partes, el primer sub‑dominio es el tenant; si no, usamos "DEV"
+            const tenant = (parts.length > 2 ? parts[0] : 'DEV').toUpperCase();
+            return tenant;
         }
+        const TENANT_ID = detectarTenantInput();          // p.ej. "CARPIO"
 
-        function iniciarListenersTenant(nuevoTenantId) {
-            if(!nuevoTenantId) return;
-            TENANT_ID = nuevoTenantId.toLowerCase().trim();
-            dbTenant = firestore.collection('tenants').doc(TENANT_ID);
+        // -----------------------------------------------------------------
+        // 3️⃣ WRAPPER DE REFERENCE (añade el prefijo del tenant)
+        // -----------------------------------------------------------------
+        const _origRef = database.ref.bind(database);
+        database.ref = function(path){
+            // Evita prefijado doble
+            if (path.startsWith('tenants/')) return _origRef(path);
+            return _origRef('tenants/' + TENANT_ID + '/' + path);
+        };
 
-            document.getElementById('admin-tenant-label').innerText = `(${TENANT_ID})`;
+        // -----------------------------------------------------------------
+        // 4️⃣ GESTIÓN DE SESIÓN Y BLOQUEO POR SUSCRIPCIÓN
+        // -----------------------------------------------------------------
+        auth.onAuthStateChanged(async user => {
+            if (!user) {
+                // No hay sesión → stay on home view
+                return;
+            }
 
-            unsubscribes.forEach(unsub => unsub());
-            unsubscribes = [];
+            // 4.1️⃣ Verificamos claim "tenant"
+            const token = await user.getIdTokenResult();
+            const claimTenant = (token.claims.tenant || '').toUpperCase();
 
-            // 1. Cargar Configuración General y Apariencia
-            unsubscribes.push(dbTenant.collection('config').doc('general').onSnapshot(doc => { 
-                if(doc.exists && doc.data().numeroOficial) NUMERO_OFICIAL_JUNTA = doc.data().numeroOficial; 
-            }));
+            if (claimTenant !== TENANT_ID) {
+                // El usuario pertenece a otro tenant → bloqueamos
+                document.getElementById('blockedMessage').innerHTML = `
+                    <b>Esta cuenta pertenece al tenant ${claimTenant}.</b><br>
+                    No puede usar la URL <b>${window.location.host}</b> (tenant ${TENANT_ID}).
+                `;
+                document.getElementById('blockedOverlay').classList.remove('hidden');
+                auth.signOut();
+                return;
+            }
 
-            unsubscribes.push(dbTenant.collection('config').doc('apariencia').onSnapshot(doc => {
-                if(doc.exists) {
-                    const data = doc.data();
-                    if(data.bgBase64) document.body.style.backgroundImage = `url(${data.bgBase64})`;
-                    if(data.logoBase64) document.getElementById('nav-logo-container').innerHTML = `<img src="${data.logoBase64}" alt="Logo">`;
-                }
-            }));
+            // 4.2️⃣ Leemos flag "blocked" del tenant
+            const blockedSnap = await database.ref('config/blocked').once('value');
+            const isBlocked = blockedSnap.val() === true;
 
-            // 2. Cargar Geocerca
-            unsubscribes.push(dbTenant.collection('config').doc('geocerca').onSnapshot(doc => { 
-                if(doc.exists) { 
-                    geoConfig = doc.data(); 
-                    document.getElementById('geoLat').value = geoConfig.lat;
-                    document.getElementById('geoLng').value = geoConfig.lng;
-                    document.getElementById('geoRadio').value = geoConfig.radio;
-                } 
-            }));
-
-            // 3. Cargar Personas
-            unsubscribes.push(dbTenant.collection('personas').onSnapshot(snapshot => { 
-                db.personas = {};
-                snapshot.forEach(doc => { db.personas[doc.id] = doc.data(); });
-                renderAlumnos(); 
-                construirFaceMatcher(); 
-            }));
-            
-            // 4. Cargar Logs (Asistencia normal y lejanos)
-            unsubscribes.push(dbTenant.collection('logs').onSnapshot(snapshot => { 
-                logsGlobal = []; 
-                snapshot.forEach(doc => { let val = doc.data(); val.key = doc.id; logsGlobal.push(val); });
-                renderAlumnos(); 
-            }));
-
-            unsubscribes.push(dbTenant.collection('logs_lejanos').onSnapshot(snapshot => {
-                logsLejanosGlobal = [];
-                snapshot.forEach(doc => { let val = doc.data(); val.key = doc.id; logsLejanosGlobal.push(val); });
-                renderGeolocalizacion();
-            }));
-
-            // ============================================
-            // 5. LÓGICA DE BLOQUEO SAAS DEFINITIVA
-            // ============================================
-            // Escucha directamente el documento base del tenant configurado en SAAS6.html
-            unsubscribes.push(dbTenant.onSnapshot(snap => {
-                const data = snap.data();
-                let overlay = document.getElementById('saas-block-overlay');
-                
-                // Generar el escudo de bloqueo visual
-                if(!overlay) {
-                    overlay = document.createElement('div'); overlay.id = 'saas-block-overlay';
-                    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999999;display:none;background:#0a0e27; flex-direction:column; align-items:center; justify-content:center; color:white; text-align:center; padding:20px;';
-                    document.body.appendChild(overlay);
-                }
-                
-                // Si el socio no existe, permitimos uso básico inicial
-                let estado = data ? (data.estado || 'Activo') : 'Activo';
-                const hoy = new Date().toISOString().split('T')[0];
-                
-                // Auto-bloqueo por vencimiento cruzando fechaCorte del Master SAAS6
-                if(data && data.fechaCorte && data.fechaCorte < hoy) {
-                    estado = 'Suspendido';
-                }
-
-                const nav = document.getElementById('main-navbar');
-
-                // Acción según estado:
-                if(estado === 'Suspendido') {
-                    if(nav) nav.style.display = 'none'; // Desaparecer navbar
-                    document.body.style.overflow = 'hidden';
-                    
-                    // Inyectar el HTML de mora configurado desde SAAS6.html (textarea)
-                    overlay.innerHTML = data?.htmlMora || '<h1>⛔ SERVICIO SUSPENDIDO</h1><p>La suscripción de esta institución ha vencido o presenta morosidad.</p><p>Contacte a la administración SaaS.</p>';
-                    overlay.style.display = 'flex'; 
-                    detenerCamaras();
-                    document.getElementById('master-panel').style.display = 'none'; // Cerrar panel si estaba abierto
-                    
-                } else if (estado === 'Mantenimiento') {
-                    if(nav) nav.style.display = 'none';
-                    document.body.style.overflow = 'hidden';
-                    overlay.innerHTML = '<h1>🛠️ EN MANTENIMIENTO</h1><p>Estamos realizando actualizaciones en la plataforma. Volveremos pronto.</p>';
-                    overlay.style.display = 'flex'; 
-                    detenerCamaras();
-                    document.getElementById('master-panel').style.display = 'none';
-                    
-                } else {
-                    // ACTIVO: Devolver accesibilidad
-                    if(nav) nav.style.display = 'flex';
-                    document.body.style.overflow = 'auto';
-                    overlay.style.display = 'none'; 
-                    overlay.innerHTML = '';
-                }
-            }, error => {
-                console.error("Error validando el acceso SaaS:", error);
-            }));
-        }
-
-        // ============================================
-        // SISTEMA DE LOGIN Y CONTROL DE UID
-        // ============================================
-        let contextoLogin = '';
-
-        function abrirLogin(tipo) {
-            contextoLogin = tipo;
-            const modal = document.getElementById('login-modal');
-            document.getElementById('loginPass').value = ''; 
-            document.getElementById('loginEmail').value = ''; 
-            
-            if (tipo === 'admin') { document.getElementById('login-title').innerHTML = "🔓 Administrador"; } 
-            else if (tipo === 'escaner') { document.getElementById('login-title').innerHTML = "📷 Escáner"; }
-            modal.style.display = 'flex';
-        }
-
-        function cerrarLogin() { document.getElementById('login-modal').style.display = 'none'; }
-
-        function procesarLogin() {
-            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-            const pass = document.getElementById('loginPass').value;
-
-            if (!email || !pass) { alert("Ingrese el correo y la contraseña."); return; }
-
-            auth.signInWithEmailAndPassword(email, pass).then((userCredential) => {
-                cerrarLogin();
-                const uid = userCredential.user.uid;
-
-                // Redirigir al super admin si inicia aquí por accidente
-                if (email === 'prodigital@test.com') {
-                    document.getElementById('super-admin-view').style.display = 'block';
-                    cargarListaClientesSaaS();
-                    resetIdleTimer();
-                    return; 
-                }
-
-                // Definir Tenant (si no hay en la URL, asumimos que el correo es el Tenant)
-                let nuevoTenant = TENANT_ID || email; 
-                
-                if (!TENANT_ID) iniciarListenersTenant(nuevoTenant); // Arranca listeners si estaba vacío
-
-                // ==========================================
-                // CONTROL DE ACCESOS Y UID ENLAZADOS
-                // ==========================================
+            if (isBlocked) {
+                // Mostramos overlay con mensaje de bloqueo
+                document.getElementById('blockedMessage').innerHTML = `
+                    <b>La suscripción de la institución ${TENANT_ID} está desactivada.</b><br>
+                    Por favor, contacte al administrador o renueve su plan para continuar usando el servicio.
+                `;
+                document.getElementById('blockedOverlay').classList.remove('hidden');
+            } else {
+                document.getElementById('blockedOverlay').classList.add('hidden');
+                // Si el login fue para el admin del tenant, abre el panel master
                 if (contextoLogin === 'admin') {
-                    // Validar explícitamente en la base de datos si el UID de esta sesión es el Director del Tenant
-                    dbTenant.get().then(doc => {
-                        if (doc.exists && doc.data().adminUid === uid) {
-                            document.getElementById('master-panel').style.display = 'block';
-                            inicializarIA(); resetIdleTimer();
-                        } else {
-                            // Si el UID no es el dueño exacto asignado en el SAAS Master, se rechaza.
-                            playErrorSound();
-                            alert("❌ ACCESO DENEGADO:\nSu cuenta no tiene permisos para administrar esta URL. Asegúrese de que este es su colegio asignado.");
-                            auth.signOut();
-                        }
-                    }).catch(e => {
-                        alert("Error verificando permisos de socio: " + e.message);
-                    });
-                } else if (contextoLogin === 'escaner') {
-                    // El escáner (cuenta secundaria del colegio) entra sin restricción de UID maestro
+                    document.getElementById('master-panel').style.display = 'block';
+                }
+                // Si fue para el escáner, abre la vista de escaneo
+                if (contextoLogin === 'escaner') {
                     mostrarVista('scan-view');
                 }
-            }).catch((error) => { alert("Error: Contraseña o correo incorrectos.\n" + error.message); });
-        }
-
-
-        // ============================================
-        // SISTEMA DE INACTIVIDAD Y SONIDOS
-        // ============================================
-        let idleTimeout; const IDLE_TIME = 45000;
-        function resetIdleTimer() {
-            clearTimeout(idleTimeout);
-            if(!scannerActivo && !queryScannerActivo && document.getElementById('master-panel').style.display !== 'block' && document.getElementById('face-modal').style.display !== 'flex' && document.getElementById('login-modal').style.display !== 'flex') {
-                idleTimeout = setTimeout(() => { mostrarVista('home-view'); }, IDLE_TIME);
+                // De lo contrario, permanecemos en la vista idle (home)
+                mostrarVista('home-view');
+                resetIdleTimer();
             }
-        }
-        ['mousemove', 'touchstart', 'click', 'keydown', 'scroll'].forEach(evt => document.addEventListener(evt, resetIdleTimer));
+        });
 
-        function updateIdleClock() {
-            const now = new Date(); let h = now.getHours(); let m = now.getMinutes();
-            const ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12; h = h ? h : 12; m = m < 10 ? '0' + m : m;
-            document.getElementById('home-clock-time').innerText = h + ':' + m + ' ' + ampm;
-            setTimeout(updateIdleClock, 5000);
+        // -----------------------------------------------------------------
+        // 5️⃣ UTILIDADES UI (reloj, idle, sonidos, etc.)
+        // -----------------------------------------------------------------
+        // Reloj de la pantalla idle
+        function updateIdleClock(){
+            const now = new Date();
+            let h = now.getHours(); const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12; h = h ? h : 12;
+            const m = now.getMinutes()<10? '0'+now.getMinutes(): now.getMinutes();
+            document.getElementById('home-clock-time').innerText = `${h}:${m} ${ampm}`;
+            setTimeout(updateIdleClock,5000);
         }
         updateIdleClock();
 
-        function playSuccessSound() { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(0.08, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.12); setTimeout(() => { const osc2 = ctx.createOscillator(); const gain2 = ctx.createGain(); osc2.connect(gain2); gain2.connect(ctx.destination); osc2.type = 'sine'; osc2.frequency.setValueAtTime(1046.50, ctx.currentTime); gain2.gain.setValueAtTime(0.08, ctx.currentTime); osc2.start(); osc2.stop(ctx.currentTime + 0.18); }, 120); } catch(e) {} }
-        function playErrorSound() { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(180, ctx.currentTime); gain.gain.setValueAtTime(0.12, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4); osc.start(); osc.stop(ctx.currentTime + 0.45); } catch(e) {} }
+        // Idle (45 seg.) → vuelve a la vista home
+        let idleTimer;
+        const IDLE_TIME = 45000;
+        function resetIdleTimer(){
+            clearTimeout(idleTimer);
+            if (!scannerActivo && !queryScannerActivo && document.getElementById('master-panel').style.display!=='block'){
+                idleTimer = setTimeout(()=>mostrarVista('home-view'), IDLE_TIME);
+            }
+        }
+        ['mousemove','touchstart','click','keydown','scroll'].forEach(e=>document.addEventListener(e,resetIdleTimer));
 
-        // ============================================
-        // IA Y RECONOCIMIENTO FACIAL
-        // ============================================
-        let iaCargada = false; let faceMatcher = null; let scannerActivo = false; let queryScannerActivo = false; let enCooldown = false; let streamActual = null; let idCapturaActual = null; let tipoCapturaActual = 'estudiante'; let descriptorDetectado = null; let registroLoopId = null;
+        // Sonidos (éxito / error / notificación)
+        function playSuccessSound(){ try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type='sine'; osc.frequency.setValueAtTime(880,ctx.currentTime); gain.gain.setValueAtTime(0.08,ctx.currentTime); osc.start(); osc.stop(ctx.currentTime+0.12); setTimeout(()=>{const osc2=ctx.createOscillator(); const gain2=ctx.createGain(); osc2.connect(gain2); gain2.connect(ctx.destination); osc2.type='sine'; osc2.frequency.setValueAtTime(1046.5,ctx.currentTime); gain2.gain.setValueAtTime(0.08,ctx.currentTime); osc2.start(); osc2.stop(ctx.currentTime+0.18);},120); }catch(e){ console.log('Audio no soportado'); } }
+        function playErrorSound(){ try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type='sawtooth'; osc.frequency.setValueAtTime(180,ctx.currentTime); gain.gain.setValueAtTime(0.12,ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4); osc.start(); osc.stop(ctx.currentTime+0.45); }catch(e){ console.log('Audio no soportado'); } }
+        function playParentMelody(){ try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const notes=[523.25,659.25,783.99,1046.50]; const delays=[0,100,200,300]; notes.forEach((f,i)=>{ setTimeout(()=>{ const o=ctx.createOscillator(); const g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='triangle'; o.frequency.setValueAtTime(f,ctx.currentTime); g.gain.setValueAtTime(0.07,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3); o.start(); o.stop(ctx.currentTime+0.35); }, delays[i]); }); }catch(e){ console.log('Audio no soportado'); } }
 
-        async function inicializarIA() {
-            if(iaCargada) return;
-            const statusEls = document.querySelectorAll('.ai-status');
-            statusEls.forEach(el => el.innerText = "Descargando IA...");
+        // Cálculo de distancia (Haversine)
+        function calcularDistancia(lat1, lon1, lat2, lon2){
+            const R = 6371000;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+                      Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180) *
+                      Math.sin(dLon/2)*Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // -----------------------------------------------------------------
+        // 6️⃣ IA (Face‑API) – carga, matcher y utilidades
+        // -----------------------------------------------------------------
+        let iaCargada = false;
+        let faceMatcher = null;
+        let scannerActivo = false;
+        let queryScannerActivo = false;
+        let enCooldown = false;
+        let streamActual = null;
+        let regStream = null;
+        let registroLoopId = null;
+        let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 150 };   // valores por defecto (puedes modificarlos desde el panel)
+
+        async function inicializarIA(){
+            if (iaCargada) return;
+            actualizarEstadoIA('Descargando modelos IA…');
             const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-            try {
-                await Promise.all([ faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL), faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL), faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL), faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL) ]);
+            try{
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
+                ]);
                 iaCargada = true;
-                statusEls.forEach(el => el.innerText = "✅ IA Lista");
+                actualizarEstadoIA('✅ IA lista');
                 construirFaceMatcher();
-            } catch (err) { statusEls.forEach(el => el.innerText = "❌ Error en IA"); }
-        }
-
-        function construirFaceMatcher() {
-            if(!iaCargada || !db.personas) return;
-            const labeledDescriptors = [];
-            for (const id in db.personas) {
-                const persona = db.personas[id];
-                if (persona.descriptor && persona.descriptor.length === 128) labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(id, [new Float32Array(persona.descriptor)]));
-                if (persona.descriptorPadre1 && persona.descriptorPadre1.length === 128) labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(id + "_p1", [new Float32Array(persona.descriptorPadre1)]));
-                if (persona.descriptorPadre2 && persona.descriptorPadre2.length === 128) labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(id + "_p2", [new Float32Array(persona.descriptorPadre2)]));
-            }
-            faceMatcher = labeledDescriptors.length > 0 ? new faceapi.FaceMatcher(labeledDescriptors, 0.5) : null;
-        }
-
-        // ============================================
-        // ESCÁNER ASISTENCIA (Con Geocerca)
-        // ============================================
-        async function toggleScanner() {
-            if(!TENANT_ID) return alert("Error: El escáner no está asociado a ningún colegio. Verifique la URL.");
-            const container = document.getElementById('scan-video-container');
-            const btn = document.getElementById('btnCamaraMain');
-
-            if (!scannerActivo) {
-                if(!iaCargada) { btn.innerText = "⏳ Cargando IA..."; await inicializarIA(); }
-                if(!faceMatcher) { alert("No hay rostros en la base de datos."); return; }
-                try {
-                    streamActual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-                    document.getElementById('scan-video').srcObject = streamActual;
-                    container.classList.add('active', 'scanning'); btn.innerText = "🛑 Detener"; btn.classList.replace('btn-i', 'btn-d');
-                    scannerActivo = true; document.getElementById('scan-video').addEventListener('play', loopReconocimiento);
-                    resetIdleTimer();
-                } catch (err) { alert("Error cámara."); }
-            } else {
-                detenerCamaras(); container.classList.remove('active', 'scanning');
-                btn.innerText = "🟢 Iniciar Escáner"; btn.classList.replace('btn-d', 'btn-i');
-                scannerActivo = false; resetIdleTimer();
+            }catch(e){
+                console.error(e);
+                actualizarEstadoIA('❌ Error al cargar IA');
             }
         }
+        function actualizarEstadoIA(txt){ document.getElementById('scan-ai-status').innerText = txt; document.getElementById('query-ai-status').innerText = txt; }
+        function construirFaceMatcher(){
+            if (!iaCargada) return;
+            const labeled=[];
+            for(const id in db.personas){
+                const p=db.personas[id];
+                if(p.descriptor && p.descriptor.length===128) labeled.push(new faceapi.LabeledFaceDescriptors(id,[new Float32Array(p.descriptor)]));
+                if(p.descriptorPadre1 && p.descriptorPadre1.length===128) labeled.push(new faceapi.LabeledFaceDescriptors(id+'_p1',[new Float32Array(p.descriptorPadre1)]));
+                if(p.descriptorPadre2 && p.descriptorPadre2.length===128) labeled.push(new faceapi.LabeledFaceDescriptors(id+'_p2',[new Float32Array(p.descriptorPadre2)]));
+            }
+            faceMatcher = labeled.length ? new faceapi.FaceMatcher(labeled,0.5) : null;
+        }
 
-        async function loopReconocimiento() {
+        // -----------------------------------------------------------------
+        // 7️⃣ BASE DE DATOS (personas, logs, logs_lejanos, config)
+        // -----------------------------------------------------------------
+        let db = {personas:{}};
+        let logsGlobal=[];
+        let logsLejanosGlobal=[];
+
+        // Escucha de cambios
+        database.ref('personas').on('value',snap=>{ db.personas = snap.val()||{}; renderAlumnos(); construirFaceMatcher(); });
+        database.ref('logs').on('value',snap=>{ logsGlobal=[]; snap.forEach(c=>{ const v=c.val(); v.key=c.key; logsGlobal.push(v); }); renderAlumnos(); });
+        database.ref('logs_lejanos').on('value',snap=>{ logsLejanosGlobal=[]; snap.forEach(c=>{ const v=c.val(); v.key=c.key; logsLejanosGlobal.push(v); }); renderGeolocalizacion(); });
+        database.ref('config/geocerca').on('value',snap=>{ if(snap.val()){ geoConfig=snap.val(); document.getElementById('geoLat').value=geoConfig.lat; document.getElementById('geoLng').value=geoConfig.lng; document.getElementById('geoRadio').value=geoConfig.radio; } });
+
+        // -----------------------------------------------------------------
+        // 8️⃣ REGISTRO DE USUARIOS (captura facial + guardado)
+        // -----------------------------------------------------------------
+        let regDescriptors=[], regPhase=0;
+        function toggleStudentField(){
+            const role=document.getElementById('regRole').value;
+            const inp=document.getElementById('regStudentId');
+            inp.style.display = (role==='Padre/Encargado') ? 'block' : 'none';
+            if(role!=='Padre/Encargado') inp.value='';
+        }
+        async function iniciarCamaraRegistro(){
+            const id=document.getElementById('regId').value.trim();
+            const nombre=document.getElementById('regName').value.trim();
+            const rol=document.getElementById('regRole').value;
+            if(!id||!nombre||!rol){ alert('Complete los campos obligatorios.'); return; }
+            if(!iaCargada){ document.getElementById('reg-instructions').innerText='Descargando IA…'; await inicializarIA(); }
+            regDescriptors=[];
+            regPhase=1;
+            document.getElementById('btnCaptureProfile').innerText='📸 Capturar Frente (0/4)'; document.getElementById('btnCaptureProfile').disabled=false;
+            document.getElementById('reg-instructions').innerText='Paso 1: Mire a la cámara y presione Capturar.';
+            try{
+                regStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+                const video=document.getElementById('reg-video-pub');
+                video.srcObject=regStream;
+                document.getElementById('reg-cam-container').classList.add('active','scanning');
+                video.addEventListener('play',loopRegPub);
+            }catch(e){ alert('Error cámara: '+e); }
+        }
+        async function loopRegPub(){
+            const video=document.getElementById('reg-video-pub');
+            const canvas=document.getElementById('reg-canvas-pub');
+            if(!regStream||video.paused||video.ended) return;
+            const displaySize={width:video.clientWidth,height:video.clientHeight};
+            faceapi.matchDimensions(canvas,displaySize);
+            const det=await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+            const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
+            if(det){
+                const resized=faceapi.resizeResults(det,displaySize);
+                faceapi.draw.drawDetections(canvas,resized);
+                faceapi.draw.drawFaceLandmarks(canvas,resized);
+                window.currentRegDescriptor=Array.from(det.descriptor);
+            }else{
+                window.currentRegDescriptor=null;
+            }
+            setTimeout(loopRegPub,150);
+        }
+        function capturarPerfilRegistro(){
+            if(!window.currentRegDescriptor){ alert('Rostro no detectado.'); playErrorSound(); return; }
+            playSuccessSound();
+            regDescriptors.push(window.currentRegDescriptor);
+            regPhase++;
+            const btn=document.getElementById('btnCaptureProfile');
+            const instr=document.getElementById('reg-instructions');
+            if(regPhase===2){ btn.innerText='📸 Capturar Izquierda (1/4)'; instr.innerText='Paso 2: Gire a la IZQUIERDA y capture.'; }
+            else if(regPhase===3){ btn.innerText='📸 Capturar Derecha (2/4)'; instr.innerText='Paso 3: Gire a la DERECHA y capture.'; }
+            else if(regPhase===4){ btn.innerText='📸 Capturar Sonrisa/Arriba (3/4)'; instr.innerText='Paso 4: Sonría o mire ARRIBA y capture.'; }
+            else if(regPhase===5){
+                btn.innerText='✅ Capturas Completas (4/4)';
+                btn.disabled=true;
+                btn.classList.replace('btn-m','btn-s');
+                instr.innerText='¡Listo! 4 fotos capturadas. Ahora guarde el registro.';
+                instr.style.color='var(--accent-success)';
+                document.getElementById('btnSaveRegistry').disabled=false;
+                if(regStream){ regStream.getTracks().forEach(t=>t.stop()); regStream=null; }
+                document.getElementById('reg-cam-container').classList.remove('active','scanning');
+            }
+        }
+        function guardarRegistroCompleto(){
+            const id=document.getElementById('regId').value.trim();
+            const nombre=document.getElementById('regName').value.trim();
+            const rol=document.getElementById('regRole').value;
+            const seccion=document.getElementById('regSection').value.trim();
+            const telefono=document.getElementById('regPhone').value.trim();
+            const alumnoId=document.getElementById('regStudentId').value.trim();
+
+            // Promedio de los 4 descriptors
+            const avg=new Float32Array(128);
+            for(let i=0;i<128;i++){
+                let sum=0;
+                for(let j=0;j<4;j++) sum+=regDescriptors[j][i];
+                avg[i]=sum/4;
+            }
+            const descriptorArray=Array.from(avg);
+            const nuevoUsuario={nombre, puesto:seccion, telefono, tipoUsuario:rol, descriptor:descriptorArray};
+
+            database.ref('personas/'+id).update(nuevoUsuario);
+            if(rol==='Padre/Encargado' && alumnoId){
+                if(db.personas[alumnoId]){
+                    const stu=db.personas[alumnoId];
+                    if(!stu.descriptorPadre1) database.ref('personas/'+alumnoId+'/descriptorPadre1').set(descriptorArray);
+                    else database.ref('personas/'+alumnoId+'/descriptorPadre2').set(descriptorArray);
+                }else{
+                    alert('Perfil guardado, pero el estudiante no existe. El admin deberá enlazar manualmente.');
+                }
+            }else{
+                alert('✅ Registro guardado exitosamente.');
+            }
+            // Reset UI
+            ['regId','regName','regSection','regPhone','regStudentId'].forEach(i=>document.getElementById(i).value='');
+            document.getElementById('regRole').value='';
+            document.getElementById('btnSaveRegistry').disabled=true;
+            document.getElementById('btnCaptureProfile').classList.replace('btn-s','btn-m');
+            document.getElementById('reg-instructions').innerText='Llene sus datos y presione "1️⃣ Iniciar Cámara".';
+            document.getElementById('reg-instructions').style.color='var(--accent-warning)';
+            cerrarVistaProtegida('register-view');
+            construirFaceMatcher();
+        }
+
+        // -----------------------------------------------------------------
+        // 9️⃣ ESCÁNER DE ASISTENCIA (con IA y geocerca)
+        // -----------------------------------------------------------------
+        async function toggleScanner(){
+            const cont=document.getElementById('scan-video-container');
+            const btn=document.getElementById('btnCamaraMain');
+            if(!scannerActivo){
+                if(!iaCargada){ btn.innerText='⏳ Cargando IA…'; await inicializarIA(); }
+                if(!faceMatcher){ alert('No hay rostros registrados.'); return; }
+                try{
+                    streamActual=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+                    const video=document.getElementById('scan-video');
+                    video.srcObject=streamActual;
+                    cont.classList.add('active','scanning');
+                    btn.innerText='🛑 Detener Escáner'; btn.classList.replace('btn-i','btn-d');
+                    scannerActivo=true;
+                    video.addEventListener('play',loopReconocimiento);
+                    actualizarEstadoIA('👁️ Escáner activo. Mire a la cámara.');
+                }catch(e){ alert('Error cámara: '+e); }
+            }else{
+                detenerCamaras();
+                cont.classList.remove('active','scanning');
+                btn.innerText='🟢 Iniciar Escáner'; btn.classList.replace('btn-d','btn-i');
+                scannerActivo=false;
+                actualizarEstadoIA('IA en espera.');
+            }
+        }
+        async function loopReconocimiento(){
             if(!scannerActivo) return;
-            const video = document.getElementById('scan-video'); const canvas = document.getElementById('scan-canvas');
-            if(video.paused || video.ended) return setTimeout(loopReconocimiento, 100);
-
-            const displaySize = { width: video.clientWidth, height: video.clientHeight };
-            faceapi.matchDimensions(canvas, displaySize);
-            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceExpressions().withFaceDescriptor();
-            
-            const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if(detection && faceMatcher && !enCooldown) {
-                const resized = faceapi.resizeResults(detection, displaySize);
-                const box = resized.detection.box;
-                const match = faceMatcher.findBestMatch(detection.descriptor);
-                
-                if(match.label !== 'unknown' && !match.label.includes('_p')) {
-                    enCooldown = true;
-                    registrarAsistenciaConGPS(match.label);
-                    setTimeout(() => { enCooldown = false; }, 4000); 
+            const video=document.getElementById('scan-video');
+            const canvas=document.getElementById('scan-canvas');
+            if(video.paused||video.ended) return setTimeout(loopReconocimiento,100);
+            const displaySize={width:video.clientWidth,height:video.clientHeight};
+            faceapi.matchDimensions(canvas,displaySize);
+            const det=await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceExpressions().withFaceDescriptor();
+            const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
+            if(det){
+                const resized=faceapi.resizeResults(det,displaySize);
+                const box=resized.detection.box;
+                ctx.strokeStyle='rgba(0,217,255,.7)'; ctx.lineWidth=2; ctx.strokeRect(box.x,box.y,box.width,box.height);
+                if(faceMatcher && !enCooldown){
+                    const match=faceMatcher.findBestMatch(det.descriptor);
+                    if(match.label!=='unknown' && !match.label.includes('_p')){
+                        // Emoción principal
+                        let emo='Neutral', ico='😐';
+                        if(det.expressions){
+                            const maxE=Object.keys(det.expressions).reduce((a,b)=>det.expressions[a]>det.expressions[b]?a:b);
+                            if(maxE==='happy'){emo='Feliz';ico='😄';}
+                            else if(maxE==='sad'){emo='Triste';ico='😢';}
+                            else if(maxE==='angry'){emo='Enojado';ico='😡';}
+                            else if(maxE==='surprised'){emo='Sorprendido';ico='😲';}
+                            else if(maxE==='fearful'){emo='Asustado';ico='😨';}
+                        }
+                        ctx.fillStyle='rgba(0,255,136,.8)'; ctx.font='16px Arial';
+                        ctx.fillText(`${ico} ${db.personas[match.label]?.nombre||match.label}`,box.x,box.y-10);
+                        enCooldown=true;
+                        registrarAsistenciaConGPS(match.label,emo,ico);
+                        setTimeout(()=>{enCooldown=false;},4000);
+                    }else if(match.label!=='unknown' && match.label.includes('_p')){
+                        ctx.fillStyle='rgba(255,184,0,.8)'; ctx.font='14px Arial';
+                        ctx.fillText('Rostro de encargado (no registra asistencia)',box.x,box.y-10);
+                    }else{
+                        ctx.fillStyle='rgba(255,68,68,.8)'; ctx.font='16px Arial';
+                        ctx.fillText('Desconocido',box.x,box.y-10);
+                    }
                 }
             }
-            setTimeout(loopReconocimiento, 150);
+            setTimeout(loopReconocimiento,150);
         }
-
-        function registrarAsistenciaConGPS(id) {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    const dist = calcularDistancia(pos.coords.latitude, pos.coords.longitude, geoConfig.lat, geoConfig.lng);
-                    const esLejano = dist > geoConfig.radio;
-                    if (esLejano) {
-                        dbTenant.collection('logs_lejanos').add({ id: id, nombre: db.personas[id]?.nombre, hora: new Date().toLocaleString(), distancia: Math.round(dist), lat: pos.coords.latitude, lng: pos.coords.longitude });
-                        playErrorSound(); alert("⚠️ Fuera del rango del colegio."); if(scannerActivo) toggleScanner(); return;
+        function registrarAsistenciaConGPS(id,strEmocion='Neutral',emoticon='😐'){
+            if('geolocation' in navigator){
+                navigator.geolocation.getCurrentPosition(pos=>{
+                    const latDisp=pos.coords.latitude, lngDisp=pos.coords.longitude;
+                    const distancia=calcularDistancia(latDisp,lngDisp,geoConfig.lat,geoConfig.lng);
+                    const fuera=distancia > geoConfig.radio;
+                    if(fuera){
+                        database.ref('logs_lejanos').push({
+                            id,
+                            nombre:db.personas[id]?.nombre||'Desconocido',
+                            hora:new Date().toLocaleString(),
+                            distancia:Math.round(distancia),
+                            lat:latDisp,
+                            lng:lngDisp
+                        });
+                        mostrarMensajeTemp('⚠️ Fuera del rango. Escaneo detectado pero NO registrado.','var(--accent-danger)');
+                        playErrorSound();
+                        if(scannerActivo) toggleScanner();
+                        return;
                     }
-                    guardarLogBD(id, false, dist);
-                }, (err) => { guardarLogBD(id, false, 0); }, { enableHighAccuracy: true, timeout: 5000 });
-            } else { guardarLogBD(id, false, 0); }
+                    completarEscaneoBD(id,strEmocion,emoticon);
+                },()=>{ // si falla la geoloc, registramos igual
+                    completarEscaneoBD(id,strEmocion,emoticon);
+                },{enableHighAccuracy:true,timeout:5000});
+            }else{
+                completarEscaneoBD(id,strEmocion,emoticon);
+            }
         }
-
-        function calcularDistancia(lat1, lon1, lat2, lon2) {
-            const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
-        }
-
-        function guardarLogBD(id, esLejano, dist) {
-            const hISO = new Date().toLocaleDateString('sv-SE');
-            const marcas = logsGlobal.filter(l => l.fechaISO === hISO && l.id === id);
-            let tipo = !marcas.some(l => l.tipo === 'ENTRADA') ? "ENTRADA" : (!marcas.some(l => l.tipo === 'SALIDA') ? "SALIDA" : "");
-            
-            if(!tipo) { alert("Ya registró Entrada y Salida."); if(scannerActivo) toggleScanner(); return; }
-            
-            dbTenant.collection('logs').add({ id: id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: tipo, lejano: esLejano, distanciaMetros: Math.round(dist) });
+        function completarEscaneoBD(id,strEmocion,emoticon){
+            const hoyISO=new Date().toLocaleDateString('sv-SE');
+            const ya=logsGlobal.filter(l=> (l.fechaISO?l.fechaISO===hoyISO:coincideFecha(l.hora,hoyISO)) && l.id===id && l.tipo!=='JUSTIFICADA');
+            const tieneEntrada=ya.some(l=>l.tipo==='ENTRADA');
+            const tieneSalida=ya.some(l=>l.tipo==='SALIDA');
+            let tipo='';
+            if(!tieneEntrada) tipo='ENTRADA';
+            else if(!tieneSalida) tipo='SALIDA';
+            else{
+                mostrarMensajeTemp('Ya registró Entrada y Salida hoy.','var(--accent-warning)');
+                if(scannerActivo) toggleScanner();
+                return;
+            }
+            database.ref('logs').push({
+                id,
+                nombre:db.personas[id].nombre,
+                hora:new Date().toLocaleString(),
+                fechaISO:hoyISO,
+                tipo,
+                emocion:strEmocion,
+                emoticon
+            });
             playSuccessSound();
-            const res = document.getElementById('resBox'); res.style.display = 'block'; res.style.background = tipo === "ENTRADA" ? "rgba(0, 255, 136, 0.1)" : "rgba(255, 68, 68, 0.1)";
-            document.getElementById('resNombre').innerHTML = "✅ " + db.personas[id].nombre; 
-            document.getElementById('resMov').innerHTML = tipo + " Registrada";
+            const res=document.getElementById('resBox');
+            res.style.display='block';
+            res.style.background=tipo==='ENTRADA'?"rgba(0,255,136,0.1)":"rgba(255,68,68,0.1)";
+            document.getElementById('resNombre').innerHTML='✅ '+db.personas[id].nombre;
+            document.getElementById('resMov').innerHTML=(tipo==='ENTRADA'?'Entrada':'Salida')+` Registrada <span style="font-size:1.5rem;" title="${strEmocion}">${emoticon}</span>`;
             if(scannerActivo) toggleScanner();
-            setTimeout(() => { res.style.display = 'none'; }, 5000);
+            setTimeout(()=>{res.style.display='none';},5000);
+        }
+        function mostrarMensajeTemp(msg,color){
+            const st=document.getElementById('scan-ai-status');
+            if(st){ const old=st.innerText; st.innerText=msg; st.style.color=color; setTimeout(()=>{st.innerText=old; st.style.color='var(--accent-warning)';},4500); }
         }
 
-        function detenerCamaras() {
-            if (streamActual) { streamActual.getTracks().forEach(t => t.stop()); streamActual = null; }
-            clearTimeout(registroLoopId);
+        // -----------------------------------------------------------------
+        // 10️⃣ ESCÁNER DE CONSULTA (padres/encargados)
+        // -----------------------------------------------------------------
+        async function toggleQueryScanner(){
+            const cont=document.getElementById('query-video-container');
+            const btn=document.getElementById('btnCamaraQuery');
+            if(!queryScannerActivo){
+                if(!iaCargada){ btn.innerText='⏳ Cargando IA…'; await inicializarIA(); }
+                if(!faceMatcher){ alert('No hay rostros registrados.'); return; }
+                try{
+                    streamActual=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+                    const video=document.getElementById('query-video');
+                    video.srcObject=streamActual;
+                    cont.classList.add('active','scanning');
+                    btn.innerText='🛑 Detener Consulta Facial'; btn.classList.replace('btn-m','btn-d');
+                    queryScannerActivo=true;
+                    video.addEventListener('play',loopConsultaFacial);
+                    actualizarEstadoIA('👁️ Analizando rostro…');
+                }catch(e){ alert('Error cámara: '+e); }
+            }else{
+                detenerCamaras();
+                cont.classList.remove('active','scanning');
+                btn.innerText='📷 Iniciar Consulta Facial'; btn.classList.replace('btn-d','btn-m');
+                queryScannerActivo=false;
+                actualizarEstadoIA('IA en espera.');
+            }
+        }
+        async function loopConsultaFacial(){
+            if(!queryScannerActivo) return;
+            const video=document.getElementById('query-video');
+            const canvas=document.getElementById('query-canvas');
+            if(video.paused||video.ended) return setTimeout(loopConsultaFacial,100);
+            const displaySize={width:video.clientWidth,height:video.clientHeight};
+            faceapi.matchDimensions(canvas,displaySize);
+            const det=await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+            const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
+            if(det){
+                const resized=faceapi.resizeResults(det,displaySize);
+                const box=resized.detection.box;
+                ctx.strokeStyle='rgba(0,217,255,.7)'; ctx.lineWidth=2; ctx.strokeRect(box.x,box.y,box.width,box.height);
+                if(faceMatcher && !enCooldown){
+                    const match=faceMatcher.findBestMatch(det.descriptor);
+                    const distancia=match.distance;
+                    if(match.label!=='unknown'){
+                        enCooldown=true;
+                        const esEncargado=match.label.includes('_p');
+                        const idEstudiante=esEncargado?match.label.split('_')[0]:match.label;
+                        const nombreEst=db.personas[idEstudiante]?.nombre||'';
+                        if(esEncargado){
+                            if(distancia<0.35){
+                                playParentMelody();
+                                ctx.fillStyle='rgba(0,255,136,.9)'; ctx.font='14px Arial';
+                                ctx.fillText('✅ Encargado (>95%)',box.x,box.y-25);
+                                ctx.fillText('Ingresando a: '+nombreEst,box.x,box.y-10);
+                                setTimeout(()=>{ toggleQueryScanner(); ejecutarConsultaIdDirecta(idEstudiante); },1500);
+                            }else{
+                                ctx.fillStyle='rgba(255,184,0,.9)'; ctx.font='14px Arial';
+                                ctx.fillText('⚠️ Encargado identificado',box.x,box.y-25);
+                                ctx.fillText('Digite la cédula del alumno',box.x,box.y-10);
+                                setTimeout(()=>{ toggleQueryScanner(); let idPrompt=prompt('Cédula del estudiante:'); if(idPrompt && idPrompt.trim()===idEstudiante){ ejecutarConsultaIdDirecta(idEstudiante); }else{ alert('Código incorrecto.'); } },1500);
+                            }
+                        }else{
+                            playSuccessSound();
+                            ctx.fillStyle='rgba(0,217,255,.9)'; ctx.font='14px Arial';
+                            ctx.fillText('✅ '+(db.personas[match.label]?.nombre||''),box.x,box.y-10);
+                            setTimeout(()=>{ toggleQueryScanner(); ejecutarConsultaIdDirecta(match.label); },1500);
+                        }
+                        setTimeout(()=>{ enCooldown=false; },4000);
+                    }else{
+                        ctx.fillStyle='rgba(255,68,68,.8)'; ctx.font='16px Arial';
+                        ctx.fillText('Rostro no reconocido',box.x,box.y-10);
+                    }
+                }
+            }
+            setTimeout(loopConsultaFacial,150);
         }
 
-        // ============================================
-        // VISTAS Y ADMINISTRADOR
-        // ============================================
-        function mostrarVista(id) { 
-            document.getElementById('home-view').style.display = (id==='home-view')?'flex':'none'; 
-            document.getElementById('scan-view').style.display = (id==='scan-view')?'flex':'none'; 
-            document.getElementById('parent-view').style.display = (id==='parent-view')?'flex':'none'; 
-            document.getElementById('register-view').style.display = (id==='register-view')?'flex':'none'; 
-            if(id!=='scan-view' && scannerActivo) toggleScanner(); 
+        // -----------------------------------------------------------------
+        // 11️⃣ CONSULTA MANUAL POR ID
+        // -----------------------------------------------------------------
+        function consultarPadre(){ const id=document.getElementById('parentInput').value.trim(); ejecutarConsultaIdDirecta(id); }
+        function ejecutarConsultaIdDirecta(id){
+            if(!db.personas[id]){ alert('Usuario no encontrado.'); return; }
+            const p=db.personas[id];
+            document.getElementById('parentStudentName').innerText=p.nombre;
+            document.getElementById('parentStudentPuesto').innerText=(p.tipoUsuario||'Perfil')+' / '+(p.puesto||'');
+            document.getElementById('btnConsultaWA').onclick=()=>{ const msg=encodeURIComponent(`Hola, quisiera consultar al usuario ${p.nombre} (${id})`); window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${msg}`,'_blank'); };
+            const lista=document.getElementById('parentLogList'); lista.innerHTML='';
+            database.ref('logs').orderByChild('id').equalTo(id).once('value',snap=>{
+                if(snap.exists()){
+                    snap.forEach(c=>{
+                        const l=c.val();
+                        const alerta=l.lejano?` <span style="color:var(--accent-danger);font-weight:bold;">(Lejos ${l.distanciaMetros}m)</span>`:'';
+                        const color=l.tipo==='ENTRADA'?'#00ff88':(l.tipo==='SALIDA'?'#ff4444':'#ffb800');
+                        lista.innerHTML=`<div style="padding:10px;border-bottom:1px solid #3a4560;">${l.hora} - <b style="color:${color}">${l.tipo}</b>${alerta}</div>`+lista.innerHTML;
+                    });
+                }else{
+                    lista.innerHTML='<p style="color:var(--text-muted);text-align:center;">Sin registros el día de hoy.</p>';
+                }
+                document.getElementById('parentResult').style.display='block';
+            });
+        }
+        function limpiarConsultaPadres(){
+            document.getElementById('parentResult').style.display='none';
+            document.getElementById('parentInput').value='';
+            if(queryScannerActivo) toggleQueryScanner();
+        }
+
+        // -----------------------------------------------------------------
+        // 12️⃣ UTILIDADES GENERALES
+        // -----------------------------------------------------------------
+        function coincideFecha(horaLog, fechaISO){
+            if(!horaLog||!fechaISO) return false;
+            const [y,m,d]=fechaISO.split('-');
+            const mm=m.replace(/^0+/,'');
+            const dd=d.replace(/^0+/,'');
+            return horaLog.includes(`${mm}/${dd}/${y}`) || horaLog.includes(`${mm.padStart(2,'0')}/${dd}/${y}`) || horaLog.includes(`${y}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`);
+        }
+
+        function mostrarVista(id){
+            ['home-view','scan-view','parent-view','register-view'].forEach(v=>document.getElementById(v).style.display = (v===id?'flex':'none'));
+            if(id!=='scan-view' && scannerActivo) toggleScanner();
+            if(id!=='parent-view' && queryScannerActivo) toggleQueryScanner();
+            if(id!=='register-view' && regStream){ regStream.getTracks().forEach(t=>t.stop()); regStream=null; document.getElementById('reg-cam-container').classList.remove('active','scanning'); }
             resetIdleTimer();
         }
-        function cerrarVistaProtegida(id) { document.getElementById(id).style.display = 'none'; mostrarVista('home-view'); detenerCamaras(); }
-        function cerrarMaster() { document.getElementById('master-panel').style.display = 'none'; detenerCamaras(); resetIdleTimer(); }
+        function cerrarVistaProtegida(id){ document.getElementById(id).style.display='none'; mostrarVista('home-view'); detenerCamaras(); }
+        function cerrarLogin(){ document.getElementById('login-modal').style.display='none'; }
+        function abrirLogin(tipo){ contextoLogin=tipo; document.getElementById('login-modal').style.display='flex'; }
+        let contextoLogin='';
 
-        // Agregadas funciones que faltaban y generaban el "texto rojo" en la consola
-        function sincronizarConNube() {
-            alert("Los cambios (como agregar, eliminar o editar) se guardan automáticamente en Firebase en tiempo real.");
-            playSuccessSound();
+        async function procesarLogin(){
+            const email=document.getElementById('loginEmail').value.trim();
+            const pass=document.getElementById('loginPass').value;
+            if(!email||!pass){ alert('Complete correo y contraseña.'); return; }
+            try{
+                await auth.signInWithEmailAndPassword(email,pass);
+                cerrarLogin();
+                // La lógica del onAuthStateChanged (ver arriba) abrirá la vista correcta
+            }catch(e){ alert('Acceso denegado: '+e.message); }
         }
 
-        function agregarMiembroManual() {
-            alert("Por favor use la pestaña '📝 Registrarse' en el inicio para agregar nuevos miembros de forma segura.");
+        // -----------------------------------------------------------------
+        // 13️⃣ SUBIDA DE FONDO / LOGO (opcional)
+        // -----------------------------------------------------------------
+        function procesarSubidaFondo(event){
+            const file=event.target.files[0];
+            if(!file) return;
+            const reader=new FileReader();
+            reader.onload=e=>{
+                const img=new Image();
+                img.onload=()=>{
+                    const canvas=document.createElement('canvas');
+                    let w=img.width, h=img.height;
+                    const maxW=1920;
+                    if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+                    canvas.width=w; canvas.height=h;
+                    const ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+                    const dataUrl=canvas.toDataURL('image/jpeg',0.6);
+                    try{
+                        localStorage.setItem('CUSTOM_BG',dataUrl);
+                        document.body.style.backgroundImage=`url(${dataUrl})`;
+                        alert('Fondo actualizado.');
+                    }catch(e){ alert('Imagen muy pesada.'); }
+                };
+                img.src=e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
-
-        function imprimirTodosLosCarnets() {
-            window.print();
+        function procesarSubidaLogo(event){
+            const file=event.target.files[0];
+            if(!file) return;
+            const reader=new FileReader();
+            reader.onload=e=>{
+                const img=new Image();
+                img.onload=()=>{
+                    const canvas=document.createElement('canvas');
+                    let w=img.width, h=img.height;
+                    const maxH=200;
+                    if(h>maxH){ w=Math.round(w*maxH/h); h=maxH; }
+                    canvas.width=w; canvas.height=h;
+                    const ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+                    const dataUrl=canvas.toDataURL('image/png',0.8);
+                    try{
+                        localStorage.setItem('CUSTOM_LOGO',dataUrl);
+                        cargarLogoPersonalizado();
+                        alert('Logo actualizado.');
+                    }catch(e){ alert('Imagen muy pesada.'); }
+                };
+                img.src=e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
-
-        function exportarCSV() {
-            alert("Función en desarrollo.");
+        function cargarLogoPersonalizado(){
+            const logo=localStorage.getItem('CUSTOM_LOGO');
+            const cont=document.getElementById('nav-logo-container');
+            if(logo) cont.innerHTML=`<img src="${logo}" alt="Logo" style="height:45px;border-radius:8px;">`;
+            else cont.innerHTML='🤖 Asistencia IA';
         }
+        cargarLogoPersonalizado();
 
-        function importarCSV() {
-            alert("Función en desarrollo.");
-        }
-
-        // MÉTODOS DE ADMINISTRADOR (Render, Guardar Fondo en Nube)
-        function renderAlumnos() {
-            const t = document.getElementById('tablaAlumnos'); t.innerHTML = "";
-            Object.entries(db.personas).forEach(([id, p]) => {
-                const tieneRostro = p.descriptor ? '✅' : '❌';
-                t.insertAdjacentHTML('beforeend', `<tr><td>-</td><td><b>${id}</b></td><td>${p.tipoUsuario || ''}</td><td>${p.nombre || ''}</td><td>${p.puesto || ''}</td><td>${p.telefono || ''}</td><td>${tieneRostro}</td><td>-</td><td><button class="btn btn-d" onclick="dbTenant.collection('personas').doc('${id}').delete()">🗑️</button></td></tr>`);
-            });
-        }
-        
-        function procesarSubidaFondo(event) {
-            if(!dbTenant) return alert("Debe iniciar sesión primero.");
-            const file = event.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let w = img.width, h = img.height; const maxW = 1200; 
-                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-                    canvas.width = w; canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    const base64 = canvas.toDataURL('image/jpeg', 0.5); 
-                    dbTenant.collection('config').doc('apariencia').set({bgBase64: base64}, {merge:true})
-                    .then(() => alert('Fondo subido a la nube correctamente.'));
-                }; img.src = e.target.result;
-            }; reader.readAsDataURL(file);
-        }
-
-        function procesarSubidaLogo(event) {
-            if(!dbTenant) return alert("Debe iniciar sesión primero.");
-            const file = event.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let w = img.width, h = img.height; const maxH = 150;
-                    if(h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
-                    canvas.width = w; canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    const base64 = canvas.toDataURL('image/png', 0.8);
-                    dbTenant.collection('config').doc('apariencia').set({logoBase64: base64}, {merge:true})
-                    .then(() => alert('Logo subido a la nube correctamente.'));
-                }; img.src = e.target.result;
-            }; reader.readAsDataURL(file);
-        }
-
-        function cambiarTab(n) { 
-            document.getElementById('sec-alumnos').style.display = (n===1)?'block':'none'; 
-            document.getElementById('sec-reporte').style.display = (n===2)?'block':'none'; 
-            document.getElementById('sec-geolocalizacion').style.display = (n===3)?'block':'none'; 
-            document.getElementById('tab1').className = (n===1)?'tab-btn active':'tab-btn'; 
-            document.getElementById('tab2').className = (n===2)?'tab-btn active':'tab-btn'; 
-            document.getElementById('tab3').className = (n===3)?'tab-btn active':'tab-btn'; 
-        }
-
-        // ============================================
-        // FUNCIONES SUPER ADMIN FALLBACK (Adaptadas a Colección "tenants")
-        // ============================================
-        function cargarListaClientesSaaS() {
-            firestore.collection('tenants').onSnapshot(snap => {
-                const tbody = document.getElementById('tablaClientesSaaS');
-                tbody.innerHTML = '';
-                const hoy = new Date().toISOString().split('T')[0];
-
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    const id = doc.id;
-                    
-                    if (data.fechaCorte && data.fechaCorte < hoy && data.estado === 'Activo') {
-                        firestore.collection('tenants').doc(id).set({estado: 'Suspendido'}, {merge: true})
-                        .catch(e => console.warn("Aviso auto-suspensión: ", e));
-                        data.estado = 'Suspendido';
-                    }
-
-                    const isSuspended = data.estado === 'Suspendido';
-                    const isMaint = data.estado === 'Mantenimiento';
-                    
-                    tbody.insertAdjacentHTML('beforeend', `
-                        <tr>
-                            <td><b style="color:var(--accent-primary);">${id}</b></td>
-                            <td><input type="text" id="nombre_${id}" value="${data.empresa || ''}" style="margin-bottom:0; padding:8px;"></td>
-                            <td><input type="date" id="vence_${id}" value="${data.fechaCorte || ''}" style="margin-bottom:0; padding:8px;"></td>
-                            <td>
-                                <select id="estado_${id}" style="margin-bottom:0; padding:8px;">
-                                    <option value="Activo" ${data.estado==='Activo'?'selected':''}>🟢 Activo</option>
-                                    <option value="Suspendido" ${isSuspended?'selected':''}>🔴 Suspendido</option>
-                                    <option value="Mantenimiento" ${isMaint?'selected':''}>🛠️ Mantenimiento</option>
-                                </select>
-                            </td>
-                            <td>
-                                <div style="display:flex; gap:5px;">
-                                    <button class="btn btn-m" style="padding:6px 10px;" onclick="guardarCliente('${id}')" title="Guardar Cambios">💾</button>
-                                    <button class="btn btn-i" style="padding:6px 10px;" onclick="abrirUrlCliente('${id}')" title="Abrir URL Cliente">🌐</button>
-                                    <button class="btn btn-w" style="padding:6px 10px;" onclick="entrarComoCliente('${id}')" title="Entrar como Admin a este colegio">⚙️</button>
-                                </div>
-                            </td>
-                        </tr>
-                    `);
-                });
-            });
-        }
-
-        function agregarNuevoCliente() {
-            const correo = prompt("Ingrese el CORREO ELECTRÓNICO del director (Este será su ID único de Tenant):");
-            if(!correo) return;
-            const id = correo.toLowerCase().trim();
-            
-            const fecVence = new Date();
-            fecVence.setMonth(fecVence.getMonth() + 1);
-            
-            firestore.collection('tenants').doc(id).set({
-                empresa: "Nueva Escuela Asignada",
-                fechaCorte: fecVence.toISOString().split('T')[0],
-                estado: "Activo",
-                htmlMora: "<h1>Suspensión</h1>"
-            }, { merge: true })
-            .then(() => { 
-                playSuccessSound(); 
-                alert("✅ Nuevo socio agregado exitosamente.");
-            })
-            .catch(error => {
-                playErrorSound();
-                alert("❌ Permiso Denegado: No tienes acceso para agregar. \n" + error.message);
-                console.error("Firebase Error:", error);
-            });
-        }
-
-        function guardarCliente(id) {
-            const nombre = document.getElementById(`nombre_${id}`).value;
-            const vence = document.getElementById(`vence_${id}`).value;
-            const estado = document.getElementById(`estado_${id}`).value;
-            
-            firestore.collection('tenants').doc(id).set({
-                empresa: nombre,
-                fechaCorte: vence,
-                estado: estado
-            }, { merge: true })
-            .then(() => {
-                playSuccessSound();
-                alert(`✅ Datos guardados correctamente para ${id}.`);
-            })
-            .catch(error => {
-                playErrorSound();
-                alert("❌ Permiso Denegado al guardar: \n" + error.message);
-                console.error("Firebase Error:", error);
-            });
-        }
-
-        function abrirUrlCliente(id) {
-            const url = window.location.origin + window.location.pathname + '?id=' + encodeURIComponent(id);
-            window.open(url, '_blank');
-        }
-
-        function entrarComoCliente(id) {
-            document.getElementById('super-admin-view').style.display = 'none';
-            iniciarListenersTenant(id); 
-            document.getElementById('master-panel').style.display = 'block';
-            inicializarIA();
-        }
-
-        function cerrarSuperAdmin() {
-            document.getElementById('super-admin-view').style.display = 'none';
-            mostrarVista('home-view');
-        }
-
-        // Si la persona visita el home, mostramos esa vista por defecto
+        // -----------------------------------------------------------------
+        // 14️⃣ INICIALIZACIÓN
+        // -----------------------------------------------------------------
         mostrarVista('home-view');
         resetIdleTimer();
-
-    </script>
-
-    <!-- CÓDIGO AÑADIDO: Lógica de validación de Tenant en tiempo real -->
-    <script>
-      (function() {
-          // 1. Obtener el ID del Tenant (Escuela) desde la URL
-          const urlParamsTenant = new URLSearchParams(window.location.search);
-          const tenantIdValidacion = urlParamsTenant.get('tenant') || urlParamsTenant.get('id');
-
-          if (tenantIdValidacion) {
-              // 2. Escuchar en tiempo real los cambios que haces desde tu Panel Maestro
-              // Se usa 'firestore' en lugar de 'db' debido a la forma en que el proyecto inicializa Firebase
-              firestore.collection('tenants').doc(tenantIdValidacion).onSnapshot((doc) => {
-                  if (doc.exists) {
-                      const data = doc.data();
-                      
-                      // 3. Validar el estado
-                      if (data.estado === 'Suspendido' && data.htmlMora) {
-                          // Si está moroso, borra toda la página y muestra tu código HTML de cobro
-                          document.body.innerHTML = data.htmlMora;
-                      } 
-                      else if (data.estado === 'Mantenimiento' && data.htmlMantenimiento) {
-                          // Si está en mantenimiento, borra la página y muestra el mensaje
-                          document.body.innerHTML = data.htmlMantenimiento;
-                      }
-                      // Si el estado es 'Activo', la app funciona normal
-                  }
-              });
-          }
-      })();
     </script>
 </body>
 </html>
