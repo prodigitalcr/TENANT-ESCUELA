@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OFICIAL AUTENTICADA Manager v2.0 - Master Control Panel</title>
+    <title>OFICIAL AUTENTICADA Manager v2.2 - Master Control Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -56,6 +56,33 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .url-display {
+            background: #080d1a;
+            border: 1px solid #1e3a8a;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: #60a5fa;
+            word-break: break-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .copy-btn {
+            background: #1e3a8a;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: #60a5fa;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover {
+            background: #3b82f6;
+            color: white;
+        }
     </style>
 </head>
 <body class="bg-[#060814] text-slate-200 min-h-screen font-sans overflow-x-hidden antialiased">
@@ -92,7 +119,7 @@
                 <i data-lucide="globe" class="w-8 h-8 pulse-effect"></i>
             </div>
             <h1 class="text-2xl font-black mb-1 text-white text-center uppercase tracking-tight">OFICIAL AUTENTICADA</h1>
-            <p class="text-slate-400 mb-8 text-xs text-center font-bold tracking-widest uppercase">Panel Manager SaaS v2.0</p>
+            <p class="text-slate-400 mb-8 text-xs text-center font-bold tracking-widest uppercase">Panel Manager SaaS v2.2</p>
             
             <form onsubmit="handleLogin(event)" class="space-y-4">
                 <div class="space-y-1">
@@ -121,7 +148,7 @@
                     </div>
                     <div>
                         <h2 class="text-sm font-black text-white uppercase tracking-wider">OFICIAL AUTENTICADA <span class="text-cyan-400">Manager</span></h2>
-                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Control Multitenant SaaS v2.0</span>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Control Multitenant SaaS v2.2</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -176,14 +203,43 @@
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <!-- FORMULARIO -->
                     <div class="lg:col-span-7 space-y-4">
+                        <!-- DATOS DE DIRECTOR -->
+                        <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
+                            <h4 class="text-[10px] font-bold text-blue-400 uppercase mb-3 block">📋 Información del Director/Admin</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Nombre Completo Director</label>
+                                    <input type="text" id="new-director-name" placeholder="Juan García López" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 text-white placeholder-slate-600 transition-all text-sm">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Email Director/Escuela</label>
+                                    <input type="email" id="new-director-email" placeholder="director@escuela.com" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 text-white placeholder-slate-600 transition-all text-sm">
+                                </div>
+                                <div class="space-y-1 md:col-span-2">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">UID Firebase del Director</label>
+                                    <input type="text" id="new-director-uid" placeholder="abc123def456ghi789..." class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 text-white placeholder-slate-600 transition-all text-sm font-mono text-xs">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DATOS DE ESCUELA -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="space-y-1">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">ID Escuela (URL sin espacios)</label>
-                                <input type="text" id="new-id" placeholder="ej: escuela-carpio" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm">
+                                <input type="text" id="new-id" placeholder="ej: escuela-carpio" oninput="generateTenantUrl()" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm">
                             </div>
                             <div class="space-y-1">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Nombre Institución</label>
                                 <input type="text" id="new-name" placeholder="Escuela La Carpio" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm">
+                            </div>
+                        </div>
+
+                        <!-- URL GENERADA -->
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">🌐 URL Generada del Sitio</label>
+                            <div class="url-display">
+                                <span id="generated-url">https://prodigitalcr.github.io/TENANT-ESCUELA/[id-escuela]/</span>
+                                <button type="button" class="copy-btn" onclick="copyUrl()">Copiar</button>
                             </div>
                         </div>
 
@@ -245,15 +301,9 @@
 
             <!-- TABLA DE ESCUELAS -->
             <section class="bg-[#0f172a]/50 border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl">
-                <div class="p-6 border-b border-slate-800/80 bg-slate-900/30 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div>
-                        <h4 class="text-white font-black uppercase text-xs tracking-widest">🏫 Monitoreo de Escuelas Registradas</h4>
-                        <p class="text-slate-500 text-[9px] font-bold uppercase mt-1">Control Centralizado y Estado de Suscripción</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">URL Base Cliente:</label>
-                        <input type="text" id="config-base-url" placeholder="https://prodigitalcr.github.io/Escuela-Carpio/" class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 w-64" value="https://prodigitalcr.github.io/Escuela-Carpio/">
-                    </div>
+                <div class="p-6 border-b border-slate-800/80 bg-slate-900/30">
+                    <h4 class="text-white font-black uppercase text-xs tracking-widest">🏫 Monitoreo de Escuelas Registradas</h4>
+                    <p class="text-slate-500 text-[9px] font-bold uppercase mt-1">Control Centralizado y Estado de Suscripción</p>
                 </div>
                 
                 <div class="overflow-x-auto">
@@ -261,17 +311,18 @@
                         <thead class="bg-slate-900/40 text-slate-500 text-[9px] uppercase font-bold border-b border-slate-800">
                             <tr>
                                 <th class="p-5">Escuela / ID</th>
-                                <th class="p-5">Geocerca (Centro)</th>
+                                <th class="p-5">Director</th>
+                                <th class="p-5">Geocerca</th>
                                 <th class="p-5">Plan / Contacto</th>
                                 <th class="p-5">Cuota</th>
                                 <th class="p-5 text-center">Estado SaaS</th>
-                                <th class="p-5 text-center">Acciones Rápidas</th>
+                                <th class="p-5 text-center">Acciones</th>
                                 <th class="p-5 text-right">Controles</th>
                             </tr>
                         </thead>
                         <tbody id="tenant-list" class="divide-y divide-slate-800/40">
                             <tr>
-                                <td colspan="7" class="p-10 text-center text-slate-500 uppercase font-bold text-xs tracking-wider">
+                                <td colspan="8" class="p-10 text-center text-slate-500 uppercase font-bold text-xs">
                                     <i data-lucide="loader" class="w-5 h-5 inline animate-spin mr-2"></i> Cargando escuelas...
                                 </td>
                             </tr>
@@ -282,104 +333,176 @@
         </main>
     </div>
 
-    <!-- MODAL DE GESTIÓN -->
+    <!-- MODAL DE GESTIÓN COMPLETA -->
     <div id="manageModal" class="fixed inset-0 bg-[#02040a]/90 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto">
-        <div class="bg-[#0f172a] border border-slate-800 w-full max-w-4xl rounded-3xl p-6 md:p-8 my-auto shadow-2xl animate-slide-up">
+        <div class="bg-[#0f172a] border border-slate-800 w-full max-w-5xl rounded-3xl p-6 md:p-8 my-8 shadow-2xl animate-slide-up">
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h2 class="text-lg font-black text-white uppercase tracking-wider" id="modal-tenant-title">Configurar Escuela</h2>
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Firewall, Geocerca y Mensajes Personalizados</span>
+                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Editar toda la información, Firewall, Geocerca y Mensajes</span>
                 </div>
                 <button onclick="closeModal('manageModal')" class="text-slate-500 hover:text-white">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
             
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- COLUMNA IZQUIERDA: ESTADO Y FIREWALL -->
-                <div class="lg:col-span-7 space-y-4">
-                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase mb-3 block">Estado de Suscripción</label>
-                        <div class="grid grid-cols-3 gap-2">
-                            <label class="cursor-pointer group">
-                                <input type="radio" name="m_status" value="activo" class="hidden peer">
-                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-emerald-600/15 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-bold text-xs uppercase transition-all">
-                                    🟢 Activo
-                                </div>
-                            </label>
-                            <label class="cursor-pointer group">
-                                <input type="radio" name="m_status" value="bloqueado" class="hidden peer">
-                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-red-600/15 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-bold text-xs uppercase transition-all">
-                                    🔴 Bloqueado
-                                </div>
-                            </label>
-                            <label class="cursor-pointer group">
-                                <input type="radio" name="m_status" value="mantenimiento" class="hidden peer">
-                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-amber-600/15 peer-checked:border-amber-500 text-slate-500 peer-checked:text-amber-400 font-bold text-xs uppercase transition-all">
-                                    🟡 Mantenimiento
-                                </div>
-                            </label>
+            <div class="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+                <!-- INFORMACIÓN DEL DIRECTOR -->
+                <div class="bg-slate-950/40 p-4 rounded-2xl border border-blue-500/20">
+                    <h4 class="text-[10px] font-bold text-blue-400 uppercase mb-4 flex items-center gap-2">
+                        <i data-lucide="user" class="w-4 h-4"></i> Información del Director
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre Completo</label>
+                            <input type="text" id="edit-director-name" placeholder="Juan García López" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 text-white text-sm">
                         </div>
-                    </div>
-
-                    <!-- PANTALLA DE BLOQUEO (MORA) -->
-                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-red-500/20">
-                        <div class="flex justify-between items-center mb-3">
-                            <label class="text-[10px] font-bold text-red-400 uppercase flex items-center gap-1.5">
-                                <i data-lucide="alert-circle" class="w-4 h-4"></i> Mensaje Bloqueado (Mora/Suspensión)
-                            </label>
-                            <label class="cursor-pointer text-[9px] bg-red-900/30 text-red-300 px-3 py-1.5 rounded-lg font-bold hover:bg-red-900/50 transition-all">
-                                📄 Importar HTML <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mora')" class="hidden">
-                            </label>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Email Director</label>
+                            <input type="email" id="edit-director-email" placeholder="director@escuela.com" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 text-white text-sm">
                         </div>
-                        <textarea id="m_html_mora" rows="4" placeholder="<div style='text-align:center;background:#dc2626;color:white;padding:40px;'><h1>Sitio Suspendido</h1><p>Morosidad en pago. Contacte a: info@escuela.com</p></div>" class="w-full bg-[#080d1a] border border-red-500/30 p-3 rounded-xl outline-none text-red-300 font-mono text-[10px] resize-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50 transition-all"></textarea>
-                    </div>
-
-                    <!-- PANTALLA DE MANTENIMIENTO -->
-                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-amber-500/20">
-                        <div class="flex justify-between items-center mb-3">
-                            <label class="text-[10px] font-bold text-amber-400 uppercase flex items-center gap-1.5">
-                                <i data-lucide="wrench" class="w-4 h-4"></i> Mensaje de Mantenimiento
-                            </label>
-                            <label class="cursor-pointer text-[9px] bg-amber-900/30 text-amber-300 px-3 py-1.5 rounded-lg font-bold hover:bg-amber-900/50 transition-all">
-                                📄 Importar HTML <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mant')" class="hidden">
-                            </label>
+                        <div class="space-y-1 md:col-span-2">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">UID Firebase</label>
+                            <input type="text" id="edit-director-uid" placeholder="abc123def456ghi789..." class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 text-white text-sm font-mono text-xs">
                         </div>
-                        <textarea id="m_html_mant" rows="4" placeholder="<div style='text-align:center;background:#fbbf24;color:#78350f;padding:40px;'><h1>En Mantenimiento</h1><p>Estamos realizando mejoras. Volveremos pronto.</p></div>" class="w-full bg-[#080d1a] border border-amber-500/30 p-3 rounded-xl outline-none text-amber-300 font-mono text-[10px] resize-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all"></textarea>
                     </div>
                 </div>
 
-                <!-- COLUMNA DERECHA: GEOCERCA Y MAPA -->
-                <div class="lg:col-span-5 flex flex-col space-y-4">
-                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-cyan-500/20 space-y-3">
-                        <label class="text-[10px] font-bold text-cyan-400 uppercase block">✏️ Editar Parámetros Geocerca</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Latitud</label>
-                                <input type="number" step="any" id="edit-lat" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all">
-                            </div>
-                            <div>
-                                <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Longitud</label>
-                                <input type="number" step="any" id="edit-lng" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all">
-                            </div>
+                <!-- INFORMACIÓN DE ESCUELA -->
+                <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
+                    <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
+                        <i data-lucide="building-2" class="w-4 h-4"></i> Información de la Escuela
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">ID Escuela</label>
+                            <input type="text" id="edit-id" disabled class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl text-slate-400 text-sm font-mono cursor-not-allowed">
                         </div>
-                        <div>
-                            <label class="text-[9px] font-bold text-slate-500 uppercase ml-1 block">Radio Cobertura (Metros)</label>
-                            <input type="number" id="edit-radio" class="w-full bg-[#080d1a] border border-slate-800 p-2.5 rounded-lg text-xs font-mono text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nombre Institución</label>
+                            <input type="text" id="edit-name" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white text-sm">
                         </div>
                     </div>
-                    <div class="flex-1 min-h-[220px] rounded-2xl border border-slate-800 overflow-hidden shadow-inner">
+                    <div class="space-y-1 mt-4">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">🌐 URL del Sitio</label>
+                        <div class="url-display">
+                            <span id="edit-url">https://prodigitalcr.github.io/TENANT-ESCUELA/[id]/</span>
+                            <button type="button" class="copy-btn" onclick="copyEditUrl()">Copiar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PLAN Y CONTACTO -->
+                <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
+                    <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
+                        <i data-lucide="credit-card" class="w-4 h-4"></i> Plan y Contacto
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">WhatsApp</label>
+                            <input type="text" id="edit-tel" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white text-sm">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Plan</label>
+                            <select id="edit-plan" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white text-sm">
+                                <option value="Mensual">Mensual</option>
+                                <option value="Trimestral">Trimestral (10% desc)</option>
+                                <option value="Anual">Anual (20% desc)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Cuota Mensual (₡)</label>
+                            <input type="number" id="edit-monto" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white text-sm">
+                        </div>
+                    </div>
+                    <div class="space-y-1 mt-4">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Próxima Fecha de Corte</label>
+                        <input type="date" id="edit-corte" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white text-sm">
+                    </div>
+                </div>
+
+                <!-- ESTADO Y FIREWALL -->
+                <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase mb-3 block">Estado de Suscripción</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="m_status" value="activo" class="hidden peer">
+                            <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-emerald-600/15 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-bold text-xs uppercase transition-all">
+                                🟢 Activo
+                            </div>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="m_status" value="bloqueado" class="hidden peer">
+                            <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-red-600/15 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-bold text-xs uppercase transition-all">
+                                🔴 Bloqueado
+                            </div>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="m_status" value="mantenimiento" class="hidden peer">
+                            <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-amber-600/15 peer-checked:border-amber-500 text-slate-500 peer-checked:text-amber-400 font-bold text-xs uppercase transition-all">
+                                🟡 Mantenimiento
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- GEOCERCA -->
+                <div class="bg-slate-950/40 p-4 rounded-2xl border border-cyan-500/20">
+                    <h4 class="text-[10px] font-bold text-cyan-400 uppercase mb-4 flex items-center gap-2">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i> Parámetros Geocerca
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="space-y-1 md:col-span-2">
+                            <label class="text-[9px] font-bold text-cyan-400 uppercase ml-1">Latitud</label>
+                            <input type="number" step="any" id="edit-lat" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[9px] font-bold text-cyan-400 uppercase ml-1">Longitud</label>
+                            <input type="number" step="any" id="edit-lng" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[9px] font-bold text-cyan-400 uppercase ml-1">Radio (m)</label>
+                            <input type="number" id="edit-radio" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all">
+                        </div>
+                    </div>
+                    <div class="flex-1 min-h-[240px] rounded-2xl border border-slate-800 overflow-hidden shadow-inner mt-4">
                         <div id="map-editor" class="w-full h-full"></div>
                     </div>
                 </div>
+
+                <!-- PANTALLA DE BLOQUEO -->
+                <div class="bg-slate-950/40 p-4 rounded-2xl border border-red-500/20">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-[10px] font-bold text-red-400 uppercase flex items-center gap-1.5">
+                            <i data-lucide="alert-circle" class="w-4 h-4"></i> Mensaje Bloqueado (Mora/Suspensión)
+                        </label>
+                        <label class="cursor-pointer text-[9px] bg-red-900/30 text-red-300 px-3 py-1.5 rounded-lg font-bold hover:bg-red-900/50 transition-all">
+                            📄 Importar <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mora')" class="hidden">
+                        </label>
+                    </div>
+                    <textarea id="m_html_mora" rows="3" placeholder="HTML de bloqueo por mora..." class="w-full bg-[#080d1a] border border-red-500/30 p-3 rounded-xl outline-none text-red-300 font-mono text-[10px] resize-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50 transition-all"></textarea>
+                </div>
+
+                <!-- PANTALLA DE MANTENIMIENTO -->
+                <div class="bg-slate-950/40 p-4 rounded-2xl border border-amber-500/20">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-[10px] font-bold text-amber-400 uppercase flex items-center gap-1.5">
+                            <i data-lucide="wrench" class="w-4 h-4"></i> Mensaje de Mantenimiento
+                        </label>
+                        <label class="cursor-pointer text-[9px] bg-amber-900/30 text-amber-300 px-3 py-1.5 rounded-lg font-bold hover:bg-amber-900/50 transition-all">
+                            📄 Importar <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mant')" class="hidden">
+                        </label>
+                    </div>
+                    <textarea id="m_html_mant" rows="3" placeholder="HTML de mantenimiento..." class="w-full bg-[#080d1a] border border-amber-500/30 p-3 rounded-xl outline-none text-amber-300 font-mono text-[10px] resize-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all"></textarea>
+                </div>
             </div>
 
-            <div class="flex gap-4 pt-6 border-t border-slate-800/80 mt-6">
+            <div class="flex gap-4 pt-6 border-t border-slate-800/80 mt-6 sticky bottom-0 bg-[#0f172a]">
                 <button onclick="closeModal('manageModal')" class="flex-1 py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-slate-400 uppercase text-xs tracking-wider transition-all">
                     Cancelar
                 </button>
                 <button onclick="saveChanges()" class="flex-[2] py-4 bg-cyan-600 hover:bg-cyan-500 rounded-xl font-black text-slate-950 uppercase text-xs tracking-wider shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/25 transition-all flex items-center justify-center gap-2">
-                    <i data-lucide="save" class="w-4 h-4"></i> Guardar & Sincronizar
+                    <i data-lucide="save" class="w-4 h-4"></i> Guardar Todos los Cambios
                 </button>
             </div>
         </div>
@@ -440,6 +563,23 @@
 
             document.getElementById('confirm-cancel-btn').onclick = () => cleanUp();
             document.getElementById('confirm-success-btn').onclick = () => { onConfirm(); cleanUp(); };
+        };
+
+        // GENERAR URL
+        window.generateTenantUrl = () => {
+            const id = (document.getElementById('new-id').value || '').toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            const url = id ? `https://prodigitalcr.github.io/TENANT-ESCUELA/${id}/` : 'https://prodigitalcr.github.io/TENANT-ESCUELA/[id-escuela]/';
+            document.getElementById('generated-url').innerText = url;
+        };
+
+        window.copyUrl = () => {
+            const url = document.getElementById('generated-url').innerText;
+            navigator.clipboard.writeText(url).then(() => showToast("✅ URL copiada al portapapeles"));
+        };
+
+        window.copyEditUrl = () => {
+            const url = document.getElementById('edit-url').innerText;
+            navigator.clipboard.writeText(url).then(() => showToast("✅ URL copiada al portapapeles"));
         };
 
         // AUTENTICACIÓN
@@ -526,6 +666,9 @@
         window.createTenant = async () => {
             const id = document.getElementById('new-id').value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
             const name = document.getElementById('new-name').value.trim();
+            const directorName = document.getElementById('new-director-name').value.trim();
+            const directorEmail = document.getElementById('new-director-email').value.trim();
+            const directorUid = document.getElementById('new-director-uid').value.trim();
             const tel = document.getElementById('new-tel').value.trim();
             const plan = document.getElementById('new-plan').value;
             const monto = parseFloat(document.getElementById('new-monto').value) || 0;
@@ -534,14 +677,19 @@
             const radio = parseInt(document.getElementById('new-radio').value) || 150;
             const corte = document.getElementById('new-corte').value;
 
-            if (!id || !name || !corte) {
-                showToast("Complete los campos requeridos.", "error");
+            if (!id || !name || !corte || !directorName || !directorEmail || !directorUid) {
+                showToast("Complete todos los campos requeridos.", "error");
                 return;
             }
 
             try {
                 const config = {
                     empresa: name,
+                    director: {
+                        nombre: directorName,
+                        email: directorEmail,
+                        uid: directorUid
+                    },
                     telefono: tel,
                     tipoPlan: plan,
                     montoContrato: monto,
@@ -549,6 +697,7 @@
                     bloqueado: false,
                     geocerca: { lat, lng, radio },
                     estado: 'activo',
+                    url: `https://prodigitalcr.github.io/TENANT-ESCUELA/${id}/`,
                     htmlMora: '<div style="text-align:center;background:#dc2626;color:white;padding:60px;border-radius:12px;"><h1>⚠️ Suspendido por Mora</h1><p>Contacte a administración</p></div>',
                     htmlMantenimiento: '<div style="text-align:center;background:#fbbf24;color:#78350f;padding:60px;border-radius:12px;"><h1>🔧 En Mantenimiento</h1><p>Volveremos en breve</p></div>'
                 };
@@ -561,9 +710,13 @@
                 
                 document.getElementById('new-id').value = "";
                 document.getElementById('new-name').value = "";
+                document.getElementById('new-director-name').value = "";
+                document.getElementById('new-director-email').value = "";
+                document.getElementById('new-director-uid').value = "";
                 document.getElementById('new-tel').value = "";
                 document.getElementById('new-monto').value = "15000";
                 document.getElementById('new-corte').value = "";
+                document.getElementById('generated-url').innerText = 'https://prodigitalcr.github.io/TENANT-ESCUELA/[id-escuela]/';
             } catch (err) {
                 showToast("Error: " + err.message, "error");
             }
@@ -577,7 +730,7 @@
                 currentTenants = {};
 
                 if (!snapshot.exists()) {
-                    list.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-slate-500 uppercase font-bold text-xs">No hay escuelas registradas</td></tr>`;
+                    list.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-500 uppercase font-bold text-xs">No hay escuelas registradas</td></tr>`;
                     updateStats();
                     return;
                 }
@@ -604,6 +757,7 @@
                     const lng = config.geocerca?.lng || 0;
                     const r = config.geocerca?.radio || 150;
                     const tel = config.telefono || '';
+                    const director = config.director || {};
 
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-800/20 transition-all border-b border-slate-800/30 text-xs";
@@ -611,6 +765,10 @@
                         <td class="p-5">
                             <div class="font-black text-cyan-400 uppercase">${config.empresa || id}</div>
                             <div class="text-[9px] text-slate-500 font-mono mt-1">${id}</div>
+                        </td>
+                        <td class="p-5">
+                            <div class="text-[10px] font-bold text-slate-300">${director.nombre || 'N/A'}</div>
+                            <div class="text-[9px] text-slate-500">${director.email || 'N/A'}</div>
                         </td>
                         <td class="p-5">
                             <div class="text-[10px] font-mono text-slate-300">Radio: ${r}m</div>
@@ -659,11 +817,10 @@
             });
         }
 
-        // ABRIR SITIO DEL CLIENTE
+        // ABRIR SITIO
         window.abrirSitio = (id) => {
-            const baseUrl = document.getElementById('config-base-url').value || 'https://prodigitalcr.github.io/TENANT-ESCUELA/';
             const t = currentTenants[id];
-            const siteUrl = baseUrl + id + '/';
+            const siteUrl = t.url || `https://prodigitalcr.github.io/TENANT-ESCUELA/${id}/`;
             window.open(siteUrl, '_blank');
             showToast(`📱 Abriendo sitio de ${t.empresa}`);
         };
@@ -700,6 +857,19 @@
 
             document.getElementById('modal-tenant-title').innerText = `${t.empresa || id}`;
             
+            const director = t.director || {};
+            document.getElementById('edit-director-name').value = director.nombre || '';
+            document.getElementById('edit-director-email').value = director.email || '';
+            document.getElementById('edit-director-uid').value = director.uid || '';
+
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-name').value = t.empresa || '';
+            document.getElementById('edit-url').innerText = t.url || `https://prodigitalcr.github.io/TENANT-ESCUELA/${id}/`;
+            document.getElementById('edit-tel').value = t.telefono || '';
+            document.getElementById('edit-plan').value = t.tipoPlan || 'Mensual';
+            document.getElementById('edit-monto').value = t.montoContrato || '';
+            document.getElementById('edit-corte').value = t.fechaCorte || '';
+
             const status = t.bloqueado ? 'bloqueado' : (t.estado || 'activo');
             document.querySelector(`input[name="m_status"][value="${status}"]`).checked = true;
 
@@ -717,37 +887,36 @@
             document.getElementById('manageModal').classList.remove('hidden');
 
             setTimeout(() => {
-                if (!mapEditor) {
-                    mapEditor = L.map('map-editor').setView([lat, lng], 14);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapEditor);
-                    markerEditor = L.marker([lat, lng], { draggable: true }).addTo(mapEditor);
-                    circleEditor = L.circle([lat, lng], { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.15, radius: r }).addTo(mapEditor);
-
-                    markerEditor.on('drag', function() {
-                        const pos = markerEditor.getLatLng();
-                        document.getElementById('edit-lat').value = pos.lat.toFixed(6);
-                        document.getElementById('edit-lng').value = pos.lng.toFixed(6);
-                        circleEditor.setLatLng(pos);
-                    });
-
-                    mapEditor.on('click', function(ev) {
-                        const pos = ev.latlng;
-                        markerEditor.setLatLng(pos);
-                        circleEditor.setLatLng(pos);
-                        document.getElementById('edit-lat').value = pos.lat.toFixed(6);
-                        document.getElementById('edit-lng').value = pos.lng.toFixed(6);
-                    });
-
-                    document.getElementById('edit-radio').addEventListener('input', function(ev) {
-                        circleEditor.setRadius(parseInt(ev.target.value) || 150);
-                    });
-                } else {
-                    mapEditor.invalidateSize();
-                    mapEditor.setView([lat, lng], 14);
-                    markerEditor.setLatLng([lat, lng]);
-                    circleEditor.setLatLng([lat, lng]);
-                    circleEditor.setRadius(r);
+                if (mapEditor) {
+                    mapEditor.remove();
+                    mapEditor = null;
+                    markerEditor = null;
+                    circleEditor = null;
                 }
+
+                mapEditor = L.map('map-editor').setView([lat, lng], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapEditor);
+                markerEditor = L.marker([lat, lng], { draggable: true }).addTo(mapEditor);
+                circleEditor = L.circle([lat, lng], { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.15, radius: r }).addTo(mapEditor);
+
+                markerEditor.on('drag', function() {
+                    const pos = markerEditor.getLatLng();
+                    document.getElementById('edit-lat').value = pos.lat.toFixed(6);
+                    document.getElementById('edit-lng').value = pos.lng.toFixed(6);
+                    circleEditor.setLatLng(pos);
+                });
+
+                mapEditor.on('click', function(ev) {
+                    const pos = ev.latlng;
+                    markerEditor.setLatLng(pos);
+                    circleEditor.setLatLng(pos);
+                    document.getElementById('edit-lat').value = pos.lat.toFixed(6);
+                    document.getElementById('edit-lng').value = pos.lng.toFixed(6);
+                });
+
+                document.getElementById('edit-radio').addEventListener('input', function(ev) {
+                    circleEditor.setRadius(parseInt(ev.target.value) || 150);
+                });
             }, 300);
 
             window.refreshIcons();
@@ -757,6 +926,14 @@
 
         // GUARDAR CAMBIOS
         window.saveChanges = async () => {
+            const directorName = document.getElementById('edit-director-name').value.trim();
+            const directorEmail = document.getElementById('edit-director-email').value.trim();
+            const directorUid = document.getElementById('edit-director-uid').value.trim();
+            const name = document.getElementById('edit-name').value.trim();
+            const tel = document.getElementById('edit-tel').value.trim();
+            const plan = document.getElementById('edit-plan').value;
+            const monto = parseFloat(document.getElementById('edit-monto').value) || 0;
+            const corte = document.getElementById('edit-corte').value;
             const status = document.querySelector('input[name="m_status"]:checked').value;
             const hMora = document.getElementById('m_html_mora').value;
             const hMant = document.getElementById('m_html_mant').value;
@@ -768,6 +945,16 @@
 
             try {
                 const updates = {};
+                updates[`tenants/${editingId}/config/director`] = {
+                    nombre: directorName,
+                    email: directorEmail,
+                    uid: directorUid
+                };
+                updates[`tenants/${editingId}/config/empresa`] = name;
+                updates[`tenants/${editingId}/config/telefono`] = tel;
+                updates[`tenants/${editingId}/config/tipoPlan`] = plan;
+                updates[`tenants/${editingId}/config/montoContrato`] = monto;
+                updates[`tenants/${editingId}/config/fechaCorte`] = corte;
                 updates[`tenants/${editingId}/config/bloqueado`] = bloqueado;
                 updates[`tenants/${editingId}/config/estado`] = status;
                 updates[`tenants/${editingId}/config/htmlMora`] = hMora;
@@ -777,7 +964,7 @@
                 updates[`tenantDB/${editingId}/bloqueado`] = bloqueado;
 
                 await update(ref(database), updates);
-                showToast("✅ Configuración guardada y sincronizada");
+                showToast("✅ Todos los cambios guardados y sincronizados");
                 closeModal('manageModal');
             } catch (err) {
                 showToast("Error: " + err.message, "error");
