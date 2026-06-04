@@ -7,9 +7,9 @@
     <meta name="description" content="Sistema de asistencia facial multi‑tenant – GEOCERCA">
     <title>GEOCERCA – Asistencia Facial (Multi‑tenant)</title>
 
-    <!-- ==============================================================
+    <!-- ==============================
          LIBRERÍAS EXTERNAS
-         ============================================================== -->
+         ============================== -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -19,9 +19,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
-    <!-- ==============================================================
+    <!-- ==============================
          ESTILOS (tema oscuro / claro)
-         ============================================================== -->
+         ============================== -->
     <style>
         :root{
             --bg-dark:#0a0e27; --bg-darker:#050810; --bg-card:#1a1f3a;
@@ -232,9 +232,9 @@
         </div>
     </div>
 
-    <!-- ==============================================================
+    <!-- ==============================
          LÓGICA DE LA APLICACIÓN (JavaScript)
-         ============================================================== -->
+         ============================== -->
     <script>
         // -----------------------------------------------------------------
         // 1️⃣ CONFIGURACIÓN DE FIREBASE (tus credenciales reales)
@@ -254,29 +254,32 @@
         const database = firebase.database();
 
         // -----------------------------------------------------------------
-        // 2️⃣ DETECCIÓN DE TENANT (sub‑dominio)
+        // 2️⃣ NÚMERO OFICIAL DE LA JUNTA (WhatsApp) – REEMPLAZA POR EL TUYO
         // -----------------------------------------------------------------
-        function detectarTenantInput() {
-            const host = window.location.host;                       // ej. carpio.geocer.ca
+        const NUMERO_OFICIAL_JUNTA = "88888888";   // ← TU NÚMERO DE WHATSAPP (solo números, sin +)
+
+        // -----------------------------------------------------------------
+        // 3️⃣ DETECCIÓN DE TENANT (sub‑dominio)
+        // -----------------------------------------------------------------
+        function detectarTenantInput(){
+            const host = window.location.host;               // ej. carpio.geocer.ca
             const parts = host.split('.');
-            // Si existen 3+ partes, el primer sub‑dominio es el tenant; si no, usamos "DEV"
             const tenant = (parts.length > 2 ? parts[0] : 'DEV').toUpperCase();
             return tenant;
         }
-        const TENANT_ID = detectarTenantInput();          // p.ej. "CARPIO"
+        const TENANT_ID = detectarTenantInput();   // p.ej. "CARPIO"
 
         // -----------------------------------------------------------------
-        // 3️⃣ WRAPPER DE REFERENCE (añade el prefijo del tenant)
+        // 4️⃣ WRAPPER DE REFERENCE (añade el prefijo del tenant)
         // -----------------------------------------------------------------
         const _origRef = database.ref.bind(database);
         database.ref = function(path){
-            // Evita prefijado doble
             if (path.startsWith('tenants/')) return _origRef(path);
             return _origRef('tenants/' + TENANT_ID + '/' + path);
         };
 
         // -----------------------------------------------------------------
-        // 4️⃣ GESTIÓN DE SESIÓN Y BLOQUEO POR SUSCRIPCIÓN
+        // 5️⃣ GESTIÓN DE SESIÓN Y BLOQUEO POR SUSCRIPCIÓN
         // -----------------------------------------------------------------
         auth.onAuthStateChanged(async user => {
             if (!user) {
@@ -284,12 +287,11 @@
                 return;
             }
 
-            // 4.1️⃣ Verificamos claim "tenant"
+            // ---- 5.1️⃣ Verificamos claim "tenant"
             const token = await user.getIdTokenResult();
             const claimTenant = (token.claims.tenant || '').toUpperCase();
 
             if (claimTenant !== TENANT_ID) {
-                // El usuario pertenece a otro tenant → bloqueamos
                 document.getElementById('blockedMessage').innerHTML = `
                     <b>Esta cuenta pertenece al tenant ${claimTenant}.</b><br>
                     No puede usar la URL <b>${window.location.host}</b> (tenant ${TENANT_ID}).
@@ -299,12 +301,11 @@
                 return;
             }
 
-            // 4.2️⃣ Leemos flag "blocked" del tenant
+            // ---- 5.2️⃣ Leemos flag "blocked" del tenant
             const blockedSnap = await database.ref('config/blocked').once('value');
             const isBlocked = blockedSnap.val() === true;
 
             if (isBlocked) {
-                // Mostramos overlay con mensaje de bloqueo
                 document.getElementById('blockedMessage').innerHTML = `
                     <b>La suscripción de la institución ${TENANT_ID} está desactivada.</b><br>
                     Por favor, contacte al administrador o renueve su plan para continuar usando el servicio.
@@ -312,11 +313,11 @@
                 document.getElementById('blockedOverlay').classList.remove('hidden');
             } else {
                 document.getElementById('blockedOverlay').classList.add('hidden');
-                // Si el login fue para el admin del tenant, abre el panel master
+
+                // Si el login fue para admin o escáner, abrimos la vista correspondiente
                 if (contextoLogin === 'admin') {
-                    document.getElementById('master-panel').style.display = 'block';
+                    document.getElementById('master-panel')?.style?.setProperty('display','block');
                 }
-                // Si fue para el escáner, abre la vista de escaneo
                 if (contextoLogin === 'escaner') {
                     mostrarVista('scan-view');
                 }
@@ -327,9 +328,9 @@
         });
 
         // -----------------------------------------------------------------
-        // 5️⃣ UTILIDADES UI (reloj, idle, sonidos, etc.)
+        // 6️⃣ UTILIDADES UI (reloj, idle, sonidos, etc.)
         // -----------------------------------------------------------------
-        // Reloj de la pantalla idle
+        // Reloj en la pantalla idle
         function updateIdleClock(){
             const now = new Date();
             let h = now.getHours(); const ampm = h >= 12 ? 'PM' : 'AM';
@@ -345,7 +346,7 @@
         const IDLE_TIME = 45000;
         function resetIdleTimer(){
             clearTimeout(idleTimer);
-            if (!scannerActivo && !queryScannerActivo && document.getElementById('master-panel').style.display!=='block'){
+            if (!scannerActivo && !queryScannerActivo && document.getElementById('master-panel')?.style?.display !== 'block'){
                 idleTimer = setTimeout(()=>mostrarVista('home-view'), IDLE_TIME);
             }
         }
@@ -369,7 +370,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 6️⃣ IA (Face‑API) – carga, matcher y utilidades
+        // 7️⃣ IA (Face‑API) – carga, matcher y utilidades
         // -----------------------------------------------------------------
         let iaCargada = false;
         let faceMatcher = null;
@@ -379,7 +380,7 @@
         let streamActual = null;
         let regStream = null;
         let registroLoopId = null;
-        let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 150 };   // valores por defecto (puedes modificarlos desde el panel)
+        let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 150 };   // valores por defecto
 
         async function inicializarIA(){
             if (iaCargada) return;
@@ -414,7 +415,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 7️⃣ BASE DE DATOS (personas, logs, logs_lejanos, config)
+        // 8️⃣ BASE DE DATOS (personas, logs, logs_lejanos, config)
         // -----------------------------------------------------------------
         let db = {personas:{}};
         let logsGlobal=[];
@@ -427,7 +428,7 @@
         database.ref('config/geocerca').on('value',snap=>{ if(snap.val()){ geoConfig=snap.val(); document.getElementById('geoLat').value=geoConfig.lat; document.getElementById('geoLng').value=geoConfig.lng; document.getElementById('geoRadio').value=geoConfig.radio; } });
 
         // -----------------------------------------------------------------
-        // 8️⃣ REGISTRO DE USUARIOS (captura facial + guardado)
+        // 9️⃣ REGISTRO DE USUARIOS (captura facial + guardado)
         // -----------------------------------------------------------------
         let regDescriptors=[], regPhase=0;
         function toggleStudentField(){
@@ -442,8 +443,7 @@
             const rol=document.getElementById('regRole').value;
             if(!id||!nombre||!rol){ alert('Complete los campos obligatorios.'); return; }
             if(!iaCargada){ document.getElementById('reg-instructions').innerText='Descargando IA…'; await inicializarIA(); }
-            regDescriptors=[];
-            regPhase=1;
+            regDescriptors=[]; regPhase=1;
             document.getElementById('btnCaptureProfile').innerText='📸 Capturar Frente (0/4)'; document.getElementById('btnCaptureProfile').disabled=false;
             document.getElementById('reg-instructions').innerText='Paso 1: Mire a la cámara y presione Capturar.';
             try{
@@ -523,6 +523,7 @@
             }else{
                 alert('✅ Registro guardado exitosamente.');
             }
+
             // Reset UI
             ['regId','regName','regSection','regPhone','regStudentId'].forEach(i=>document.getElementById(i).value='');
             document.getElementById('regRole').value='';
@@ -535,7 +536,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 9️⃣ ESCÁNER DE ASISTENCIA (con IA y geocerca)
+        // 10️⃣ ESCÁNER DE ASISTENCIA (IA + geocerca)
         // -----------------------------------------------------------------
         async function toggleScanner(){
             const cont=document.getElementById('scan-video-container');
@@ -624,7 +625,7 @@
                         return;
                     }
                     completarEscaneoBD(id,strEmocion,emoticon);
-                },()=>{ // si falla la geoloc, registramos igual
+                },()=>{ // si falla la geoloc:
                     completarEscaneoBD(id,strEmocion,emoticon);
                 },{enableHighAccuracy:true,timeout:5000});
             }else{
@@ -668,7 +669,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 10️⃣ ESCÁNER DE CONSULTA (padres/encargados)
+        // 11️⃣ ESCÁNER DE CONSULTA (padres/encargados)
         // -----------------------------------------------------------------
         async function toggleQueryScanner(){
             const cont=document.getElementById('query-video-container');
@@ -745,7 +746,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 11️⃣ CONSULTA MANUAL POR ID
+        // 12️⃣ CONSULTA MANUAL POR ID
         // -----------------------------------------------------------------
         function consultarPadre(){ const id=document.getElementById('parentInput').value.trim(); ejecutarConsultaIdDirecta(id); }
         function ejecutarConsultaIdDirecta(id){
@@ -776,7 +777,7 @@
         }
 
         // -----------------------------------------------------------------
-        // 12️⃣ UTILIDADES GENERALES
+        // 13️⃣ UTILIDADES GENERALES
         // -----------------------------------------------------------------
         function coincideFecha(horaLog, fechaISO){
             if(!horaLog||!fechaISO) return false;
@@ -805,12 +806,12 @@
             try{
                 await auth.signInWithEmailAndPassword(email,pass);
                 cerrarLogin();
-                // La lógica del onAuthStateChanged (ver arriba) abrirá la vista correcta
+                // onAuthStateChanged (ver arriba) gestionará la vista correspondiente
             }catch(e){ alert('Acceso denegado: '+e.message); }
         }
 
         // -----------------------------------------------------------------
-        // 13️⃣ SUBIDA DE FONDO / LOGO (opcional)
+        // 14️⃣ SUBIDA DE FONDO / LOGO (opcional)
         // -----------------------------------------------------------------
         function procesarSubidaFondo(event){
             const file=event.target.files[0];
@@ -869,7 +870,7 @@
         cargarLogoPersonalizado();
 
         // -----------------------------------------------------------------
-        // 14️⃣ INICIALIZACIÓN
+        // 15️⃣ INICIALIZACIÓN
         // -----------------------------------------------------------------
         mostrarVista('home-view');
         resetIdleTimer();
