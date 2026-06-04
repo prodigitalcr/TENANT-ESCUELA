@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GEOCERCA SaaS | Master Control Panel</title>
+    <title>OFICIAL AUTENTICADA Manager v2.0 - Master Control Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- URL CORREGIDA PARA LUCIDE ICONS (Seguridad de Carga) -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Leaflet CSS para Mapas Interactivos -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
@@ -18,7 +16,6 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #334155; }
-        /* Animación de pulso para geocerca activa */
         @keyframes pulse-ring {
             0% { transform: scale(0.95); opacity: 0.5; }
             50% { transform: scale(1.1); opacity: 0.2; }
@@ -27,7 +24,6 @@
         .pulse-effect {
             animation: pulse-ring 2s infinite ease-in-out;
         }
-        /* Leaflet custom dark theme wrapper */
         .leaflet-container {
             background: #0f172a !important;
             font-family: inherit;
@@ -40,33 +36,53 @@
         .leaflet-bar a:hover {
             background-color: #334155 !important;
         }
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid;
+        }
+        .status-active { background: rgba(34, 197, 94, 0.1); color: #22c55e; border-color: rgba(34, 197, 94, 0.3); }
+        .status-blocked { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.3); }
+        .status-maintenance { background: rgba(251, 146, 60, 0.1); color: #fb923c; border-color: rgba(251, 146, 60, 0.3); }
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-[#060814] text-slate-200 min-h-screen font-sans overflow-x-hidden antialiased">
 
-    <!-- CONTENEDOR DE NOTIFICACIONES TOASTS -->
+    <!-- NOTIFICACIONES TOASTS -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2"></div>
 
-    <!-- DIÁLOGO DE CONFIRMACIÓN PERSONALIZADO -->
+    <!-- DIÁLOGO DE CONFIRMACIÓN -->
     <div id="custom-confirm-modal" class="fixed inset-0 bg-[#02040a]/90 z-[10000] hidden flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-[#111827] border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+        <div class="bg-[#111827] border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-slide-up">
             <div class="flex items-center gap-3 text-amber-500 mb-4">
                 <i data-lucide="alert-triangle" class="w-8 h-8"></i>
                 <h3 class="text-lg font-bold text-white uppercase tracking-tight" id="confirm-title">¿Estás seguro?</h3>
             </div>
-            <p class="text-slate-400 text-sm mb-6" id="confirm-message">Esta acción es irreversible y podría desconectar temporalmente las operaciones del cliente.</p>
+            <p class="text-slate-400 text-sm mb-6" id="confirm-message">Por favor confirma esta acción importante.</p>
             <div class="flex gap-3">
                 <button id="confirm-cancel-btn" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-all">
                     Cancelar
                 </button>
                 <button id="confirm-success-btn" class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-500/20">
-                    Confirmar Acción
+                    Confirmar
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- PANTALLA DE ACCESO MAESTRO (AUTH GUARD) -->
+    <!-- PANTALLA DE ACCESO MAESTRO -->
     <div id="auth-overlay" class="fixed inset-0 bg-[#060814] z-[999] flex flex-col items-center justify-center p-6">
         <div class="bg-[#0f172a]/80 backdrop-blur-xl p-8 md:p-10 rounded-3xl border border-slate-800/80 w-full max-w-md shadow-2xl relative overflow-hidden">
             <div class="absolute -top-10 -right-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl"></div>
@@ -75,41 +91,42 @@
             <div class="bg-cyan-500/10 p-4 rounded-2xl w-16 h-16 mx-auto mb-6 flex items-center justify-center border border-cyan-500/30 text-cyan-400 shadow-lg shadow-cyan-500/5">
                 <i data-lucide="globe" class="w-8 h-8 pulse-effect"></i>
             </div>
-            <h1 class="text-2xl font-black mb-1 text-white text-center uppercase tracking-tight">GEOCERCA SaaS</h1>
-            <p class="text-slate-400 mb-8 text-xs text-center font-bold tracking-widest uppercase">Panel de Control General</p>
+            <h1 class="text-2xl font-black mb-1 text-white text-center uppercase tracking-tight">OFICIAL AUTENTICADA</h1>
+            <p class="text-slate-400 mb-8 text-xs text-center font-bold tracking-widest uppercase">Panel Manager SaaS v2.0</p>
             
             <form onsubmit="handleLogin(event)" class="space-y-4">
                 <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Email de Administrador</label>
-                    <input type="email" id="email" required placeholder="admin@geocerca.com" class="w-full p-4 rounded-xl bg-[#080d1a] border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-white text-sm transition-all">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Email Administrador</label>
+                    <input type="email" id="email" required placeholder="admin@oficial-autenticada.com" class="w-full p-4 rounded-xl bg-[#080d1a] border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all">
                 </div>
                 <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Contraseña de Seguridad</label>
-                    <input type="password" id="password" required placeholder="••••••••" class="w-full p-4 rounded-xl bg-[#080d1a] border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-white text-sm transition-all">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Contraseña Maestra</label>
+                    <input type="password" id="password" required placeholder="••••••••" class="w-full p-4 rounded-xl bg-[#080d1a] border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all">
                 </div>
-                <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-4 rounded-xl transition-all uppercase tracking-widest text-xs shadow-lg shadow-cyan-500/15">
-                    Autenticar Consola
+                <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-4 rounded-xl transition-all uppercase tracking-widest text-xs shadow-lg shadow-cyan-500/15 hover:shadow-cyan-500/25">
+                    Autenticar Sistema
                 </button>
             </form>
             <p id="auth-error" class="text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-xl mt-4 text-xs hidden font-bold text-center uppercase tracking-wider"></p>
         </div>
     </div>
 
-    <!-- CONTENIDO PRINCIPAL DEL DASHBOARD -->
+    <!-- CONTENIDO PRINCIPAL -->
     <div id="main-content" class="hidden flex-col min-h-screen">
         <header class="bg-[#0f172a]/85 border-b border-slate-800/80 p-4 sticky top-0 backdrop-blur-xl z-40">
-            <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-4">
                 <div class="flex items-center gap-3">
                     <div class="bg-cyan-600 p-2.5 rounded-xl shadow-lg shadow-cyan-500/15 text-slate-950">
                         <i data-lucide="shield" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h2 class="text-sm font-black text-white uppercase tracking-wider">GEOCERCA <span class="text-cyan-400">Master SaaS</span></h2>
-                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Soporte Multitenant y Bloqueos</span>
+                        <h2 class="text-sm font-black text-white uppercase tracking-wider">OFICIAL AUTENTICADA <span class="text-cyan-400">Manager</span></h2>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Control Multitenant SaaS v2.0</span>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button onclick="handleLogout()" class="bg-slate-900 hover:bg-red-500/10 text-slate-400 hover:text-red-400 px-4 py-2.5 rounded-xl text-xs font-black transition-all border border-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-2 bg-emerald-500/10 text-emerald-400 rounded-lg text-xs font-bold">● CONECTADO</span>
+                    <button onclick="handleLogout()" class="bg-slate-900 hover:bg-red-500/10 text-slate-400 hover:text-red-400 px-4 py-2.5 rounded-xl text-xs font-black transition-all border border-slate-800 flex items-center gap-2">
                         <i data-lucide="log-out" class="w-4 h-4"></i> Salir
                     </button>
                 </div>
@@ -118,128 +135,124 @@
 
         <main class="max-w-7xl mx-auto p-4 md:p-8 w-full flex-1">
             
-            <!-- METRICAS GENERALES -->
+            <!-- MÉTRICAS GENERALES -->
             <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden">
+                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
                     <div class="bg-cyan-500/10 p-3.5 rounded-xl text-cyan-400"><i data-lucide="server" class="w-6 h-6"></i></div>
                     <div>
                         <div class="text-2xl font-black text-white" id="stat-total">0</div>
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Total Geocercas</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Total de Escuelas</p>
                     </div>
                 </div>
-                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden">
+                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
                     <div class="bg-emerald-500/10 p-3.5 rounded-xl text-emerald-400"><i data-lucide="check-circle" class="w-6 h-6"></i></div>
                     <div>
                         <div class="text-2xl font-black text-white" id="stat-active">0</div>
                         <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Servicios Activos</p>
                     </div>
                 </div>
-                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden">
+                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
                     <div class="bg-red-500/10 p-3.5 rounded-xl text-red-400"><i data-lucide="alert-octagon" class="w-6 h-6"></i></div>
                     <div>
-                        <div class="text-2xl font-black text-white" id="stat-suspended">0</div>
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Suspendidos / Morosos</p>
+                        <div class="text-2xl font-black text-white" id="stat-blocked">0</div>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Bloqueados/Morosos</p>
                     </div>
                 </div>
-                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden">
+                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
                     <div class="bg-indigo-500/10 p-3.5 rounded-xl text-indigo-400"><i data-lucide="wallet" class="w-6 h-6"></i></div>
                     <div>
                         <div class="text-2xl font-black text-indigo-300" id="stat-revenue">₡0</div>
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Facturación Estimada</p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Ingresos MRR</p>
                     </div>
                 </div>
             </section>
 
-            <!-- DESPLIEGUE Y CREACIÓN DE INSTANCIA -->
-            <section class="bg-[#0f172a]/50 border border-slate-800/80 p-6 md:p-8 rounded-3xl mb-8 shadow-2xl relative overflow-hidden">
-                <div class="absolute -top-10 -right-10 p-8 text-slate-800 opacity-5">
-                    <i data-lucide="map" class="w-64 h-64"></i>
-                </div>
-                
+            <!-- CREAR NUEVA ESCUELA -->
+            <section class="bg-[#0f172a]/50 border border-slate-800/80 p-6 md:p-8 rounded-3xl mb-8 shadow-2xl">
                 <h3 class="text-sm font-black mb-6 text-white uppercase tracking-wider flex items-center gap-2">
-                    <i data-lucide="plus-circle" class="text-cyan-400"></i> Desplegar Nueva Geocerca Independiente
+                    <i data-lucide="plus-circle" class="text-cyan-400"></i> Desplegar Nueva Escuela/Sede
                 </h3>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <!-- Formulario de Datos -->
+                    <!-- FORMULARIO -->
                     <div class="lg:col-span-7 space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">ID del Tenant (URL sin espacios)</label>
-                                <input type="text" id="new-id" placeholder="ej: constructora-alfa" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm font-mono text-white">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">ID Escuela (URL sin espacios)</label>
+                                <input type="text" id="new-id" placeholder="ej: escuela-carpio" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Nombre Comercial de la Escuela/Sede</label>
-                                <input type="text" id="new-name" placeholder="Escuela La Carpio" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Nombre Institución</label>
+                                <input type="text" id="new-name" placeholder="Escuela La Carpio" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">WhatsApp de Contacto</label>
-                                <input type="text" id="new-tel" placeholder="50688888888" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">WhatsApp Director/Admin</label>
+                                <input type="text" id="new-tel" placeholder="50688888888" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Plan de Servicio</label>
-                                <select id="new-plan" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white appearance-none">
-                                    <option value="Mensual">Mensualidad</option>
-                                    <option value="Semestral">Suscripción Semestral</option>
-                                    <option value="Anual">Suscripción Anual</option>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Plan de Pago</label>
+                                <select id="new-plan" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white text-sm">
+                                    <option value="Mensual">Mensual</option>
+                                    <option value="Trimestral">Trimestral (10% desc)</option>
+                                    <option value="Anual">Anual (20% desc)</option>
                                 </select>
                             </div>
                             <div class="space-y-1">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Cuota Mensual (₡)</label>
-                                <input type="number" id="new-monto" placeholder="25000" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white">
+                                <input type="number" id="new-monto" placeholder="15000" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm" value="15000">
                             </div>
                         </div>
 
-                        <!-- Parametros de Geolocalización -->
+                        <!-- GEO CONFIG -->
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
                             <div class="space-y-1 md:col-span-2">
-                                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider ml-1">Latitud Centro</label>
-                                <input type="number" step="any" id="new-lat" placeholder="9.9388" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 text-xs font-mono text-white">
+                                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider ml-1">Latitud Centro Escuela</label>
+                                <input type="number" step="any" id="new-lat" placeholder="9.9388" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm" value="9.9388">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider ml-1">Longitud Centro</label>
-                                <input type="number" step="any" id="new-lng" placeholder="-84.1200" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 text-xs font-mono text-white">
+                                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider ml-1">Longitud</label>
+                                <input type="number" step="any" id="new-lng" placeholder="-84.1200" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm" value="-84.1200">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider ml-1">Radio Rango (m)</label>
-                                <input type="number" id="new-radio" value="150" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 text-xs font-mono text-white">
+                                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider ml-1">Radio Permitido (m)</label>
+                                <input type="number" id="new-radio" value="150" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white placeholder-slate-600 transition-all text-sm font-mono">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Próxima Fecha de Pago / Corte</label>
-                                <input type="date" id="new-corte" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Próxima Fecha de Corte</label>
+                                <input type="date" id="new-corte" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 text-white text-sm">
                             </div>
                             <div class="flex items-end">
-                                <button onclick="createTenant()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-4 px-6 rounded-xl transition-all uppercase text-xs tracking-widest shadow-lg shadow-cyan-500/10 flex items-center justify-center gap-2">
-                                    Desplegar Instancia <i data-lucide="globe-2" class="w-4 h-4"></i>
+                                <button onclick="createTenant()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-4 px-6 rounded-xl transition-all uppercase text-xs tracking-widest shadow-lg shadow-cyan-500/15 hover:shadow-cyan-500/25 flex items-center justify-center gap-2">
+                                    <i data-lucide="globe-2" class="w-4 h-4"></i> Desplegar Escuela
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Configuración Visual de Geocerca (Mapa) -->
+                    <!-- MAPA GEOCERCA -->
                     <div class="lg:col-span-5 flex flex-col">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2">Asignar Geocentro (Arrastrar o Hacer click)</label>
-                        <div id="map-creator" class="flex-1 min-h-[250px] w-full rounded-2xl border border-slate-800 overflow-hidden relative shadow-inner"></div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2">📍 Ubicar Centro en Mapa (Arrastra o Click)</label>
+                        <div id="map-creator" class="flex-1 min-h-[300px] w-full rounded-2xl border border-slate-800 overflow-hidden shadow-inner"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- MONITOR DE INSTANCIAS Y TENANTS -->
+            <!-- TABLA DE ESCUELAS -->
             <section class="bg-[#0f172a]/50 border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl">
                 <div class="p-6 border-b border-slate-800/80 bg-slate-900/30 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div>
-                        <h4 class="text-white font-black uppercase text-xs tracking-widest">Monitoreo de Geocercas Independientes</h4>
-                        <p class="text-slate-500 text-[9px] font-bold uppercase mt-1">Control Global y Cobertura Satelital</p>
+                        <h4 class="text-white font-black uppercase text-xs tracking-widest">🏫 Monitoreo de Escuelas Registradas</h4>
+                        <p class="text-slate-500 text-[9px] font-bold uppercase mt-1">Control Centralizado y Estado de Suscripción</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Filtro General URL Base:</label>
-                        <input type="text" id="config-base-url" placeholder="https://prodigitalcr.github.io/TENANT-ESCUELA/" class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-xs font-mono text-cyan-400 outline-none w-64 focus:border-cyan-500" value="https://prodigitalcr.github.io/TENANT-ESCUELA/">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">URL Base Cliente:</label>
+                        <input type="text" id="config-base-url" placeholder="https://prodigitalcr.github.io/Escuela-Carpio/" class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 w-64" value="https://prodigitalcr.github.io/Escuela-Carpio/">
                     </div>
                 </div>
                 
@@ -247,17 +260,20 @@
                     <table class="w-full text-left">
                         <thead class="bg-slate-900/40 text-slate-500 text-[9px] uppercase font-bold border-b border-slate-800">
                             <tr>
-                                <th class="p-5">Empresa / Tenant ID</th>
-                                <th class="p-5">Rango Geocerca (Centro)</th>
-                                <th class="p-5">Contacto / Plan</th>
+                                <th class="p-5">Escuela / ID</th>
+                                <th class="p-5">Geocerca (Centro)</th>
+                                <th class="p-5">Plan / Contacto</th>
                                 <th class="p-5">Cuota</th>
-                                <th class="p-5 text-center">Estado del SaaS</th>
+                                <th class="p-5 text-center">Estado SaaS</th>
+                                <th class="p-5 text-center">Firewall</th>
                                 <th class="p-5 text-right">Controles</th>
                             </tr>
                         </thead>
                         <tbody id="tenant-list" class="divide-y divide-slate-800/40">
                             <tr>
-                                <td colspan="6" class="p-10 text-center text-slate-500 uppercase font-bold text-xs tracking-wider">Cargando base de datos satelital...</td>
+                                <td colspan="7" class="p-10 text-center text-slate-500 uppercase font-bold text-xs tracking-wider">
+                                    <i data-lucide="loader" class="w-5 h-5 inline animate-spin mr-2"></i> Cargando escuelas...
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -266,92 +282,93 @@
         </main>
     </div>
 
-    <!-- MODAL DE DETALLES Y AJUSTES DE SERVICIO -->
+    <!-- MODAL DE GESTIÓN -->
     <div id="manageModal" class="fixed inset-0 bg-[#02040a]/90 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto">
-        <div class="bg-[#0f172a] border border-slate-800 w-full max-w-4xl rounded-3xl p-6 md:p-8 my-auto shadow-2xl relative">
+        <div class="bg-[#0f172a] border border-slate-800 w-full max-w-4xl rounded-3xl p-6 md:p-8 my-auto shadow-2xl animate-slide-up">
             <div class="flex justify-between items-center mb-6">
-                <div class="flex items-center gap-3">
-                    <div class="bg-cyan-500/10 p-3 rounded-2xl text-cyan-400">
-                        <i data-lucide="settings-2" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-black text-white uppercase tracking-wider" id="modal-tenant-title">Ajustes de la Geocerca</h2>
-                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Configuración de bloqueo y cobertura</span>
-                    </div>
+                <div>
+                    <h2 class="text-lg font-black text-white uppercase tracking-wider" id="modal-tenant-title">Configurar Escuela</h2>
+                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Firewall, Geocerca y Mensajes Personalizados</span>
                 </div>
-                <button onclick="closeModal('manageModal')" class="text-slate-500 hover:text-white transition-colors">
+                <button onclick="closeModal('manageModal')" class="text-slate-500 hover:text-white">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Columna de Estado y Plantillas de Bloqueo -->
+                <!-- COLUMNA IZQUIERDA: ESTADO Y FIREWALL -->
                 <div class="lg:col-span-7 space-y-4">
                     <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
                         <label class="text-[10px] font-bold text-slate-500 uppercase mb-3 block">Estado de Suscripción</label>
                         <div class="grid grid-cols-3 gap-2">
                             <label class="cursor-pointer group">
                                 <input type="radio" name="m_status" value="activo" class="hidden peer">
-                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-emerald-600/15 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-bold text-[10px] uppercase transition-all group-hover:border-slate-600">Activo</div>
+                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-emerald-600/15 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-bold text-xs uppercase transition-all">
+                                    🟢 Activo
+                                </div>
                             </label>
                             <label class="cursor-pointer group">
-                                <input type="radio" name="m_status" value="suspendido" class="hidden peer">
-                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-red-600/15 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-bold text-[10px] uppercase transition-all group-hover:border-slate-600">Suspendido</div>
+                                <input type="radio" name="m_status" value="bloqueado" class="hidden peer">
+                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-red-600/15 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-bold text-xs uppercase transition-all">
+                                    🔴 Bloqueado
+                                </div>
                             </label>
                             <label class="cursor-pointer group">
                                 <input type="radio" name="m_status" value="mantenimiento" class="hidden peer">
-                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-amber-600/15 peer-checked:border-amber-500 text-slate-500 peer-checked:text-amber-400 font-bold text-[10px] uppercase transition-all group-hover:border-slate-600">Mant.</div>
+                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-amber-600/15 peer-checked:border-amber-500 text-slate-500 peer-checked:text-amber-400 font-bold text-xs uppercase transition-all">
+                                    🟡 Mantenimiento
+                                </div>
                             </label>
                         </div>
                     </div>
 
-                    <div class="space-y-4">
-                        <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
-                            <div class="flex justify-between items-center mb-2">
-                                <label class="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
-                                    <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i> Pantalla de Suspensión (Mora HTML)
-                                </label>
-                                <label class="cursor-pointer text-[9px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-700 transition-all">
-                                    Importar HTML <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mora')" class="hidden">
-                                </label>
-                            </div>
-                            <textarea id="m_html_mora" rows="3" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none text-red-300 font-mono text-[10px] resize-none" placeholder="HTML personalizado cuando el cliente esté suspendido..."></textarea>
+                    <!-- PANTALLA DE BLOQUEO (MORA) -->
+                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-red-500/20">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-[10px] font-bold text-red-400 uppercase flex items-center gap-1.5">
+                                <i data-lucide="alert-circle" class="w-4 h-4"></i> Mensaje Bloqueado (Mora/Suspensión)
+                            </label>
+                            <label class="cursor-pointer text-[9px] bg-red-900/30 text-red-300 px-3 py-1.5 rounded-lg font-bold hover:bg-red-900/50 transition-all">
+                                📄 Importar HTML <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mora')" class="hidden">
+                            </label>
                         </div>
+                        <textarea id="m_html_mora" rows="4" placeholder="<div style='text-align:center;background:#dc2626;color:white;padding:40px;'><h1>Sitio Suspendido</h1><p>Morosidad en pago. Contacte a: info@escuela.com</p></div>" class="w-full bg-[#080d1a] border border-red-500/30 p-3 rounded-xl outline-none text-red-300 font-mono text-[10px] resize-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50 transition-all"></textarea>
+                    </div>
 
-                        <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
-                            <div class="flex justify-between items-center mb-2">
-                                <label class="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
-                                    <i data-lucide="wrench" class="w-4 h-4 text-amber-500"></i> Pantalla de Mantenimiento (HTML)
-                                </label>
-                                <label class="cursor-pointer text-[9px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-700 transition-all">
-                                    Importar HTML <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mant')" class="hidden">
-                                </label>
-                            </div>
-                            <textarea id="m_html_mant" rows="3" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none text-amber-300 font-mono text-[10px] resize-none" placeholder="HTML personalizado cuando esté en mantenimiento..."></textarea>
+                    <!-- PANTALLA DE MANTENIMIENTO -->
+                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-amber-500/20">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-[10px] font-bold text-amber-400 uppercase flex items-center gap-1.5">
+                                <i data-lucide="wrench" class="w-4 h-4"></i> Mensaje de Mantenimiento
+                            </label>
+                            <label class="cursor-pointer text-[9px] bg-amber-900/30 text-amber-300 px-3 py-1.5 rounded-lg font-bold hover:bg-amber-900/50 transition-all">
+                                📄 Importar HTML <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mant')" class="hidden">
+                            </label>
                         </div>
+                        <textarea id="m_html_mant" rows="4" placeholder="<div style='text-align:center;background:#fbbf24;color:#78350f;padding:40px;'><h1>En Mantenimiento</h1><p>Estamos realizando mejoras. Volveremos pronto.</p></div>" class="w-full bg-[#080d1a] border border-amber-500/30 p-3 rounded-xl outline-none text-amber-300 font-mono text-[10px] resize-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all"></textarea>
                     </div>
                 </div>
 
-                <!-- Columna de Geocerca (Ubicación/Mapa Modificable) -->
+                <!-- COLUMNA DERECHA: GEOCERCA Y MAPA -->
                 <div class="lg:col-span-5 flex flex-col space-y-4">
-                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60 space-y-3">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase block">Editar Dimensiones Geocerca</label>
+                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-cyan-500/20 space-y-3">
+                        <label class="text-[10px] font-bold text-cyan-400 uppercase block">✏️ Editar Parámetros Geocerca</label>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Latitud</label>
-                                <input type="number" step="any" id="edit-lat" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none">
+                                <input type="number" step="any" id="edit-lat" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all">
                             </div>
                             <div>
                                 <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Longitud</label>
-                                <input type="number" step="any" id="edit-lng" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none">
+                                <input type="number" step="any" id="edit-lng" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all">
                             </div>
                         </div>
                         <div>
-                            <label class="text-[9px] font-bold text-slate-500 uppercase ml-1 block">Rango de Cobertura (Metros)</label>
-                            <input type="number" id="edit-radio" class="w-full bg-[#080d1a] border border-slate-800 p-2.5 rounded-lg text-xs font-mono text-white outline-none">
+                            <label class="text-[9px] font-bold text-slate-500 uppercase ml-1 block">Radio Cobertura (Metros)</label>
+                            <input type="number" id="edit-radio" class="w-full bg-[#080d1a] border border-slate-800 p-2.5 rounded-lg text-xs font-mono text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all">
                         </div>
                     </div>
-                    <div class="flex-1 min-h-[180px] rounded-2xl border border-slate-800 overflow-hidden relative">
+                    <div class="flex-1 min-h-[220px] rounded-2xl border border-slate-800 overflow-hidden shadow-inner">
                         <div id="map-editor" class="w-full h-full"></div>
                     </div>
                 </div>
@@ -361,21 +378,20 @@
                 <button onclick="closeModal('manageModal')" class="flex-1 py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-slate-400 uppercase text-xs tracking-wider transition-all">
                     Cancelar
                 </button>
-                <button onclick="saveChanges()" class="flex-[2] py-4 bg-cyan-600 hover:bg-cyan-500 rounded-xl font-black text-slate-950 uppercase text-xs tracking-wider shadow-lg shadow-cyan-500/10 transition-all">
-                    Aplicar Configuración
+                <button onclick="saveChanges()" class="flex-[2] py-4 bg-cyan-600 hover:bg-cyan-500 rounded-xl font-black text-slate-950 uppercase text-xs tracking-wider shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/25 transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> Guardar & Sincronizar
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- LÓGICA DE CONTROL MAESTRO (INTEGRACIÓN MULTITENANT) -->
+    <!-- FIREBASE & LEAFLET SCRIPTS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
         import { getDatabase, ref, set, update, get, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 
-        // CREDENCIALES SaaS PROPORCIONADAS PARA LA RED DE GEOCERCAS
         const firebaseConfig = {
             apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
             authDomain: "tenant-escuela.firebaseapp.com",
@@ -383,8 +399,7 @@
             projectId: "tenant-escuela",
             storageBucket: "tenant-escuela.firebasestorage.app",
             messagingSenderId: "456023877565",
-            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4",
-            measurementId: "G-ZK03Q0855K"
+            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -393,59 +408,41 @@
 
         let currentTenants = {};
         let editingId = null;
+        let mapCreator = null, markerCreator = null, circleCreator = null;
+        let mapEditor = null, markerEditor = null, circleEditor = null;
 
-        // Leaflet Maps Variables Globales
-        let mapCreator = null;
-        let markerCreator = null;
-        let circleCreator = null;
-
-        let mapEditor = null;
-        let markerEditor = null;
-        let circleEditor = null;
-
-        // Tolerancia a fallos: Renderización Segura de Iconos
+        // Utilidades Globales
         window.refreshIcons = () => {
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         };
 
-        // Custom Toasts con seguridad
         window.showToast = (msg, type = 'success') => {
             const container = document.getElementById('toast-container');
             const t = document.createElement('div');
-            t.className = `p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase tracking-wider ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} transition-all transform animate-bounce flex items-center gap-2`;
-            t.innerHTML = `<i data-lucide="${type === 'success' ? 'check' : 'alert-octagon'}" class="w-4 h-4"></i> ${msg}`;
+            t.className = `p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase tracking-wider ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} animate-slide-up`;
+            t.innerHTML = `<i data-lucide="${type === 'success' ? 'check' : 'alert-octagon'}" class="w-4 h-4 inline mr-2"></i> ${msg}`;
             container.appendChild(t);
-            window.refreshIcons(); // Fallback de seguridad inyectado aquí
+            window.refreshIcons();
             setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3500);
         };
 
-        // Custom Confirmation dialog handler
         window.openCustomConfirm = (title, message, onConfirm) => {
             const modal = document.getElementById('custom-confirm-modal');
             document.getElementById('confirm-title').innerText = title;
             document.getElementById('confirm-message').innerText = message;
             modal.classList.remove('hidden');
 
-            const cancelBtn = document.getElementById('confirm-cancel-btn');
-            const successBtn = document.getElementById('confirm-success-btn');
-
             const cleanUp = () => {
                 modal.classList.add('hidden');
-                // Remove listeners to prevent memory leaks
-                cancelBtn.onclick = null;
-                successBtn.onclick = null;
+                document.getElementById('confirm-cancel-btn').onclick = null;
+                document.getElementById('confirm-success-btn').onclick = null;
             };
 
-            cancelBtn.onclick = () => cleanUp();
-            successBtn.onclick = () => {
-                onConfirm();
-                cleanUp();
-            };
+            document.getElementById('confirm-cancel-btn').onclick = () => cleanUp();
+            document.getElementById('confirm-success-btn').onclick = () => { onConfirm(); cleanUp(); };
         };
 
-        // Control de Acceso Maestro
+        // AUTENTICACIÓN
         window.handleLogin = async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
@@ -456,19 +453,17 @@
                 errBox.classList.add('hidden');
                 const userCredential = await signInWithEmailAndPassword(auth, email, pass);
                 const user = userCredential.user;
-
-                // Verificación estricta en la base de datos para confirmar rol Super Admin
                 const snapshot = await get(ref(database, 'admin_metadata/super_admins/' + user.uid));
+                
                 if (snapshot.exists() && snapshot.val() === true) {
-                    showToast("SISTEMA AUTENTICADO", "success");
+                    showToast("✅ SISTEMA AUTENTICADO CORRECTAMENTE");
                 } else {
-                    // AISLAMIENTO LÓGICO ESTRICTO: Se expulsa cualquier intento no autorizado.
                     await signOut(auth);
-                    errBox.innerText = "Acceso Denegado: Credenciales no registradas como Super Admin.";
+                    errBox.innerText = "❌ Acceso Denegado: No tienes permisos de Super Admin.";
                     errBox.classList.remove('hidden');
                 }
             } catch (err) {
-                errBox.innerText = "Error de Autenticación: Verifique sus datos.";
+                errBox.innerText = "❌ Error: Verifica tu email y contraseña.";
                 errBox.classList.remove('hidden');
             }
         };
@@ -477,7 +472,6 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Verificar si existe el claim en la base de datos
                 get(ref(database, 'admin_metadata/super_admins/' + user.uid)).then((snapshot) => {
                     if (snapshot.exists() && snapshot.val() === true) {
                         document.getElementById('auth-overlay').classList.add('hidden');
@@ -485,7 +479,6 @@
                         loadData();
                         initCreatorMap();
                     } else {
-                        // Desconectar si no cumple con la regla
                         signOut(auth);
                     }
                 });
@@ -496,30 +489,20 @@
             window.refreshIcons();
         });
 
-        // Configuración de Maps interactivos Leaflet
+        // INICIAR MAPA CREADOR
         function initCreatorMap() {
             if (mapCreator) return;
-            const defaultLat = 9.9347;
-            const defaultLng = -84.0875;
+            const lat = 9.9347, lng = -84.0875;
+            document.getElementById('new-lat').value = lat;
+            document.getElementById('new-lng').value = lng;
 
-            document.getElementById('new-lat').value = defaultLat;
-            document.getElementById('new-lng').value = defaultLng;
+            mapCreator = L.map('map-creator').setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(mapCreator);
 
-            mapCreator = L.map('map-creator').setView([defaultLat, defaultLng], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(mapCreator);
+            markerCreator = L.marker([lat, lng], { draggable: true }).addTo(mapCreator);
+            circleCreator = L.circle([lat, lng], { color: '#06b6d4', fillColor: '#06b6d4', fillOpacity: 0.15, radius: 150 }).addTo(mapCreator);
 
-            markerCreator = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(mapCreator);
-            circleCreator = L.circle([defaultLat, defaultLng], {
-                color: '#06b6d4',
-                fillColor: '#06b6d4',
-                fillOpacity: 0.15,
-                radius: 150
-            }).addTo(mapCreator);
-
-            markerCreator.on('drag', function(e) {
+            markerCreator.on('drag', function() {
                 const pos = markerCreator.getLatLng();
                 document.getElementById('new-lat').value = pos.lat.toFixed(6);
                 document.getElementById('new-lng').value = pos.lng.toFixed(6);
@@ -535,12 +518,11 @@
             });
 
             document.getElementById('new-radio').addEventListener('input', function(e) {
-                const r = parseInt(e.target.value) || 0;
-                circleCreator.setRadius(r);
+                circleCreator.setRadius(parseInt(e.target.value) || 150);
             });
         }
 
-        // Creación de Tenant con Estructura de Seguridad Redundante
+        // CREAR TENANT
         window.createTenant = async () => {
             const id = document.getElementById('new-id').value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
             const name = document.getElementById('new-name').value.trim();
@@ -553,121 +535,108 @@
             const corte = document.getElementById('new-corte').value;
 
             if (!id || !name || !corte) {
-                showToast("Por favor complete los campos requeridos.", "error");
+                showToast("Complete los campos requeridos.", "error");
                 return;
             }
 
             try {
-                const payloadConfig = {
+                const config = {
                     empresa: name,
                     telefono: tel,
                     tipoPlan: plan,
                     montoContrato: monto,
                     fechaCorte: corte,
-                    blocked: false,
-                    geocerca: { lat: lat, lng: lng, radio: radio },
-                    status: 'activo',
-                    htmlMora: '',
-                    htmlMantenimiento: ''
+                    bloqueado: false,
+                    geocerca: { lat, lng, radio },
+                    estado: 'activo',
+                    htmlMora: '<div style="text-align:center;background:#dc2626;color:white;padding:60px;border-radius:12px;"><h1>⚠️ Suspendido por Mora</h1><p>Contacte a administración</p></div>',
+                    htmlMantenimiento: '<div style="text-align:center;background:#fbbf24;color:#78350f;padding:60px;border-radius:12px;"><h1>🔧 En Mantenimiento</h1><p>Volveremos en breve</p></div>'
                 };
 
-                await set(ref(database, 'tenants/' + id + '/config'), payloadConfig);
+                await set(ref(database, 'tenants/' + id + '/config'), config);
                 await set(ref(database, 'tenants/' + id + '/status'), 'activo');
-                await set(ref(database, 'tenantDB/' + id + '/blocked'), false);
+                await set(ref(database, 'tenantDB/' + id + '/bloqueado'), false);
 
-                showToast(`Instancia '${name}' desplegada y activa.`);
+                showToast(`✅ Escuela '${name}' desplegada exitosamente`);
                 
                 document.getElementById('new-id').value = "";
                 document.getElementById('new-name').value = "";
                 document.getElementById('new-tel').value = "";
-                document.getElementById('new-monto').value = "";
+                document.getElementById('new-monto').value = "15000";
                 document.getElementById('new-corte').value = "";
             } catch (err) {
-                showToast("Error al desplegar instancia: " + err.message, "error");
+                showToast("Error: " + err.message, "error");
             }
         };
 
-        // Monitoreo y actualización en tiempo real de base de datos
+        // CARGAR DATOS
         function loadData() {
-            const tenantsRef = ref(database, 'tenants');
-            onValue(tenantsRef, (snapshot) => {
+            onValue(ref(database, 'tenants'), (snapshot) => {
                 const list = document.getElementById('tenant-list');
                 list.innerHTML = "";
                 currentTenants = {};
 
                 if (!snapshot.exists()) {
-                    list.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-500 uppercase font-bold text-xs">No hay sistemas registrados en este servidor.</td></tr>`;
+                    list.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-slate-500 uppercase font-bold text-xs">No hay escuelas registradas</td></tr>`;
                     updateStats();
                     return;
                 }
 
                 snapshot.forEach((childSnapshot) => {
                     const id = childSnapshot.key;
-                    const tenantData = childSnapshot.val();
-                    const config = tenantData.config || {};
-                    const status = tenantData.status || 'activo';
+                    const data = childSnapshot.val();
+                    const config = data.config || {};
+                    currentTenants[id] = { id, ...config };
 
-                    currentTenants[id] = { id, ...config, status };
-
-                    const isBlocked = config.blocked === true;
-                    let badgeClass = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-                    let stateText = "Funcional (Activo)";
+                    const isBlocked = config.bloqueado === true;
+                    let status = "🟢 Activo";
+                    let statusClass = "status-active";
 
                     if (isBlocked) {
-                        badgeClass = "text-red-400 bg-red-500/10 border-red-500/20";
-                        stateText = "Suspendido (Moroso)";
-                    } else if (config.status === "mantenimiento") {
-                        badgeClass = "text-amber-400 bg-amber-500/10 border-amber-500/20";
-                        stateText = "Mantenimiento";
+                        status = "🔴 Bloqueado";
+                        statusClass = "status-blocked";
+                    } else if (config.estado === "mantenimiento") {
+                        status = "🟡 Mantenimiento";
+                        statusClass = "status-maintenance";
                     }
 
                     const lat = config.geocerca?.lat || 0;
                     const lng = config.geocerca?.lng || 0;
                     const r = config.geocerca?.radio || 150;
 
-                    const whatsappLink = `https://wa.me/${config.telefono ? config.telefono.replace(/\D/g,'') : ''}?text=${encodeURIComponent('Estimado/a cliente de ' + config.empresa + ', le contactamos de GEOCERCA soporte técnico.')}`;
-                    
-                    const clientBaseUrl = document.getElementById('config-base-url').value;
-                    const tenantAppUrl = `${clientBaseUrl}?id=${id}`;
-
                     const row = document.createElement('tr');
-                    row.className = "hover:bg-slate-800/20 transition-all border-b border-slate-800/30 group text-xs";
+                    row.className = "hover:bg-slate-800/20 transition-all border-b border-slate-800/30 text-xs";
                     row.innerHTML = `
                         <td class="p-5">
-                            <div class="font-black text-white text-xs uppercase group-hover:text-cyan-400 transition-colors">${config.empresa || id}</div>
-                            <div class="flex items-center gap-1.5 mt-1">
-                                <span class="text-[9px] text-slate-500 font-mono tracking-wider truncate max-w-[200px]">${tenantAppUrl}</span>
-                                <button onclick="copyToClipboard('${tenantAppUrl}')" class="text-cyan-400 hover:text-cyan-300" title="Copiar URL de Cliente"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
-                            </div>
+                            <div class="font-black text-cyan-400 uppercase">${config.empresa || id}</div>
+                            <div class="text-[9px] text-slate-500 font-mono mt-1">${id}</div>
                         </td>
                         <td class="p-5">
-                            <div class="text-[10px] font-mono text-slate-300 font-bold">R: ${r}m</div>
-                            <div class="text-[9px] text-slate-500 font-mono mt-0.5">Lat: ${lat.toFixed(4)} / Lng: ${lng.toFixed(4)}</div>
+                            <div class="text-[10px] font-mono text-slate-300">Radio: ${r}m</div>
+                            <div class="text-[9px] text-slate-500 font-mono">Lat: ${lat.toFixed(4)}</div>
+                            <div class="text-[9px] text-slate-500 font-mono">Lng: ${lng.toFixed(4)}</div>
                         </td>
                         <td class="p-5">
-                            <div class="text-[10px] text-slate-300 font-bold uppercase">${config.tipoPlan || 'Mensual'}</div>
-                            <div class="text-[9px] text-slate-500 font-mono mt-0.5">Vence: ${config.fechaCorte || 'S/F'}</div>
+                            <div class="text-[10px] font-bold">${config.tipoPlan || 'Mensual'}</div>
+                            <div class="text-[9px] text-slate-500">Corte: ${config.fechaCorte || 'N/A'}</div>
                         </td>
                         <td class="p-5">
-                            <div class="text-indigo-300 font-mono font-bold">₡${Number(config.montoContrato || 0).toLocaleString()}</div>
+                            <div class="text-indigo-300 font-mono font-black">₡${Number(config.montoContrato || 0).toLocaleString()}</div>
                         </td>
                         <td class="p-5 text-center">
-                            <span class="px-3 py-1 rounded-full border ${badgeClass} text-[9px] font-black uppercase tracking-wider">
-                                ${stateText}
-                            </span>
+                            <span class="status-badge ${statusClass}">${status}</span>
                         </td>
-                        <td class="p-5">
-                            <div class="flex justify-end gap-2 items-center">
-                                <a href="${whatsappLink}" target="_blank" class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500 hover:text-slate-950 transition-all" title="Soporte WhatsApp">
-                                    <i data-lucide="message-square" class="w-4 h-4"></i>
-                                </a>
-                                <button onclick="window.open('${tenantAppUrl}', '_blank')" class="p-2 bg-slate-900 text-slate-300 rounded-lg hover:bg-slate-800 hover:text-white transition-all border border-slate-800" title="Probar Sitio Cliente">
-                                    <i data-lucide="external-link" class="w-4 h-4"></i>
-                                </button>
-                                <button onclick="openEdit('${id}')" class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg hover:bg-cyan-500 hover:text-slate-950 transition-all border border-cyan-500/20" title="Configurar Geocerca y Bloqueos">
+                        <td class="p-5 text-center">
+                            <button onclick="toggleBlockedState('${id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isBlocked ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'}">
+                                ${isBlocked ? '🔒 Desbloquear' : '🔓 Bloquear'}
+                            </button>
+                        </td>
+                        <td class="p-5 text-right">
+                            <div class="flex justify-end gap-2">
+                                <button onclick="openEdit('${id}')" class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg hover:bg-cyan-500/20 transition-all" title="Editar">
                                     <i data-lucide="settings" class="w-4 h-4"></i>
                                 </button>
-                                <button onclick="deleteTenant('${id}')" class="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all" title="Eliminar Base de Datos del Cliente">
+                                <button onclick="deleteTenant('${id}')" class="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-all" title="Eliminar">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -681,73 +650,44 @@
             });
         }
 
-        // Utilidades de Clipboard
-        window.copyToClipboard = (text) => {
-            const el = document.createElement('textarea');
-            el.value = text;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            showToast("URL del Cliente copiada al portapapeles", "success");
-        };
+        // TOGGLE BLOQUEADO
+        window.toggleBlockedState = async (id) => {
+            const t = currentTenants[id];
+            const newState = !t.bloqueado;
+            const action = newState ? 'Bloquear' : 'Desbloquear';
 
-        // Procesador de Archivos HTML para pantallas de error
-        window.processHTML = (e, targetId) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                let html = event.target.result;
-                document.getElementById(targetId).value = html;
-                showToast("HTML importado y mapeado con éxito.");
-            };
-            reader.readAsText(file);
-        };
-
-        // Actualizar estadísticas del SaaS
-        function updateStats() {
-            let total = 0;
-            let active = 0;
-            let suspended = 0;
-            let revenue = 0;
-
-            Object.values(currentTenants).forEach(t => {
-                total++;
-                if (t.blocked === true) {
-                    suspended++;
-                } else {
-                    active++;
+            openCustomConfirm(
+                action + " Escuela",
+                `¿${action} la escuela '${t.empresa}'? Los usuarios verán una pantalla de ${newState ? 'error' : 'bienvenida'}.`,
+                async () => {
+                    try {
+                        await update(ref(database, `tenants/${id}`), {
+                            'config/bloqueado': newState,
+                            'status': newState ? 'bloqueado' : 'activo'
+                        });
+                        await set(ref(database, `tenantDB/${id}/bloqueado`), newState);
+                        showToast(`✅ Escuela ${action.toLowerCase()}a con éxito`);
+                    } catch (err) {
+                        showToast("Error: " + err.message, "error");
+                    }
                 }
-                revenue += parseFloat(t.montoContrato || 0);
-            });
+            );
+        };
 
-            document.getElementById('stat-total').innerText = total;
-            document.getElementById('stat-active').innerText = active;
-            document.getElementById('stat-suspended').innerText = suspended;
-            document.getElementById('stat-revenue').innerText = "₡" + revenue.toLocaleString();
-        }
-
-        // Gestión de Edición en Modal (Configurar Estado y Geocerca)
+        // EDITAR
         window.openEdit = (id) => {
             editingId = id;
             const t = currentTenants[id];
             if (!t) return;
 
-            document.getElementById('modal-tenant-title').innerText = `Geocerca: ${t.empresa || id}`;
+            document.getElementById('modal-tenant-title').innerText = `${t.empresa || id}`;
             
-            // Establecer radio del estado actual de suscripción
-            const statusValue = t.blocked === true ? 'suspendido' : (t.status || 'activo');
-            const rads = document.getElementsByName('m_status');
-            for (let r of rads) {
-                if (r.value === statusValue) r.checked = true;
-            }
+            const status = t.bloqueado ? 'bloqueado' : (t.estado || 'activo');
+            document.querySelector(`input[name="m_status"][value="${status}"]`).checked = true;
 
-            // HTML templates
             document.getElementById('m_html_mora').value = t.htmlMora || '';
             document.getElementById('m_html_mant').value = t.htmlMantenimiento || '';
 
-            // Geocerca parameters
             const lat = t.geocerca?.lat || 9.9347;
             const lng = t.geocerca?.lng || -84.0875;
             const r = t.geocerca?.radio || 150;
@@ -758,21 +698,12 @@
 
             document.getElementById('manageModal').classList.remove('hidden');
 
-            // Inicializar o reposicionar mapa del editor
             setTimeout(() => {
                 if (!mapEditor) {
                     mapEditor = L.map('map-editor').setView([lat, lng], 14);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        maxZoom: 19
-                    }).addTo(mapEditor);
-
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapEditor);
                     markerEditor = L.marker([lat, lng], { draggable: true }).addTo(mapEditor);
-                    circleEditor = L.circle([lat, lng], {
-                        color: '#22c55e',
-                        fillColor: '#22c55e',
-                        fillOpacity: 0.15,
-                        radius: r
-                    }).addTo(mapEditor);
+                    circleEditor = L.circle([lat, lng], { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.15, radius: r }).addTo(mapEditor);
 
                     markerEditor.on('drag', function() {
                         const pos = markerEditor.getLatLng();
@@ -790,8 +721,7 @@
                     });
 
                     document.getElementById('edit-radio').addEventListener('input', function(ev) {
-                        const val = parseInt(ev.target.value) || 0;
-                        circleEditor.setRadius(val);
+                        circleEditor.setRadius(parseInt(ev.target.value) || 150);
                     });
                 } else {
                     mapEditor.invalidateSize();
@@ -807,57 +737,78 @@
 
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
-        // Guardar cambios aplicando DOBLE BLOQUEO Redundante para las Geocercas de los Clientes
+        // GUARDAR CAMBIOS
         window.saveChanges = async () => {
-            const selectedStatus = document.querySelector('input[name="m_status"]:checked').value;
+            const status = document.querySelector('input[name="m_status"]:checked').value;
             const hMora = document.getElementById('m_html_mora').value;
             const hMant = document.getElementById('m_html_mant').value;
-
             const lat = parseFloat(document.getElementById('edit-lat').value) || 9.9347;
             const lng = parseFloat(document.getElementById('edit-lng').value) || -84.0875;
             const radio = parseInt(document.getElementById('edit-radio').value) || 150;
 
-            const blocked = selectedStatus === 'suspendido';
+            const bloqueado = status === 'bloqueado';
 
             try {
-                // Preparar actualización de configuración en Realtime Database
                 const updates = {};
-                updates[`tenants/${editingId}/config/blocked`] = blocked;
-                updates[`tenants/${editingId}/config/status`] = selectedStatus;
+                updates[`tenants/${editingId}/config/bloqueado`] = bloqueado;
+                updates[`tenants/${editingId}/config/estado`] = status;
                 updates[`tenants/${editingId}/config/htmlMora`] = hMora;
                 updates[`tenants/${editingId}/config/htmlMantenimiento`] = hMant;
                 updates[`tenants/${editingId}/config/geocerca`] = { lat, lng, radio };
-
-                // Enlace de estado principal del Tenant
-                updates[`tenants/${editingId}/status`] = selectedStatus;
-
-                // Enlace redundante extra para bloquear el acceso según el script cliente
-                updates[`tenantDB/${editingId}/blocked`] = blocked;
+                updates[`tenants/${editingId}/status`] = status;
+                updates[`tenantDB/${editingId}/bloqueado`] = bloqueado;
 
                 await update(ref(database), updates);
-
-                showToast("Sincronización de Doble Bloqueo y parámetros de Geocerca realizada.");
+                showToast("✅ Configuración guardada y sincronizada");
                 closeModal('manageModal');
             } catch (err) {
-                showToast("Error al guardar cambios: " + err.message, "error");
+                showToast("Error: " + err.message, "error");
             }
         };
 
-        // Eliminar Tenant
+        // ELIMINAR
         window.deleteTenant = async (id) => {
+            const t = currentTenants[id];
             openCustomConfirm(
-                "Eliminar Base de Datos",
-                `¿Estás seguro de eliminar permanentemente el tenant '${id.toUpperCase()}'? Se perderán todas las geocercas, personas registradas y reportes históricos de este cliente.`,
+                "Eliminar Escuela",
+                `¿Eliminar permanentemente '${t.empresa}'? Se borrarán todos los datos, usuarios y registros.`,
                 async () => {
                     try {
                         await remove(ref(database, 'tenants/' + id));
                         await remove(ref(database, 'tenantDB/' + id));
-                        showToast(`Instancia '${id}' eliminada por completo.`);
+                        showToast(`✅ Escuela eliminada`);
                     } catch (err) {
-                        showToast("Error al eliminar la instancia: " + err.message, "error");
+                        showToast("Error: " + err.message, "error");
                     }
                 }
             );
+        };
+
+        // ACTUALIZAR STATS
+        function updateStats() {
+            let total = 0, active = 0, blocked = 0, revenue = 0;
+            Object.values(currentTenants).forEach(t => {
+                total++;
+                if (t.bloqueado) blocked++;
+                else active++;
+                revenue += parseFloat(t.montoContrato || 0);
+            });
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-active').innerText = active;
+            document.getElementById('stat-blocked').innerText = blocked;
+            document.getElementById('stat-revenue').innerText = "₡" + revenue.toLocaleString();
+        }
+
+        // PROCESAR HTML
+        window.processHTML = (e, targetId) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                document.getElementById(targetId).value = event.target.result;
+                showToast("✅ HTML importado");
+            };
+            reader.readAsText(file);
         };
     </script>
 </body>
