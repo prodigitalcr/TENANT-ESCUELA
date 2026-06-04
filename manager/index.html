@@ -533,7 +533,7 @@
         let editingId = null;
         let mapCreator = null, markerCreator = null, circleCreator = null;
         let mapEditor = null, markerEditor = null, circleEditor = null;
-        let statusListeners = {}; // Guardar listeners de status para limpiarlos
+        let statusListeners = {};
 
         // Utilidades Globales
         window.refreshIcons = () => {
@@ -566,10 +566,47 @@
             document.getElementById('confirm-success-btn').onclick = () => { onConfirm(); cleanUp(); };
         };
 
+        // AUTO-BLOQUEO POR VENCIMIENTO DE FECHA
+        window.checkAndAutoBlock = async (id, config) => {
+            // Si no hay fecha, o ya está bloqueado, o está en mantenimiento, lo ignoramos
+            if (!config.fechaCorte || config.bloqueado || config.estado === 'mantenimiento') return;
+
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0); // Ignorar horas, solo comparar días
+            
+            // Asumiendo formato YYYY-MM-DD
+            const partesFecha = config.fechaCorte.split('-');
+            if (partesFecha.length !== 3) return;
+            
+            const fechaCorte = new Date(partesFecha[0], partesFecha[1] - 1, partesFecha[2]);
+            
+            // Si la fecha de hoy es estrictamente mayor a la fecha de corte, se bloquea
+            if (hoy > fechaCorte) {
+                console.log(`[SISTEMA] Auto-bloqueando escuela ${id} por fecha vencida: ${config.fechaCorte}`);
+                try {
+                    // Actualizamos la metadata del Panel Maestro
+                    await update(ref(database, `tenants/${id}`), {
+                        'config/bloqueado': true,
+                        'status': 'bloqueado'
+                    });
+                    
+                    // Actualizamos la base de datos pública del cliente para ejecutar el bloqueo en su URL
+                    await update(ref(database, `tenantDB/${id}`), {
+                        bloqueado: true,
+                        estado: 'bloqueado'
+                    });
+                    
+                    showToast(`🛑 Sistema auto-bloqueó a '${config.empresa || id}' por vencimiento de cuota`, 'error');
+                } catch (err) {
+                    console.error("Error en auto-bloqueo:", err);
+                }
+            }
+        };
+
         // GENERAR URL
         window.generateTenantUrl = () => {
             const id = (document.getElementById('new-id').value || '').toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-            const url = id ? `https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=${id}/` : 'https://prodigitalcr.github.io/TENANT-ESCUELA/?tenat=[id-escuela]/';
+            const url = id ? `https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=${id}/` : 'https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=[id-escuela]/';
             document.getElementById('generated-url').innerText = url;
         };
 
@@ -703,9 +740,17 @@
                     htmlMantenimiento: '<div style="text-align:center;background:#fbbf24;color:#78350f;padding:60px;border-radius:12px;"><h1>🔧 En Mantenimiento</h1><p>Volveremos en breve</p></div>'
                 };
 
+                // Guardar la data principal
                 await set(ref(database, 'tenants/' + id + '/config'), config);
                 await set(ref(database, 'tenants/' + id + '/status'), 'activo');
-                await set(ref(database, 'tenantDB/' + id + '/bloqueado'), false);
+                
+                // GUARDAR EL NODO QUE LEE EL CLIENTE (Asegurando el bloqueo de URL emitido)
+                await set(ref(database, 'tenantDB/' + id), {
+                    bloqueado: false,
+                    estado: 'activo',
+                    htmlMora: config.htmlMora,
+                    htmlMantenimiento: config.htmlMantenimiento
+                });
 
                 showToast(`✅ Escuela '${name}' desplegada exitosamente`);
                 
@@ -747,6 +792,9 @@
                     const data = childSnapshot.val();
                     const config = data.config || {};
                     currentTenants[id] = { id, ...config };
+
+                    // Verificar si la fecha venció para auto-bloquear inmediatamente
+                    checkAndAutoBlock(id, config);
 
                     // Escuchar cambios en el status del tenant en tiempo real
                     statusListeners[id] = onValue(ref(database, `tenants/${id}/status`), (statusSnapshot) => {
@@ -792,6 +840,19 @@
             const tel = config.telefono || '';
             const director = config.director || {};
 
+            // Verificación visual de fecha de corte
+            let fechaVencida = false;
+            if (config.fechaCorte) {
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                const p = config.fechaCorte.split('-');
+                if (p.length === 3) {
+                    const fCorte = new Date(p[0], p[1] - 1, p[2]);
+                    if (hoy > fCorte) fechaVencida = true;
+                }
+            }
+            const dateColorClass = fechaVencida ? 'text-red-500 font-black' : 'text-slate-500';
+
             const row = document.createElement('tr');
             row.className = "hover:bg-slate-800/20 transition-all border-b border-slate-800/30 text-xs";
             row.setAttribute('data-tenant-id', id);
@@ -811,7 +872,7 @@
                 </td>
                 <td class="p-5">
                     <div class="text-[10px] font-bold">${config.tipoPlan || 'Mensual'}</div>
-                    <div class="text-[9px] text-slate-500">Corte: ${config.fechaCorte || 'N/A'}</div>
+                    <div class="text-[9px] ${dateColorClass}">Corte: ${config.fechaCorte || 'N/A'} ${fechaVencida ? '⚠️' : ''}</div>
                 </td>
                 <td class="p-5">
                     <div class="text-indigo-300 font-mono font-black">₡${Number(config.montoContrato || 0).toLocaleString()}</div>
@@ -824,7 +885,7 @@
                         <button onclick="abrirSitio('${id}')" class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg hover:bg-indigo-500/20 transition-all" title="Abrir sitio del cliente">
                             <i data-lucide="globe" class="w-4 h-4"></i>
                         </button>
-                        ${tel ? `<a href="https://wa.me/${tel.replace(/\\D/g, '')}" target="_blank" class="p-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-all" title="Contactar por WhatsApp">
+                        ${tel ? `<a href="https://wa.me/${tel.replace(/\D/g, '')}" target="_blank" class="p-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-all" title="Contactar por WhatsApp">
                             <i data-lucide="message-circle" class="w-4 h-4"></i>
                         </a>` : ''}
                         <button onclick="toggleBlockedState('${id}')" class="p-2 ${isBlocked ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'} transition-all rounded-lg" title="Bloquear/Desbloquear">
@@ -911,11 +972,18 @@
                 `¿${action} la escuela '${t.empresa}'? Los usuarios verán una pantalla de ${newState ? 'error' : 'bienvenida'}.`,
                 async () => {
                     try {
+                        // Sincronizar el estatus principal
                         await update(ref(database, `tenants/${id}`), {
                             'config/bloqueado': newState,
                             'status': newState ? 'bloqueado' : 'activo'
                         });
-                        await set(ref(database, `tenantDB/${id}/bloqueado`), newState);
+                        
+                        // Sincronizar el nodo del cliente (tenantDB) para que se restrinja el acceso a la URL en tiempo real
+                        await update(ref(database, `tenantDB/${id}`), {
+                            bloqueado: newState,
+                            estado: newState ? 'bloqueado' : 'activo'
+                        });
+                        
                         showToast(`✅ Escuela ${action.toLowerCase()}a con éxito`);
                     } catch (err) {
                         showToast("Error: " + err.message, "error");
@@ -1020,11 +1088,8 @@
 
             try {
                 const updates = {};
-                updates[`tenants/${editingId}/config/director`] = {
-                    nombre: directorName,
-                    email: directorEmail,
-                    uid: directorUid
-                };
+                // Actualizar Metadata
+                updates[`tenants/${editingId}/config/director`] = { nombre: directorName, email: directorEmail, uid: directorUid };
                 updates[`tenants/${editingId}/config/empresa`] = name;
                 updates[`tenants/${editingId}/config/telefono`] = tel;
                 updates[`tenants/${editingId}/config/tipoPlan`] = plan;
@@ -1036,10 +1101,15 @@
                 updates[`tenants/${editingId}/config/htmlMantenimiento`] = hMant;
                 updates[`tenants/${editingId}/config/geocerca`] = { lat, lng, radio };
                 updates[`tenants/${editingId}/status`] = status;
+                
+                // Actualizar la BBDD del cliente para que impacte la URL de inmediato
                 updates[`tenantDB/${editingId}/bloqueado`] = bloqueado;
+                updates[`tenantDB/${editingId}/estado`] = status;
+                updates[`tenantDB/${editingId}/htmlMora`] = hMora;
+                updates[`tenantDB/${editingId}/htmlMantenimiento`] = hMant;
 
                 await update(ref(database), updates);
-                showToast("✅ Todos los cambios guardados y sincronizados");
+                showToast("✅ Todos los cambios guardados y sincronizados a la URL del cliente");
                 closeModal('manageModal');
             } catch (err) {
                 showToast("Error: " + err.message, "error");
