@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GEOCERCA SaaS | Master Control Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons para componentes interactivos -->
+    <!-- URL CORREGIDA PARA LUCIDE ICONS (Seguridad de Carga) -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Leaflet CSS para Mapas Interactivos -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -18,800 +18,847 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #334155; }
-        
-        /* Animaciones de Pulso para Estados Activos */
+        /* Animación de pulso para geocerca activa */
         @keyframes pulse-ring {
             0% { transform: scale(0.95); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.3; }
-            100% { transform: scale(1.2); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 0.2; }
+            100% { transform: scale(0.95); opacity: 0.5; }
         }
-        .pulse-effect::after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border: 2px solid currentColor;
-            border-radius: 50%;
+        .pulse-effect {
             animation: pulse-ring 2s infinite ease-in-out;
-            left: 0;
-            top: 0;
+        }
+        /* Leaflet custom dark theme wrapper */
+        .leaflet-container {
+            background: #0f172a !important;
+            font-family: inherit;
+        }
+        .leaflet-bar a {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-bottom: 1px solid #334155 !important;
+        }
+        .leaflet-bar a:hover {
+            background-color: #334155 !important;
         }
     </style>
 </head>
-<body class="bg-[#0b0f19] text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+<body class="bg-[#060814] text-slate-200 min-h-screen font-sans overflow-x-hidden antialiased">
 
-    <!-- HEADER DE CONTROL MAESTRO -->
-    <header class="border-b border-slate-800/80 bg-[#0f172a]/95 backdrop-blur sticky top-0 z-40 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-3">
-            <div class="p-2.5 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl shadow-lg shadow-indigo-500/20 relative">
-                <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+    <!-- CONTENEDOR DE NOTIFICACIONES TOASTS -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2"></div>
+
+    <!-- DIÁLOGO DE CONFIRMACIÓN PERSONALIZADO -->
+    <div id="custom-confirm-modal" class="fixed inset-0 bg-[#02040a]/90 z-[10000] hidden flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-[#111827] border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div class="flex items-center gap-3 text-amber-500 mb-4">
+                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                <h3 class="text-lg font-bold text-white uppercase tracking-tight" id="confirm-title">¿Estás seguro?</h3>
             </div>
-            <div>
-                <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">
-                    GEOCERCA MASTER
-                </h1>
-                <p class="text-xs text-slate-400 font-medium">Panel de Control de Suscripciones y Cobertura Escolar</p>
+            <p class="text-slate-400 text-sm mb-6" id="confirm-message">Esta acción es irreversible y podría desconectar temporalmente las operaciones del cliente.</p>
+            <div class="flex gap-3">
+                <button id="confirm-cancel-btn" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-all">
+                    Cancelar
+                </button>
+                <button id="confirm-success-btn" class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-500/20">
+                    Confirmar Acción
+                </button>
             </div>
         </div>
-        
-        <!-- Acciones de Datos Globales: Exportar e Importar JSON -->
-        <div class="flex flex-wrap gap-2.5">
-            <button onclick="exportDatabase()" class="flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700/50 text-slate-200 rounded-lg text-xs font-semibold transition duration-200">
-                <i data-lucide="download" class="w-4 h-4 text-indigo-400"></i>
-                Exportar JSON
-            </button>
-            <label class="flex items-center gap-2 px-3.5 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 rounded-lg text-xs font-semibold cursor-pointer transition duration-200">
-                <i data-lucide="upload" class="w-4 h-4"></i>
-                Importar JSON
-                <input type="file" id="importFile" accept=".json" onchange="importDatabase(event)" class="hidden">
-            </label>
-            <button onclick="openCreateModal()" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 active:scale-95 text-white rounded-lg text-xs font-semibold shadow-md transition duration-200">
-                <i data-lucide="plus" class="w-4 h-4"></i>
-                Nueva Escuela
-            </button>
+    </div>
+
+    <!-- PANTALLA DE ACCESO MAESTRO (AUTH GUARD) -->
+    <div id="auth-overlay" class="fixed inset-0 bg-[#060814] z-[999] flex flex-col items-center justify-center p-6">
+        <div class="bg-[#0f172a]/80 backdrop-blur-xl p-8 md:p-10 rounded-3xl border border-slate-800/80 w-full max-w-md shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            
+            <div class="bg-cyan-500/10 p-4 rounded-2xl w-16 h-16 mx-auto mb-6 flex items-center justify-center border border-cyan-500/30 text-cyan-400 shadow-lg shadow-cyan-500/5">
+                <i data-lucide="globe" class="w-8 h-8 pulse-effect"></i>
+            </div>
+            <h1 class="text-2xl font-black mb-1 text-white text-center uppercase tracking-tight">GEOCERCA SaaS</h1>
+            <p class="text-slate-400 mb-8 text-xs text-center font-bold tracking-widest uppercase">Panel de Control General</p>
+            
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Email de Administrador</label>
+                    <input type="email" id="email" required placeholder="admin@geocerca.com" class="w-full p-4 rounded-xl bg-[#080d1a] border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-white text-sm transition-all">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Contraseña de Seguridad</label>
+                    <input type="password" id="password" required placeholder="••••••••" class="w-full p-4 rounded-xl bg-[#080d1a] border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-white text-sm transition-all">
+                </div>
+                <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-4 rounded-xl transition-all uppercase tracking-widest text-xs shadow-lg shadow-cyan-500/15">
+                    Autenticar Consola
+                </button>
+            </form>
+            <p id="auth-error" class="text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-xl mt-4 text-xs hidden font-bold text-center uppercase tracking-wider"></p>
         </div>
-    </header>
+    </div>
 
-    <!-- CUERPO PRINCIPAL (Layout de Doble Columna) -->
-    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6">
-        
-        <!-- COLUMNA IZQUIERDA: Tabla de Tenants (7 Columnas) -->
-        <section class="lg:col-span-7 flex flex-col gap-4">
-            <div class="bg-[#0f172a]/65 border border-slate-800/80 rounded-2xl p-5 backdrop-blur flex flex-col flex-grow">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-sm font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wider">
-                        <i data-lucide="building-2" class="w-4 h-4 text-indigo-400"></i>
-                        Escuelas Registradas (Tenants)
-                    </h2>
-                    <span id="tenantCount" class="px-2.5 py-0.5 bg-indigo-500/10 text-indigo-400 text-xs font-bold rounded-full border border-indigo-500/20">
-                        0 Escuelas
-                    </span>
+    <!-- CONTENIDO PRINCIPAL DEL DASHBOARD -->
+    <div id="main-content" class="hidden flex-col min-h-screen">
+        <header class="bg-[#0f172a]/85 border-b border-slate-800/80 p-4 sticky top-0 backdrop-blur-xl z-40">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-cyan-600 p-2.5 rounded-xl shadow-lg shadow-cyan-500/15 text-slate-950">
+                        <i data-lucide="shield" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-black text-white uppercase tracking-wider">GEOCERCA <span class="text-cyan-400">Master SaaS</span></h2>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Soporte Multitenant y Bloqueos</span>
+                    </div>
                 </div>
-
-                <!-- Buscador Integrado -->
-                <div class="relative mb-4">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                        <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
-                    </span>
-                    <input type="text" id="searchInput" oninput="filterTenants()" placeholder="Buscar por escuela, ID, director o UID de Auth..." class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 pl-9 pr-4 py-2 rounded-xl text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition">
+                <div class="flex items-center gap-4">
+                    <button onclick="handleLogout()" class="bg-slate-900 hover:bg-red-500/10 text-slate-400 hover:text-red-400 px-4 py-2.5 rounded-xl text-xs font-black transition-all border border-slate-800 flex items-center gap-2 uppercase tracking-wider">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Salir
+                    </button>
                 </div>
+            </div>
+        </header>
 
-                <!-- Tabla de Tenants -->
-                <div class="overflow-x-auto flex-1 min-h-[400px]">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="border-b border-slate-800 text-slate-400 font-semibold bg-[#11192e]">
-                                <th class="py-3 px-4 rounded-l-lg">ID (Toca para ver)</th>
-                                <th class="py-3 px-4">Escuela / Encargado</th>
-                                <th class="py-3 px-4">Vigencia Contrato</th>
-                                <th class="py-3 px-4 text-center">Estado</th>
-                                <th class="py-3 px-4 text-right rounded-r-lg">Acciones</th>
+        <main class="max-w-7xl mx-auto p-4 md:p-8 w-full flex-1">
+            
+            <!-- METRICAS GENERALES -->
+            <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden">
+                    <div class="bg-cyan-500/10 p-3.5 rounded-xl text-cyan-400"><i data-lucide="server" class="w-6 h-6"></i></div>
+                    <div>
+                        <div class="text-2xl font-black text-white" id="stat-total">0</div>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Total Geocercas</p>
+                    </div>
+                </div>
+                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden">
+                    <div class="bg-emerald-500/10 p-3.5 rounded-xl text-emerald-400"><i data-lucide="check-circle" class="w-6 h-6"></i></div>
+                    <div>
+                        <div class="text-2xl font-black text-white" id="stat-active">0</div>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Servicios Activos</p>
+                    </div>
+                </div>
+                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden">
+                    <div class="bg-red-500/10 p-3.5 rounded-xl text-red-400"><i data-lucide="alert-octagon" class="w-6 h-6"></i></div>
+                    <div>
+                        <div class="text-2xl font-black text-white" id="stat-suspended">0</div>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Suspendidos / Morosos</p>
+                    </div>
+                </div>
+                <div class="bg-[#0f172a]/50 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden">
+                    <div class="bg-indigo-500/10 p-3.5 rounded-xl text-indigo-400"><i data-lucide="wallet" class="w-6 h-6"></i></div>
+                    <div>
+                        <div class="text-2xl font-black text-indigo-300" id="stat-revenue">₡0</div>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Facturación Estimada</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DESPLIEGUE Y CREACIÓN DE INSTANCIA -->
+            <section class="bg-[#0f172a]/50 border border-slate-800/80 p-6 md:p-8 rounded-3xl mb-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 p-8 text-slate-800 opacity-5">
+                    <i data-lucide="map" class="w-64 h-64"></i>
+                </div>
+                
+                <h3 class="text-sm font-black mb-6 text-white uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="text-cyan-400"></i> Desplegar Nueva Geocerca Independiente
+                </h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Formulario de Datos -->
+                    <div class="lg:col-span-7 space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">ID del Tenant (URL sin espacios)</label>
+                                <input type="text" id="new-id" placeholder="ej: constructora-alfa" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm font-mono text-white">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Nombre Comercial de la Escuela/Sede</label>
+                                <input type="text" id="new-name" placeholder="Escuela La Carpio" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">WhatsApp de Contacto</label>
+                                <input type="text" id="new-tel" placeholder="50688888888" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Plan de Servicio</label>
+                                <select id="new-plan" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white appearance-none">
+                                    <option value="Mensual">Mensualidad</option>
+                                    <option value="Semestral">Suscripción Semestral</option>
+                                    <option value="Anual">Suscripción Anual</option>
+                                </select>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Cuota Mensual (₡)</label>
+                                <input type="number" id="new-monto" placeholder="25000" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white">
+                            </div>
+                        </div>
+
+                        <!-- Parametros de Geolocalización -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
+                            <div class="space-y-1 md:col-span-2">
+                                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider ml-1">Latitud Centro</label>
+                                <input type="number" step="any" id="new-lat" placeholder="9.9388" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 text-xs font-mono text-white">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider ml-1">Longitud Centro</label>
+                                <input type="number" step="any" id="new-lng" placeholder="-84.1200" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 text-xs font-mono text-white">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider ml-1">Radio Rango (m)</label>
+                                <input type="number" id="new-radio" value="150" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none focus:border-cyan-500 text-xs font-mono text-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Próxima Fecha de Pago / Corte</label>
+                                <input type="date" id="new-corte" class="w-full bg-[#080d1a] border border-slate-800 p-3.5 rounded-xl outline-none focus:border-cyan-500 text-sm text-white">
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="createTenant()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-4 px-6 rounded-xl transition-all uppercase text-xs tracking-widest shadow-lg shadow-cyan-500/10 flex items-center justify-center gap-2">
+                                    Desplegar Instancia <i data-lucide="globe-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configuración Visual de Geocerca (Mapa) -->
+                    <div class="lg:col-span-5 flex flex-col">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2">Asignar Geocentro (Arrastrar o Hacer click)</label>
+                        <div id="map-creator" class="flex-1 min-h-[250px] w-full rounded-2xl border border-slate-800 overflow-hidden relative shadow-inner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MONITOR DE INSTANCIAS Y TENANTS -->
+            <section class="bg-[#0f172a]/50 border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl">
+                <div class="p-6 border-b border-slate-800/80 bg-slate-900/30 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h4 class="text-white font-black uppercase text-xs tracking-widest">Monitoreo de Geocercas Independientes</h4>
+                        <p class="text-slate-500 text-[9px] font-bold uppercase mt-1">Control Global y Cobertura Satelital</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Filtro General URL Base:</label>
+                        <input type="text" id="config-base-url" placeholder="https://prodigitalcr.github.io/TENANT-ESCUELA/" class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-xs font-mono text-cyan-400 outline-none w-64 focus:border-cyan-500" value="https://prodigitalcr.github.io/TENANT-ESCUELA/">
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-900/40 text-slate-500 text-[9px] uppercase font-bold border-b border-slate-800">
+                            <tr>
+                                <th class="p-5">Empresa / Tenant ID</th>
+                                <th class="p-5">Rango Geocerca (Centro)</th>
+                                <th class="p-5">Contacto / Plan</th>
+                                <th class="p-5">Cuota</th>
+                                <th class="p-5 text-center">Estado del SaaS</th>
+                                <th class="p-5 text-right">Controles</th>
                             </tr>
                         </thead>
-                        <tbody id="tenantTableBody" class="divide-y divide-slate-800/60">
+                        <tbody id="tenant-list" class="divide-y divide-slate-800/40">
                             <tr>
-                                <td colspan="5" class="text-center py-8 text-slate-500">Cargando base de datos de escuelas...</td>
+                                <td colspan="6" class="p-10 text-center text-slate-500 uppercase font-bold text-xs tracking-wider">Cargando base de datos satelital...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </section>
+            </section>
+        </main>
+    </div>
 
-        <!-- COLUMNA DERECHA: Detalles y Mapa (5 Columnas) -->
-        <section class="lg:col-span-5 flex flex-col gap-6">
-            
-            <!-- PANEL DE INFORMACIÓN DETALLADA -->
-            <div id="detailPanel" class="bg-[#0f172a]/65 border border-slate-800/80 rounded-2xl p-5 backdrop-blur hidden">
-                <div class="flex justify-between items-start border-b border-slate-800 pb-3 mb-4">
+    <!-- MODAL DE DETALLES Y AJUSTES DE SERVICIO -->
+    <div id="manageModal" class="fixed inset-0 bg-[#02040a]/90 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto">
+        <div class="bg-[#0f172a] border border-slate-800 w-full max-w-4xl rounded-3xl p-6 md:p-8 my-auto shadow-2xl relative">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="bg-cyan-500/10 p-3 rounded-2xl text-cyan-400">
+                        <i data-lucide="settings-2" class="w-6 h-6"></i>
+                    </div>
                     <div>
-                        <h3 id="detailName" class="text-base font-bold text-white">Nombre Escuela</h3>
-                        <p class="text-xs text-indigo-400 font-semibold" id="detailIdDisplay">ID: -</p>
-                    </div>
-                    <button onclick="closeDetailPanel()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4 text-xs mb-4">
-                    <div class="bg-[#131b2e] p-3 rounded-xl border border-slate-800 col-span-2">
-                        <span class="text-slate-400 block mb-1 font-medium">UID Administrador (Firebase Auth)</span>
-                        <div class="flex items-center justify-between bg-slate-950/50 p-2 rounded border border-slate-800">
-                            <strong id="detailUID" class="text-indigo-300 font-mono text-[11px] truncate">No asignado</strong>
-                            <button onclick="copyUID()" class="text-slate-400 hover:text-indigo-400 ml-2" title="Copiar UID">
-                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="bg-[#131b2e] p-3 rounded-xl border border-slate-800">
-                        <span class="text-slate-400 block mb-1 font-medium">Director / Encargado</span>
-                        <strong id="detailDirector" class="text-slate-200">No especificado</strong>
-                    </div>
-                    <div class="bg-[#131b2e] p-3 rounded-xl border border-slate-800">
-                        <span class="text-slate-400 block mb-1 font-medium">Email de Contacto</span>
-                        <strong id="detailEmail" class="text-slate-200">No especificado</strong>
-                    </div>
-                    <div class="bg-[#131b2e] p-3 rounded-xl border border-slate-800">
-                        <span class="text-slate-400 block mb-1 font-medium">Vigencia Inicial</span>
-                        <strong id="detailFechaInicio" class="text-slate-200">-</strong>
-                    </div>
-                    <div class="bg-[#131b2e] p-3 rounded-xl border border-slate-800">
-                        <span class="text-slate-400 block mb-1 font-medium">Fecha de Corte</span>
-                        <strong id="detailFechaCorte" class="text-slate-200">-</strong>
+                        <h2 class="text-lg font-black text-white uppercase tracking-wider" id="modal-tenant-title">Ajustes de la Geocerca</h2>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Configuración de bloqueo y cobertura</span>
                     </div>
                 </div>
-                
-                <div class="flex justify-between items-center bg-slate-900/40 border border-slate-800 p-3 rounded-xl">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="map-pin" class="w-4 h-4 text-indigo-400"></i>
-                        <span class="text-xs text-slate-300 font-medium">Cobertura:</span>
-                    </div>
-                    <span id="detailGeofenceInfo" class="text-xs font-bold text-slate-200">Lat: 0, Lng: 0 (Radio: 0m)</span>
-                </div>
-            </div>
-
-            <!-- MAPA DE COBERTURA -->
-            <div class="bg-[#0f172a]/65 border border-slate-800/80 rounded-2xl p-4 backdrop-blur flex-1 flex flex-col min-h-[400px]">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <i data-lucide="map" class="w-4.5 h-4.5 text-indigo-400"></i>
-                        Geolocalización de Cobertura
-                    </h3>
-                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
-                        Leaflet Live
-                    </span>
-                </div>
-                
-                <!-- Contenedor del Mapa Leaflet -->
-                <div id="leafletMap" class="flex-1 w-full rounded-xl bg-slate-950 border border-slate-800 overflow-hidden relative z-10"></div>
-            </div>
-        </section>
-    </main>
-
-    <!-- MODAL CREAR / EDITAR TENANT -->
-    <div id="manageModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
-        <div class="bg-[#0f172a] border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col">
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                <h3 id="modalTitle" class="text-base font-bold text-white flex items-center gap-2">
-                    <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-400"></i>
-                    Agregar Nueva Escuela
-                </h3>
-                <button onclick="closeModal('manageModal')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+                <button onclick="closeModal('manageModal')" class="text-slate-500 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
             
-            <form id="tenantForm" onsubmit="saveTenantForm(event)" class="p-6 space-y-4 text-xs">
-                <input type="hidden" id="editingTenantId">
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- ID del Tenant (Solo lectura en edición) -->
-                    <div>
-                        <label class="block text-slate-400 font-semibold mb-1">ID Único de Escuela (Tenant ID) *</label>
-                        <input type="text" id="formId" required placeholder="ej. school_san_carlos" class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
-                    </div>
-                    
-                    <!-- Nombre de la Escuela -->
-                    <div>
-                        <label class="block text-slate-400 font-semibold mb-1">Nombre de la Escuela *</label>
-                        <input type="text" id="formName" required placeholder="ej. Escuela La Carpio" class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Nombre del Director -->
-                    <div>
-                        <label class="block text-slate-400 font-semibold mb-1">Nombre del Director / Encargado *</label>
-                        <input type="text" id="formDirectorNombre" required placeholder="Nombre completo" class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
-                    </div>
-                    
-                    <!-- Correo electrónico -->
-                    <div>
-                        <label class="block text-slate-400 font-semibold mb-1">Correo Electrónico de Contacto *</label>
-                        <input type="email" id="formDirectorEmail" required placeholder="ejemplo@escuela.com" class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
-                    </div>
-                </div>
-
-                <!-- Campo de UID de Firebase Auth -->
-                <div class="bg-indigo-950/10 border border-indigo-500/20 p-3.5 rounded-xl">
-                    <label class="block text-indigo-300 font-semibold mb-1 flex items-center gap-1">
-                        <i data-lucide="key" class="w-3.5 h-3.5"></i>
-                        UID de Autenticación de Firebase del Administrador *
-                    </label>
-                    <input type="text" id="formAdminUID" required placeholder="Copiar el UID desde la sección Authentication de Firebase del Administrador" class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 font-mono text-xs">
-                    <p class="text-[10px] text-slate-400 mt-1">Este UID vincula el inicio de sesión del Director en la plataforma de asistencias con este Tenant.</p>
-                </div>
-
-                <!-- Sección Suscripción y Fechas -->
-                <div class="bg-indigo-950/20 border border-indigo-500/20 p-4 rounded-xl space-y-3">
-                    <h4 class="font-bold text-indigo-400 uppercase tracking-widest text-[10px]">Parámetros de Cobro y Bloqueo de Acceso</h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-slate-400 font-semibold mb-1">Fecha de Inicio *</label>
-                            <input type="date" id="formFechaInicio" required class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Columna de Estado y Plantillas de Bloqueo -->
+                <div class="lg:col-span-7 space-y-4">
+                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase mb-3 block">Estado de Suscripción</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="cursor-pointer group">
+                                <input type="radio" name="m_status" value="activo" class="hidden peer">
+                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-emerald-600/15 peer-checked:border-emerald-500 text-slate-500 peer-checked:text-emerald-400 font-bold text-[10px] uppercase transition-all group-hover:border-slate-600">Activo</div>
+                            </label>
+                            <label class="cursor-pointer group">
+                                <input type="radio" name="m_status" value="suspendido" class="hidden peer">
+                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-red-600/15 peer-checked:border-red-500 text-slate-500 peer-checked:text-red-400 font-bold text-[10px] uppercase transition-all group-hover:border-slate-600">Suspendido</div>
+                            </label>
+                            <label class="cursor-pointer group">
+                                <input type="radio" name="m_status" value="mantenimiento" class="hidden peer">
+                                <div class="py-3 text-center rounded-xl border border-slate-800 bg-slate-900/50 peer-checked:bg-amber-600/15 peer-checked:border-amber-500 text-slate-500 peer-checked:text-amber-400 font-bold text-[10px] uppercase transition-all group-hover:border-slate-600">Mant.</div>
+                            </label>
                         </div>
-                        <div>
-                            <label class="block text-slate-400 font-semibold mb-1">Fecha de Corte (Bloqueo Automático) *</label>
-                            <input type="date" id="formFechaCorte" required class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                                    <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i> Pantalla de Suspensión (Mora HTML)
+                                </label>
+                                <label class="cursor-pointer text-[9px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-700 transition-all">
+                                    Importar HTML <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mora')" class="hidden">
+                                </label>
+                            </div>
+                            <textarea id="m_html_mora" rows="3" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none text-red-300 font-mono text-[10px] resize-none" placeholder="HTML personalizado cuando el cliente esté suspendido..."></textarea>
                         </div>
-                        <div>
-                            <label class="block text-slate-400 font-semibold mb-1">Estado Administrativo *</label>
-                            <select id="formStatus" class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
-                                <option value="activo">Activo</option>
-                                <option value="moroso">Moroso (Bloqueado Manual)</option>
-                                <option value="mantenimiento">Mantenimiento (Bloqueado Manual)</option>
-                            </select>
+
+                        <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                                    <i data-lucide="wrench" class="w-4 h-4 text-amber-500"></i> Pantalla de Mantenimiento (HTML)
+                                </label>
+                                <label class="cursor-pointer text-[9px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-700 transition-all">
+                                    Importar HTML <input type="file" accept=".html" onchange="processHTML(event, 'm_html_mant')" class="hidden">
+                                </label>
+                            </div>
+                            <textarea id="m_html_mant" rows="3" class="w-full bg-[#080d1a] border border-slate-800 p-3 rounded-xl outline-none text-amber-300 font-mono text-[10px] resize-none" placeholder="HTML personalizado cuando esté en mantenimiento..."></textarea>
                         </div>
                     </div>
                 </div>
 
-                <!-- Ubicación Física y Geocerca -->
-                <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-xl space-y-3">
-                    <h4 class="font-bold text-slate-400 uppercase tracking-widest text-[10px]">Ubicación Geográfica y Radio</h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-slate-400 font-semibold mb-1">Latitud *</label>
-                            <input type="number" step="any" id="formLat" required placeholder="ej. 9.93" class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
+                <!-- Columna de Geocerca (Ubicación/Mapa Modificable) -->
+                <div class="lg:col-span-5 flex flex-col space-y-4">
+                    <div class="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60 space-y-3">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase block">Editar Dimensiones Geocerca</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Latitud</label>
+                                <input type="number" step="any" id="edit-lat" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Longitud</label>
+                                <input type="number" step="any" id="edit-lng" class="w-full bg-[#080d1a] border border-slate-800 p-2 rounded-lg text-xs font-mono text-white outline-none">
+                            </div>
                         </div>
                         <div>
-                            <label class="block text-slate-400 font-semibold mb-1">Longitud *</label>
-                            <input type="number" step="any" id="formLng" required placeholder="ej. -84.09" class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 font-semibold mb-1">Radio Cobertura (Metros) *</label>
-                            <input type="number" id="formRadio" required placeholder="ej. 150" class="w-full bg-[#131b2e] border border-slate-800 text-slate-200 px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500">
+                            <label class="text-[9px] font-bold text-slate-500 uppercase ml-1 block">Rango de Cobertura (Metros)</label>
+                            <input type="number" id="edit-radio" class="w-full bg-[#080d1a] border border-slate-800 p-2.5 rounded-lg text-xs font-mono text-white outline-none">
                         </div>
                     </div>
+                    <div class="flex-1 min-h-[180px] rounded-2xl border border-slate-800 overflow-hidden relative">
+                        <div id="map-editor" class="w-full h-full"></div>
+                    </div>
                 </div>
-
-                <!-- Botones del Modal -->
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeModal('manageModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="px-5 py-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold rounded-lg shadow-lg shadow-indigo-500/20">
-                        Guardar Configuración
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- NOTIFICACIONES TOAST -->
-    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2"></div>
-
-    <!-- DIÁLOGO DE CONFIRMACIÓN -->
-    <div id="confirmModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-[100] p-4 hidden">
-        <div class="bg-[#0f172a] border border-slate-800 rounded-xl max-w-sm w-full p-6 text-center space-y-4">
-            <div class="mx-auto w-12 h-12 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center">
-                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
             </div>
-            <div>
-                <h3 id="confirmTitle" class="text-sm font-bold text-white">¿Estás seguro?</h3>
-                <p id="confirmMessage" class="text-xs text-slate-400 mt-1">Esta acción no se puede deshacer.</p>
-            </div>
-            <div class="flex gap-2">
-                <button id="confirmCancelBtn" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg">
+
+            <div class="flex gap-4 pt-6 border-t border-slate-800/80 mt-6">
+                <button onclick="closeModal('manageModal')" class="flex-1 py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-slate-400 uppercase text-xs tracking-wider transition-all">
                     Cancelar
                 </button>
-                <button id="confirmOkBtn" class="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shadow-lg shadow-red-500/15">
-                    Eliminar
+                <button onclick="saveChanges()" class="flex-[2] py-4 bg-cyan-600 hover:bg-cyan-500 rounded-xl font-black text-slate-950 uppercase text-xs tracking-wider shadow-lg shadow-cyan-500/10 transition-all">
+                    Aplicar Configuración
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Leaflet.js para mapas -->
+    <!-- LÓGICA DE CONTROL MAESTRO (INTEGRACIÓN MULTITENANT) -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- FIREBASE SDK MODULAR CONFIGURATION -->
     <script type="module">
-        // Importación de módulos oficiales de Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, get, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+        import { getDatabase, ref, set, update, get, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 
-        // CONFIGURACIÓN DE FIREBASE (Asegúrate de enlazar tu cuenta real de producción aquí si es necesario)
+        // CREDENCIALES SaaS PROPORCIONADAS PARA LA RED DE GEOCERCAS
         const firebaseConfig = {
-            databaseURL: "https://geocerca-c3e03-default-rtdb.firebaseio.com/" 
+            apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
+            authDomain: "tenant-escuela.firebaseapp.com",
+            databaseURL: "https://tenant-escuela-default-rtdb.firebaseio.com",
+            projectId: "tenant-escuela",
+            storageBucket: "tenant-escuela.firebasestorage.app",
+            messagingSenderId: "456023877565",
+            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4",
+            measurementId: "G-ZK03Q0855K"
         };
 
-        // Inicializar Firebase
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const database = getDatabase(app);
 
-        // Estado local de la base de datos
-        let databaseState = { tenants: {}, tenantDB: {} };
-        let map;
-        let mapMarkers = {};
-        let activeGeofenceCircle = null;
+        let currentTenants = {};
+        let editingId = null;
 
-        // Inicialización del Mapa
-        function initMap() {
-            map = L.map('leafletMap', {
-                center: [9.9333, -84.0833],
-                zoom: 11,
-                zoomControl: true
-            });
+        // Leaflet Maps Variables Globales
+        let mapCreator = null;
+        let markerCreator = null;
+        let circleCreator = null;
 
-            // Tile basemap en tonos oscuros (CartoDB Dark Matter)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(map);
-        }
+        let mapEditor = null;
+        let markerEditor = null;
+        let circleEditor = null;
 
-        // Obtener fecha del sistema formateada (YYYY-MM-DD)
-        function getTodayDateString() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        // Mostrar Toast
-        window.showToast = (message, type = "success") => {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-semibold shadow-xl transition-all duration-300 transform translate-y-2 opacity-0`;
-            
-            if (type === "success") {
-                toast.className += " bg-emerald-950/80 border-emerald-500/30 text-emerald-400";
-                toast.innerHTML = `<i data-lucide="check-circle" class="w-4.5 h-4.5"></i> ${message}`;
-            } else if (type === "error") {
-                toast.className += " bg-red-950/80 border-red-500/30 text-red-400";
-                toast.innerHTML = `<i data-lucide="x-circle" class="w-4.5 h-4.5"></i> ${message}`;
-            } else {
-                toast.className += " bg-indigo-950/80 border-indigo-500/30 text-indigo-400";
-                toast.innerHTML = `<i data-lucide="info" class="w-4.5 h-4.5"></i> ${message}`;
-            }
-
-            container.appendChild(toast);
-            lucide.createIcons();
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-2', 'opacity-0');
-            }, 50);
-
-            setTimeout(() => {
-                toast.classList.add('translate-y-2', 'opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
-        };
-
-        // Renderizar la tabla y los marcadores en el mapa interactivo
-        window.renderTenants = (filteredTenants = null) => {
-            const tbody = document.getElementById('tenantTableBody');
-            tbody.innerHTML = '';
-            
-            // Limpieza de marcadores
-            Object.values(mapMarkers).forEach(m => map.removeLayer(m));
-            mapMarkers = {};
-
-            const list = filteredTenants || databaseState.tenants || {};
-            const tenantsArray = Object.values(list);
-            document.getElementById('tenantCount').innerText = `${tenantsArray.length} ${tenantsArray.length === 1 ? 'Escuela' : 'Escuelas'}`;
-
-            if (tenantsArray.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-500">No se encontraron escuelas registradas.</td></tr>`;
-                return;
-            }
-
-            const today = getTodayDateString();
-
-            tenantsArray.forEach(tenant => {
-                // Validación del bloqueo temporal automático y manual
-                const esExpirado = tenant.fecha_corte && tenant.fecha_corte < today;
-                const estaBloqueadoManual = tenant.status === 'moroso' || tenant.status === 'mantenimiento';
-                const blocked = esExpirado || estaBloqueadoManual;
-
-                // Definir etiqueta visual del estado administrativo
-                let statusLabel = "";
-                if (esExpirado) {
-                    statusLabel = `<span class="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full font-bold text-[10px] uppercase flex items-center gap-1 justify-center"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Expirado</span>`;
-                } else if (tenant.status === 'moroso') {
-                    statusLabel = `<span class="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full font-bold text-[10px] uppercase flex items-center gap-1 justify-center"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Moroso</span>`;
-                } else if (tenant.status === 'mantenimiento') {
-                    statusLabel = `<span class="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full font-bold text-[10px] uppercase flex items-center gap-1 justify-center"><span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>Mantenimiento</span>`;
-                } else {
-                    statusLabel = `<span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-bold text-[10px] uppercase flex items-center gap-1 justify-center"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-effect relative"></span>Activo</span>`;
-                }
-
-                const tr = document.createElement('tr');
-                tr.className = `border-b border-slate-800/40 hover:bg-slate-900/30 transition duration-150 ${blocked ? 'bg-red-950/10' : ''}`;
-                tr.innerHTML = `
-                    <td class="py-3 px-4 font-mono font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer" onclick="showTenantDetail('${tenant.id}')">
-                        ${tenant.id}
-                    </td>
-                    <td class="py-3 px-4">
-                        <div class="font-bold text-slate-200">${tenant.name}</div>
-                        <div class="text-[10px] text-slate-400 flex flex-col gap-0.5 mt-0.5">
-                            <span class="flex items-center gap-1"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> ${tenant.director_nombre} (${tenant.director_email})</span>
-                            <span class="font-mono text-[9px] text-indigo-300 truncate">UID Admin: ${tenant.admin_uid || 'No registrado'}</span>
-                        </div>
-                    </td>
-                    <td class="py-3 px-4">
-                        <div class="text-slate-300 font-medium">${tenant.fecha_inicio} al</div>
-                        <div class="text-[10px] text-slate-500 font-bold">${tenant.fecha_corte}</div>
-                    </td>
-                    <td class="py-3 px-4 text-center">
-                        ${statusLabel}
-                    </td>
-                    <td class="py-3 px-4 text-right">
-                        <div class="flex justify-end gap-1.5">
-                            <button onclick="openEditModal('${tenant.id}')" class="p-1.5 bg-slate-800 hover:bg-indigo-600 hover:text-white rounded-lg transition" title="Editar escuela">
-                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                            </button>
-                            <button onclick="confirmDeleteTenant('${tenant.id}')" class="p-1.5 bg-slate-800 hover:bg-red-600 hover:text-white rounded-lg transition" title="Eliminar escuela">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-
-                // Marcador en el mapa de Leaflet
-                const markerColor = blocked ? '#ef4444' : '#10b981';
-                const marker = L.circleMarker([tenant.lat, tenant.lng], {
-                    radius: 8,
-                    fillColor: markerColor,
-                    color: '#fff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.9
-                }).addTo(map);
-
-                marker.bindPopup(`
-                    <div class="text-slate-900 p-1 font-sans">
-                        <h4 class="font-bold text-xs">${tenant.name}</h4>
-                        <p class="text-[10px] text-slate-600">Director: ${tenant.director_nombre}</p>
-                        <p class="text-[9px] text-indigo-600 truncate font-mono">UID: ${tenant.admin_uid || 'N/A'}</p>
-                        <p class="text-[10px] text-slate-500">Estado: <span class="font-bold uppercase">${blocked ? 'BLOQUEADO' : 'ACTIVO'}</span></p>
-                    </div>
-                `);
-
-                mapMarkers[tenant.id] = marker;
-            });
-
-            lucide.createIcons();
-        };
-
-        // Escucha en tiempo real de Firebase
-        onValue(ref(database), (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                databaseState.tenants = data.tenants || {};
-                databaseState.tenantDB = data.tenantDB || {};
-            } else {
-                databaseState = { tenants: {}, tenantDB: {} };
-            }
-            window.renderTenants();
-        }, (error) => {
-            window.showToast("Error al conectar con Firebase: " + error.message, "error");
-        });
-
-        // Filtrado por barra de búsqueda
-        window.filterTenants = () => {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = {};
-            
-            Object.entries(databaseState.tenants).forEach(([id, tenant]) => {
-                const searchStr = `${tenant.id} ${tenant.name} ${tenant.director_nombre} ${tenant.director_email} ${tenant.admin_uid || ''}`.toLowerCase();
-                if (searchStr.includes(query)) {
-                    filtered[id] = tenant;
-                }
-            });
-            
-            window.renderTenants(filtered);
-        };
-
-        // Mostrar Panel de Detalle de Escuela y Ubicación en Mapa
-        window.showTenantDetail = (id) => {
-            const tenant = databaseState.tenants[id];
-            if (!tenant) return;
-
-            const panel = document.getElementById('detailPanel');
-            panel.classList.remove('hidden');
-
-            document.getElementById('detailName').innerText = tenant.name;
-            document.getElementById('detailIdDisplay').innerText = `ID DE CONEXIÓN (TENANT ID): ${tenant.id}`;
-            document.getElementById('detailUID').innerText = tenant.admin_uid || "No asignado";
-            document.getElementById('detailDirector').innerText = tenant.director_nombre;
-            document.getElementById('detailEmail').innerText = tenant.director_email;
-            document.getElementById('detailFechaInicio').innerText = tenant.fecha_inicio;
-            document.getElementById('detailFechaCorte').innerText = tenant.fecha_corte;
-            document.getElementById('detailGeofenceInfo').innerText = `Lat: ${tenant.lat.toFixed(5)}, Lng: ${tenant.lng.toFixed(5)} (Radio: ${tenant.radio}m)`;
-
-            // Navegación fluida del mapa Leaflet
-            map.flyTo([tenant.lat, tenant.lng], 16, { animate: true, duration: 1.5 });
-
-            if (activeGeofenceCircle) {
-                map.removeLayer(activeGeofenceCircle);
-            }
-
-            // Calcular color de Geocerca según bloqueo
-            const today = getTodayDateString();
-            const esExpirado = tenant.fecha_corte && tenant.fecha_corte < today;
-            const blocked = esExpirado || tenant.status === 'moroso' || tenant.status === 'mantenimiento';
-            const circleColor = blocked ? '#ef4444' : '#6366f1';
-
-            activeGeofenceCircle = L.circle([tenant.lat, tenant.lng], {
-                radius: tenant.radio,
-                color: circleColor,
-                fillColor: circleColor,
-                fillOpacity: 0.15,
-                weight: 2
-            }).addTo(map);
-
-            if (mapMarkers[id]) {
-                mapMarkers[id].openPopup();
+        // Tolerancia a fallos: Renderización Segura de Iconos
+        window.refreshIcons = () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
             }
         };
 
-        // Copiar UID al portapapeles
-        window.copyUID = () => {
-            const uidText = document.getElementById('detailUID').innerText;
-            if (uidText === "No asignado") return;
-            
-            const tempInput = document.createElement("input");
-            tempInput.value = uidText;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            
-            window.showToast("UID copiado al portapapeles");
+        // Custom Toasts con seguridad
+        window.showToast = (msg, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `p-4 rounded-xl shadow-2xl font-black text-white text-[10px] uppercase tracking-wider ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'} transition-all transform animate-bounce flex items-center gap-2`;
+            t.innerHTML = `<i data-lucide="${type === 'success' ? 'check' : 'alert-octagon'}" class="w-4 h-4"></i> ${msg}`;
+            container.appendChild(t);
+            window.refreshIcons(); // Fallback de seguridad inyectado aquí
+            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3500);
         };
 
-        // Guardar o Actualizar Formulario en Firebase
-        window.saveTenantForm = async (event) => {
-            event.preventDefault();
+        // Custom Confirmation dialog handler
+        window.openCustomConfirm = (title, message, onConfirm) => {
+            const modal = document.getElementById('custom-confirm-modal');
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            modal.classList.remove('hidden');
 
-            const editingId = document.getElementById('editingTenantId').value;
-            const id = document.getElementById('formId').value.trim();
-            const name = document.getElementById('formName').value.trim();
-            const director_nombre = document.getElementById('formDirectorNombre').value.trim();
-            const director_email = document.getElementById('formDirectorEmail').value.trim();
-            const admin_uid = document.getElementById('formAdminUID').value.trim();
-            const fecha_inicio = document.getElementById('formFechaInicio').value;
-            const fecha_corte = document.getElementById('formFechaCorte').value;
-            const status = document.getElementById('formStatus').value;
-            const lat = parseFloat(document.getElementById('formLat').value);
-            const lng = parseFloat(document.getElementById('formLng').value);
-            const radio = parseInt(document.getElementById('formRadio').value);
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+            const successBtn = document.getElementById('confirm-success-btn');
 
-            if (isNaN(lat) || isNaN(lng) || isNaN(radio)) {
-                window.showToast("Coordenadas y Radio de cobertura deben ser numéricos válidos", "error");
-                return;
-            }
-
-            const targetId = editingId || id;
-            const today = getTodayDateString();
-            const esExpirado = fecha_corte < today;
-            const blocked = esExpirado || status === 'moroso' || status === 'mantenimiento';
-
-            const payloadTenant = {
-                id: targetId,
-                name,
-                director_nombre,
-                director_email,
-                admin_uid,
-                fecha_inicio,
-                fecha_corte,
-                lat,
-                lng,
-                radio,
-                status
+            const cleanUp = () => {
+                modal.classList.add('hidden');
+                // Remove listeners to prevent memory leaks
+                cancelBtn.onclick = null;
+                successBtn.onclick = null;
             };
 
-            try {
-                // Guardar los datos en el Tenant principal de Firebase
-                await set(ref(database, `tenants/${targetId}`), payloadTenant);
-                // Sincronizar el nodo de bloqueo de inmediato para la App de Asistencias
-                await set(ref(database, `tenantDB/${targetId}/blocked`), blocked);
+            cancelBtn.onclick = () => cleanUp();
+            successBtn.onclick = () => {
+                onConfirm();
+                cleanUp();
+            };
+        };
 
-                window.showToast(`Escuela '${name}' guardada de forma exitosa.`);
+        // Control de Acceso Maestro
+        window.handleLogin = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('password').value;
+            const errBox = document.getElementById('auth-error');
+
+            try {
+                errBox.classList.add('hidden');
+                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                const user = userCredential.user;
+
+                // Verificación estricta en la base de datos para confirmar rol Super Admin
+                const snapshot = await get(ref(database, 'admin_metadata/super_admins/' + user.uid));
+                if (snapshot.exists() && snapshot.val() === true) {
+                    showToast("SISTEMA AUTENTICADO", "success");
+                } else {
+                    // AISLAMIENTO LÓGICO ESTRICTO: Se expulsa cualquier intento no autorizado.
+                    await signOut(auth);
+                    errBox.innerText = "Acceso Denegado: Credenciales no registradas como Super Admin.";
+                    errBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                errBox.innerText = "Error de Autenticación: Verifique sus datos.";
+                errBox.classList.remove('hidden');
+            }
+        };
+
+        window.handleLogout = () => signOut(auth);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Verificar si existe el claim en la base de datos
+                get(ref(database, 'admin_metadata/super_admins/' + user.uid)).then((snapshot) => {
+                    if (snapshot.exists() && snapshot.val() === true) {
+                        document.getElementById('auth-overlay').classList.add('hidden');
+                        document.getElementById('main-content').classList.remove('hidden');
+                        loadData();
+                        initCreatorMap();
+                    } else {
+                        // Desconectar si no cumple con la regla
+                        signOut(auth);
+                    }
+                });
+            } else {
+                document.getElementById('auth-overlay').classList.remove('hidden');
+                document.getElementById('main-content').classList.add('hidden');
+            }
+            window.refreshIcons();
+        });
+
+        // Configuración de Maps interactivos Leaflet
+        function initCreatorMap() {
+            if (mapCreator) return;
+            const defaultLat = 9.9347;
+            const defaultLng = -84.0875;
+
+            document.getElementById('new-lat').value = defaultLat;
+            document.getElementById('new-lng').value = defaultLng;
+
+            mapCreator = L.map('map-creator').setView([defaultLat, defaultLng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(mapCreator);
+
+            markerCreator = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(mapCreator);
+            circleCreator = L.circle([defaultLat, defaultLng], {
+                color: '#06b6d4',
+                fillColor: '#06b6d4',
+                fillOpacity: 0.15,
+                radius: 150
+            }).addTo(mapCreator);
+
+            markerCreator.on('drag', function(e) {
+                const pos = markerCreator.getLatLng();
+                document.getElementById('new-lat').value = pos.lat.toFixed(6);
+                document.getElementById('new-lng').value = pos.lng.toFixed(6);
+                circleCreator.setLatLng(pos);
+            });
+
+            mapCreator.on('click', function(e) {
+                const pos = e.latlng;
+                markerCreator.setLatLng(pos);
+                circleCreator.setLatLng(pos);
+                document.getElementById('new-lat').value = pos.lat.toFixed(6);
+                document.getElementById('new-lng').value = pos.lng.toFixed(6);
+            });
+
+            document.getElementById('new-radio').addEventListener('input', function(e) {
+                const r = parseInt(e.target.value) || 0;
+                circleCreator.setRadius(r);
+            });
+        }
+
+        // Creación de Tenant con Estructura de Seguridad Redundante
+        window.createTenant = async () => {
+            const id = document.getElementById('new-id').value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            const name = document.getElementById('new-name').value.trim();
+            const tel = document.getElementById('new-tel').value.trim();
+            const plan = document.getElementById('new-plan').value;
+            const monto = parseFloat(document.getElementById('new-monto').value) || 0;
+            const lat = parseFloat(document.getElementById('new-lat').value) || 9.9347;
+            const lng = parseFloat(document.getElementById('new-lng').value) || -84.0875;
+            const radio = parseInt(document.getElementById('new-radio').value) || 150;
+            const corte = document.getElementById('new-corte').value;
+
+            if (!id || !name || !corte) {
+                showToast("Por favor complete los campos requeridos.", "error");
+                return;
+            }
+
+            try {
+                const payloadConfig = {
+                    empresa: name,
+                    telefono: tel,
+                    tipoPlan: plan,
+                    montoContrato: monto,
+                    fechaCorte: corte,
+                    blocked: false,
+                    geocerca: { lat: lat, lng: lng, radio: radio },
+                    status: 'activo',
+                    htmlMora: '',
+                    htmlMantenimiento: ''
+                };
+
+                await set(ref(database, 'tenants/' + id + '/config'), payloadConfig);
+                await set(ref(database, 'tenants/' + id + '/status'), 'activo');
+                await set(ref(database, 'tenantDB/' + id + '/blocked'), false);
+
+                showToast(`Instancia '${name}' desplegada y activa.`);
+                
+                document.getElementById('new-id').value = "";
+                document.getElementById('new-name').value = "";
+                document.getElementById('new-tel').value = "";
+                document.getElementById('new-monto').value = "";
+                document.getElementById('new-corte').value = "";
+            } catch (err) {
+                showToast("Error al desplegar instancia: " + err.message, "error");
+            }
+        };
+
+        // Monitoreo y actualización en tiempo real de base de datos
+        function loadData() {
+            const tenantsRef = ref(database, 'tenants');
+            onValue(tenantsRef, (snapshot) => {
+                const list = document.getElementById('tenant-list');
+                list.innerHTML = "";
+                currentTenants = {};
+
+                if (!snapshot.exists()) {
+                    list.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-500 uppercase font-bold text-xs">No hay sistemas registrados en este servidor.</td></tr>`;
+                    updateStats();
+                    return;
+                }
+
+                snapshot.forEach((childSnapshot) => {
+                    const id = childSnapshot.key;
+                    const tenantData = childSnapshot.val();
+                    const config = tenantData.config || {};
+                    const status = tenantData.status || 'activo';
+
+                    currentTenants[id] = { id, ...config, status };
+
+                    const isBlocked = config.blocked === true;
+                    let badgeClass = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+                    let stateText = "Funcional (Activo)";
+
+                    if (isBlocked) {
+                        badgeClass = "text-red-400 bg-red-500/10 border-red-500/20";
+                        stateText = "Suspendido (Moroso)";
+                    } else if (config.status === "mantenimiento") {
+                        badgeClass = "text-amber-400 bg-amber-500/10 border-amber-500/20";
+                        stateText = "Mantenimiento";
+                    }
+
+                    const lat = config.geocerca?.lat || 0;
+                    const lng = config.geocerca?.lng || 0;
+                    const r = config.geocerca?.radio || 150;
+
+                    const whatsappLink = `https://wa.me/${config.telefono ? config.telefono.replace(/\D/g,'') : ''}?text=${encodeURIComponent('Estimado/a cliente de ' + config.empresa + ', le contactamos de GEOCERCA soporte técnico.')}`;
+                    
+                    const clientBaseUrl = document.getElementById('config-base-url').value;
+                    const tenantAppUrl = `${clientBaseUrl}?id=${id}`;
+
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-800/20 transition-all border-b border-slate-800/30 group text-xs";
+                    row.innerHTML = `
+                        <td class="p-5">
+                            <div class="font-black text-white text-xs uppercase group-hover:text-cyan-400 transition-colors">${config.empresa || id}</div>
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <span class="text-[9px] text-slate-500 font-mono tracking-wider truncate max-w-[200px]">${tenantAppUrl}</span>
+                                <button onclick="copyToClipboard('${tenantAppUrl}')" class="text-cyan-400 hover:text-cyan-300" title="Copiar URL de Cliente"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+                            </div>
+                        </td>
+                        <td class="p-5">
+                            <div class="text-[10px] font-mono text-slate-300 font-bold">R: ${r}m</div>
+                            <div class="text-[9px] text-slate-500 font-mono mt-0.5">Lat: ${lat.toFixed(4)} / Lng: ${lng.toFixed(4)}</div>
+                        </td>
+                        <td class="p-5">
+                            <div class="text-[10px] text-slate-300 font-bold uppercase">${config.tipoPlan || 'Mensual'}</div>
+                            <div class="text-[9px] text-slate-500 font-mono mt-0.5">Vence: ${config.fechaCorte || 'S/F'}</div>
+                        </td>
+                        <td class="p-5">
+                            <div class="text-indigo-300 font-mono font-bold">₡${Number(config.montoContrato || 0).toLocaleString()}</div>
+                        </td>
+                        <td class="p-5 text-center">
+                            <span class="px-3 py-1 rounded-full border ${badgeClass} text-[9px] font-black uppercase tracking-wider">
+                                ${stateText}
+                            </span>
+                        </td>
+                        <td class="p-5">
+                            <div class="flex justify-end gap-2 items-center">
+                                <a href="${whatsappLink}" target="_blank" class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500 hover:text-slate-950 transition-all" title="Soporte WhatsApp">
+                                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                                </a>
+                                <button onclick="window.open('${tenantAppUrl}', '_blank')" class="p-2 bg-slate-900 text-slate-300 rounded-lg hover:bg-slate-800 hover:text-white transition-all border border-slate-800" title="Probar Sitio Cliente">
+                                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="openEdit('${id}')" class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg hover:bg-cyan-500 hover:text-slate-950 transition-all border border-cyan-500/20" title="Configurar Geocerca y Bloqueos">
+                                    <i data-lucide="settings" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="deleteTenant('${id}')" class="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all" title="Eliminar Base de Datos del Cliente">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    list.appendChild(row);
+                });
+
+                updateStats();
+                window.refreshIcons();
+            });
+        }
+
+        // Utilidades de Clipboard
+        window.copyToClipboard = (text) => {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showToast("URL del Cliente copiada al portapapeles", "success");
+        };
+
+        // Procesador de Archivos HTML para pantallas de error
+        window.processHTML = (e, targetId) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                let html = event.target.result;
+                document.getElementById(targetId).value = html;
+                showToast("HTML importado y mapeado con éxito.");
+            };
+            reader.readAsText(file);
+        };
+
+        // Actualizar estadísticas del SaaS
+        function updateStats() {
+            let total = 0;
+            let active = 0;
+            let suspended = 0;
+            let revenue = 0;
+
+            Object.values(currentTenants).forEach(t => {
+                total++;
+                if (t.blocked === true) {
+                    suspended++;
+                } else {
+                    active++;
+                }
+                revenue += parseFloat(t.montoContrato || 0);
+            });
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-active').innerText = active;
+            document.getElementById('stat-suspended').innerText = suspended;
+            document.getElementById('stat-revenue').innerText = "₡" + revenue.toLocaleString();
+        }
+
+        // Gestión de Edición en Modal (Configurar Estado y Geocerca)
+        window.openEdit = (id) => {
+            editingId = id;
+            const t = currentTenants[id];
+            if (!t) return;
+
+            document.getElementById('modal-tenant-title').innerText = `Geocerca: ${t.empresa || id}`;
+            
+            // Establecer radio del estado actual de suscripción
+            const statusValue = t.blocked === true ? 'suspendido' : (t.status || 'activo');
+            const rads = document.getElementsByName('m_status');
+            for (let r of rads) {
+                if (r.value === statusValue) r.checked = true;
+            }
+
+            // HTML templates
+            document.getElementById('m_html_mora').value = t.htmlMora || '';
+            document.getElementById('m_html_mant').value = t.htmlMantenimiento || '';
+
+            // Geocerca parameters
+            const lat = t.geocerca?.lat || 9.9347;
+            const lng = t.geocerca?.lng || -84.0875;
+            const r = t.geocerca?.radio || 150;
+
+            document.getElementById('edit-lat').value = lat;
+            document.getElementById('edit-lng').value = lng;
+            document.getElementById('edit-radio').value = r;
+
+            document.getElementById('manageModal').classList.remove('hidden');
+
+            // Inicializar o reposicionar mapa del editor
+            setTimeout(() => {
+                if (!mapEditor) {
+                    mapEditor = L.map('map-editor').setView([lat, lng], 14);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19
+                    }).addTo(mapEditor);
+
+                    markerEditor = L.marker([lat, lng], { draggable: true }).addTo(mapEditor);
+                    circleEditor = L.circle([lat, lng], {
+                        color: '#22c55e',
+                        fillColor: '#22c55e',
+                        fillOpacity: 0.15,
+                        radius: r
+                    }).addTo(mapEditor);
+
+                    markerEditor.on('drag', function() {
+                        const pos = markerEditor.getLatLng();
+                        document.getElementById('edit-lat').value = pos.lat.toFixed(6);
+                        document.getElementById('edit-lng').value = pos.lng.toFixed(6);
+                        circleEditor.setLatLng(pos);
+                    });
+
+                    mapEditor.on('click', function(ev) {
+                        const pos = ev.latlng;
+                        markerEditor.setLatLng(pos);
+                        circleEditor.setLatLng(pos);
+                        document.getElementById('edit-lat').value = pos.lat.toFixed(6);
+                        document.getElementById('edit-lng').value = pos.lng.toFixed(6);
+                    });
+
+                    document.getElementById('edit-radio').addEventListener('input', function(ev) {
+                        const val = parseInt(ev.target.value) || 0;
+                        circleEditor.setRadius(val);
+                    });
+                } else {
+                    mapEditor.invalidateSize();
+                    mapEditor.setView([lat, lng], 14);
+                    markerEditor.setLatLng([lat, lng]);
+                    circleEditor.setLatLng([lat, lng]);
+                    circleEditor.setRadius(r);
+                }
+            }, 300);
+
+            window.refreshIcons();
+        };
+
+        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+
+        // Guardar cambios aplicando DOBLE BLOQUEO Redundante para las Geocercas de los Clientes
+        window.saveChanges = async () => {
+            const selectedStatus = document.querySelector('input[name="m_status"]:checked').value;
+            const hMora = document.getElementById('m_html_mora').value;
+            const hMant = document.getElementById('m_html_mant').value;
+
+            const lat = parseFloat(document.getElementById('edit-lat').value) || 9.9347;
+            const lng = parseFloat(document.getElementById('edit-lng').value) || -84.0875;
+            const radio = parseInt(document.getElementById('edit-radio').value) || 150;
+
+            const blocked = selectedStatus === 'suspendido';
+
+            try {
+                // Preparar actualización de configuración en Realtime Database
+                const updates = {};
+                updates[`tenants/${editingId}/config/blocked`] = blocked;
+                updates[`tenants/${editingId}/config/status`] = selectedStatus;
+                updates[`tenants/${editingId}/config/htmlMora`] = hMora;
+                updates[`tenants/${editingId}/config/htmlMantenimiento`] = hMant;
+                updates[`tenants/${editingId}/config/geocerca`] = { lat, lng, radio };
+
+                // Enlace de estado principal del Tenant
+                updates[`tenants/${editingId}/status`] = selectedStatus;
+
+                // Enlace redundante extra para bloquear el acceso según el script cliente
+                updates[`tenantDB/${editingId}/blocked`] = blocked;
+
+                await update(ref(database), updates);
+
+                showToast("Sincronización de Doble Bloqueo y parámetros de Geocerca realizada.");
                 closeModal('manageModal');
             } catch (err) {
-                window.showToast("Error al guardar en Firebase: " + err.message, "error");
+                showToast("Error al guardar cambios: " + err.message, "error");
             }
         };
 
         // Eliminar Tenant
-        window.confirmDeleteTenant = (id) => {
-            const tenant = databaseState.tenants[id];
-            if (!tenant) return;
-
+        window.deleteTenant = async (id) => {
             openCustomConfirm(
-                "Eliminar Base de Datos de Escuela",
-                `¿Estás seguro de eliminar permanentemente el tenant '${id.toUpperCase()}'? Se perderán las geocercas, personas registradas y la configuración de bloqueo.`,
+                "Eliminar Base de Datos",
+                `¿Estás seguro de eliminar permanentemente el tenant '${id.toUpperCase()}'? Se perderán todas las geocercas, personas registradas y reportes históricos de este cliente.`,
                 async () => {
                     try {
-                        await remove(ref(database, `tenants/${id}`));
-                        await remove(ref(database, `tenantDB/${id}`));
-                        window.showToast(`Escuela '${id}' eliminada por completo.`);
-                        closeDetailPanel();
+                        await remove(ref(database, 'tenants/' + id));
+                        await remove(ref(database, 'tenantDB/' + id));
+                        showToast(`Instancia '${id}' eliminada por completo.`);
                     } catch (err) {
-                        window.showToast("Error al eliminar de Firebase: " + err.message, "error");
+                        showToast("Error al eliminar la instancia: " + err.message, "error");
                     }
                 }
             );
         };
-
-        // Exportar toda la base de datos a un archivo JSON local
-        window.exportDatabase = () => {
-            try {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(databaseState, null, 4));
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", "GEOCERCA_DATABASE_RESPALDO.json");
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-                window.showToast("Respaldo JSON descargado con éxito.");
-            } catch (err) {
-                window.showToast("Error al exportar base de datos: " + err.message, "error");
-            }
-        };
-
-        // Importar base de datos desde un archivo JSON
-        window.importDatabase = async (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    
-                    if (!importedData.tenants || !importedData.tenantDB) {
-                        window.showToast("Formato JSON inválido. Falta el nodo principal 'tenants'.", "error");
-                        return;
-                    }
-
-                    // Escribir la data en caliente de Firebase en paralelo
-                    const updates = {};
-                    Object.entries(importedData.tenants).forEach(([id, val]) => {
-                        updates[`tenants/${id}`] = val;
-                    });
-                    Object.entries(importedData.tenantDB).forEach(([id, val]) => {
-                        updates[`tenantDB/${id}`] = val;
-                    });
-
-                    await update(ref(database), updates);
-                    window.showToast("Sincronización masiva de importación completada.");
-                } catch (err) {
-                    window.showToast("No se pudo parsear el archivo JSON.", "error");
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        };
-
-        // Setup Inicial del Mapa
-        initMap();
-    </script>
-
-    <!-- UTILERÍA DE MANEJO DE INTERFAZ -->
-    <script>
-        // Abrir Modal de Creación
-        function openCreateModal() {
-            document.getElementById('modalTitle').innerHTML = `<i data-lucide="plus-circle" class="w-5 h-5 text-indigo-400"></i> Agregar Nueva Escuela`;
-            document.getElementById('editingTenantId').value = "";
-            
-            const idInput = document.getElementById('formId');
-            idInput.disabled = false;
-            idInput.value = "";
-            
-            document.getElementById('formName').value = "";
-            document.getElementById('formDirectorNombre').value = "";
-            document.getElementById('formDirectorEmail').value = "";
-            document.getElementById('formAdminUID').value = "";
-            document.getElementById('formFechaInicio').value = "";
-            document.getElementById('formFechaCorte').value = "";
-            document.getElementById('formStatus').value = "activo";
-            document.getElementById('formLat').value = "";
-            document.getElementById('formLng').value = "";
-            document.getElementById('formRadio').value = "150";
-
-            openModal('manageModal');
-        }
-
-        // Abrir Modal de Edición
-        function openEditModal(id) {
-            // Obtener datos in-memory actualizados por Firebase
-            const tbody = document.getElementById('tenantTableBody');
-            const rowDataStr = document.querySelector(`td[onclick*="showTenantDetail('${id}')"]`);
-            if (!rowDataStr) return;
-            
-            // Acceder al panel de detalles para levantar datos o tomarlos directamente
-            showTenantDetail(id);
-            const name = document.getElementById('detailName').innerText;
-            const director = document.getElementById('detailDirector').innerText;
-            const email = document.getElementById('detailEmail').innerText;
-            const uid = document.getElementById('detailUID').innerText === "No asignado" ? "" : document.getElementById('detailUID').innerText;
-            const inicio = document.getElementById('detailFechaInicio').innerText;
-            const corte = document.getElementById('detailFechaCorte').innerText;
-            
-            // Buscar en el estado global
-            document.getElementById('modalTitle').innerHTML = `<i data-lucide="edit-3" class="w-5 h-5 text-indigo-400"></i> Editar Escuela`;
-            document.getElementById('editingTenantId').value = id;
-            
-            const idInput = document.getElementById('formId');
-            idInput.value = id;
-            idInput.disabled = true;
-
-            document.getElementById('formName').value = name;
-            document.getElementById('formDirectorNombre').value = director;
-            document.getElementById('formDirectorEmail').value = email;
-            document.getElementById('formAdminUID').value = uid;
-            document.getElementById('formFechaInicio').value = inicio;
-            document.getElementById('formFechaCorte').value = corte;
-            
-            // Lat, Lng y Radio desde info temporal
-            const geoText = document.getElementById('detailGeofenceInfo').innerText;
-            const latMatch = geoText.match(/Lat:\s*([-\d.]+)/);
-            const lngMatch = geoText.match(/Lng:\s*([-\d.]+)/);
-            const radioMatch = geoText.match(/Radio:\s*(\d+)m/);
-
-            document.getElementById('formLat').value = latMatch ? latMatch[1] : "";
-            document.getElementById('formLng').value = lngMatch ? lngMatch[1] : "";
-            document.getElementById('formRadio').value = radioMatch ? radioMatch[1] : "150";
-            
-            // El estado por defecto se asume o lee desde la UI de estado
-            document.getElementById('formStatus').value = "activo";
-
-            openModal('manageModal');
-        }
-
-        function closeDetailPanel() {
-            document.getElementById('detailPanel').classList.add('hidden');
-        }
-
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-
-        function openCustomConfirm(title, message, onConfirm) {
-            const modal = document.getElementById('confirmModal');
-            document.getElementById('confirmTitle').innerText = title;
-            document.getElementById('confirmMessage').innerText = message;
-            modal.classList.remove('hidden');
-
-            const cancelBtn = document.getElementById('confirmCancelBtn');
-            const confirmBtn = document.getElementById('confirmOkBtn');
-
-            cancelBtn.onclick = () => modal.classList.add('hidden');
-            confirmBtn.onclick = () => {
-                onConfirm();
-                modal.classList.add('hidden');
-            };
-        }
     </script>
 </body>
 </html>
