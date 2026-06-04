@@ -238,7 +238,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <label class="text-[10px] font-bold text-slate-400 uppercase">Filtro General URL Base:</label>
-                        <input type="text" id="config-base-url" placeholder="https://github.com/prodigitalcr/TENANT-ESCUELA/" class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-xs font-mono text-cyan-400 outline-none w-64 focus:border-cyan-500" value="https://prodigital-cr.github.io/GEOCERCA/">
+                        <input type="text" id="config-base-url" placeholder="https://prodigitalcr.github.io/TENANT-ESCUELA/" class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-xs font-mono text-cyan-400 outline-none w-64 focus:border-cyan-500" value="https://prodigitalcr.github.io/TENANT-ESCUELA/">
                     </div>
                 </div>
                 
@@ -454,16 +454,11 @@
                 if (snapshot.exists() && snapshot.val() === true) {
                     showToast("SISTEMA AUTENTICADO", "success");
                 } else {
-                    // Opcionalmente auto-crear si es el primer super admin en una BD vacía
-                    const globalAdminCheck = await get(ref(database, 'admin_metadata/super_admins'));
-                    if (!globalAdminCheck.exists()) {
-                        await set(ref(database, 'admin_metadata/super_admins/' + user.uid), true);
-                        showToast("CONSOLA INICIALIZADA COMO SUPER ADMIN", "success");
-                    } else {
-                        await signOut(auth);
-                        errBox.innerText = "Acceso Denegado: Credenciales no registradas como Super Admin.";
-                        errBox.classList.remove('hidden');
-                    }
+                    // AISLAMIENTO LÓGICO ESTRICTO: Se expulsa cualquier intento no autorizado.
+                    // (Puerta trasera de auto-creación eliminada por seguridad de la arquitectura SaaS)
+                    await signOut(auth);
+                    errBox.innerText = "Acceso Denegado: Credenciales no registradas como Super Admin.";
+                    errBox.classList.remove('hidden');
                 }
             } catch (err) {
                 errBox.innerText = "Error de Autenticación: Verifique sus datos.";
