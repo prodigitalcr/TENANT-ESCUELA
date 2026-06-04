@@ -265,7 +265,7 @@
                                 <th class="p-5">Plan / Contacto</th>
                                 <th class="p-5">Cuota</th>
                                 <th class="p-5 text-center">Estado SaaS</th>
-                                <th class="p-5 text-center">Firewall</th>
+                                <th class="p-5 text-center">Acciones Rápidas</th>
                                 <th class="p-5 text-right">Controles</th>
                             </tr>
                         </thead>
@@ -603,6 +603,7 @@
                     const lat = config.geocerca?.lat || 0;
                     const lng = config.geocerca?.lng || 0;
                     const r = config.geocerca?.radio || 150;
+                    const tel = config.telefono || '';
 
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-800/20 transition-all border-b border-slate-800/30 text-xs";
@@ -627,9 +628,17 @@
                             <span class="status-badge ${statusClass}">${status}</span>
                         </td>
                         <td class="p-5 text-center">
-                            <button onclick="toggleBlockedState('${id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isBlocked ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'}">
-                                ${isBlocked ? '🔒 Desbloquear' : '🔓 Bloquear'}
-                            </button>
+                            <div class="flex justify-center gap-2">
+                                <button onclick="abrirSitio('${id}')" class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg hover:bg-indigo-500/20 transition-all" title="Abrir sitio del cliente">
+                                    <i data-lucide="globe" class="w-4 h-4"></i>
+                                </button>
+                                ${tel ? `<a href="https://wa.me/${tel.replace(/\\D/g, '')}" target="_blank" class="p-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-all" title="Contactar por WhatsApp">
+                                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                                </a>` : ''}
+                                <button onclick="toggleBlockedState('${id}')" class="p-2 ${isBlocked ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'} rounded-lg transition-all" title="${isBlocked ? 'Desbloquear' : 'Bloquear'}">
+                                    <i data-lucide="${isBlocked ? 'lock-open' : 'lock'}" class="w-4 h-4"></i>
+                                </button>
+                            </div>
                         </td>
                         <td class="p-5 text-right">
                             <div class="flex justify-end gap-2">
@@ -649,6 +658,15 @@
                 window.refreshIcons();
             });
         }
+
+        // ABRIR SITIO DEL CLIENTE
+        window.abrirSitio = (id) => {
+            const baseUrl = document.getElementById('config-base-url').value || 'https://prodigitalcr.github.io/TENANT-ESCUELA/';
+            const t = currentTenants[id];
+            const siteUrl = baseUrl + id + '/';
+            window.open(siteUrl, '_blank');
+            showToast(`📱 Abriendo sitio de ${t.empresa}`);
+        };
 
         // TOGGLE BLOQUEADO
         window.toggleBlockedState = async (id) => {
