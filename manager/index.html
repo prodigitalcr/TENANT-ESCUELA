@@ -238,7 +238,7 @@
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">🌐 URL Generada del Sitio</label>
                             <div class="url-display">
-                                <span id="generated-url">https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=[id-escuela]/</span>
+                                <span id="generated-url">https://prodigitalcr.github.io/TENANT-ESCUELA/?id=[id-escuela]</span>
                                 <button type="button" class="copy-btn" onclick="copyUrl()">Copiar</button>
                             </div>
                         </div>
@@ -386,7 +386,7 @@
                     <div class="space-y-1 mt-4">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">🌐 URL del Sitio</label>
                         <div class="url-display">
-                            <span id="edit-url">https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=[id]/</span>
+                            <span id="edit-url">https://prodigitalcr.github.io/TENANT-ESCUELA/?id=[id]</span>
                             <button type="button" class="copy-btn" onclick="copyEditUrl()">Copiar</button>
                         </div>
                     </div>
@@ -606,7 +606,7 @@
         // GENERAR URL
         window.generateTenantUrl = () => {
             const id = (document.getElementById('new-id').value || '').toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-            const url = id ? `https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=${id}/` : 'https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=[id-escuela]/';
+            const url = id ? `https://prodigitalcr.github.io/TENANT-ESCUELA/?id=${id}` : 'https://prodigitalcr.github.io/TENANT-ESCUELA/?id=[id-escuela]';
             document.getElementById('generated-url').innerText = url;
         };
 
@@ -735,7 +735,7 @@
                     bloqueado: false,
                     geocerca: { lat, lng, radio },
                     estado: 'activo',
-                    url: `https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=${id}/`,
+                    url: `https://prodigitalcr.github.io/TENANT-ESCUELA/?id=${id}`,
                     htmlMora: '<div style="text-align:center;background:#dc2626;color:white;padding:60px;border-radius:12px;"><h1>⚠️ Suspendido por Mora</h1><p>Contacte a administración</p></div>',
                     htmlMantenimiento: '<div style="text-align:center;background:#fbbf24;color:#78350f;padding:60px;border-radius:12px;"><h1>🔧 En Mantenimiento</h1><p>Volveremos en breve</p></div>'
                 };
@@ -762,7 +762,7 @@
                 document.getElementById('new-tel').value = "";
                 document.getElementById('new-monto').value = "15000";
                 document.getElementById('new-corte').value = "";
-                document.getElementById('generated-url').innerText = 'https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=[id-escuela]/';
+                document.getElementById('generated-url').innerText = 'https://prodigitalcr.github.io/TENANT-ESCUELA/?id=[id-escuela]';
             } catch (err) {
                 showToast("Error: " + err.message, "error");
             }
@@ -956,7 +956,7 @@
                 return;
             }
             
-            const siteUrl = t.url || `https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=${id}/`;
+            const siteUrl = t.url || `https://prodigitalcr.github.io/TENANT-ESCUELA/?id=${id}`;
             window.open(siteUrl, '_blank');
             showToast(`📱 Abriendo sitio de ${t.empresa || id}`);
         };
@@ -1007,7 +1007,7 @@
 
             document.getElementById('edit-id').value = id;
             document.getElementById('edit-name').value = t.empresa || '';
-            document.getElementById('edit-url').innerText = t.url || `https://prodigitalcr.github.io/TENANT-ESCUELA/?tenant=${id}/`;
+            document.getElementById('edit-url').innerText = t.url || `https://prodigitalcr.github.io/TENANT-ESCUELA/?id=${id}`;
             document.getElementById('edit-tel').value = t.telefono || '';
             document.getElementById('edit-plan').value = t.tipoPlan || 'Mensual';
             document.getElementById('edit-monto').value = t.montoContrato || '';
