@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- [Mantener todos los headers igual que antes] -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0e27">
@@ -12,19 +13,280 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
-    <!-- Face-API.js (Reconocimiento Facial) -->
+    <!-- [Resto de los scripts igual que antes] -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    
-    <!-- QR Code (Para generación de carnés) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
-    <!-- PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
+    <!-- [Mantener todos los estilos CSS igual que antes] -->
     <style>
-        /* [Mantener todos los estilos CSS tal como están] */
-        /* ... (estilos CSS sin cambios) ... */
+        /* -----------------------------------------------------------
+           VARIABLES Y TEMA MINIMALISTA NEGRO / CLARO
+           ----------------------------------------------------------- */
+        :root {
+            --bg-dark: #0a0e27;
+            --bg-darker: #050810;
+            --bg-card: #1a1f3a;
+            --bg-hover: #242d4a;
+            --text-primary: #e8eef5;
+            --text-secondary: #a8b2c1;
+            --text-muted: #7a8299;
+            
+            --accent-primary: #00d9ff;
+            --accent-secondary: #00b8d4;
+            --accent-success: #00ff88;
+            --accent-warning: #ffb800;
+            --accent-danger: #ff4444;
+            
+            --border-subtle: #2a3250;
+            --border-light: #3a4560;
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 20px rgba(0, 217, 255, 0.15);
+            
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            
+            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* [Resto de los estilos CSS igual que antes] */
+        body.light-theme {
+            --bg-dark: #f0f4f8;
+            --bg-darker: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-subtle: #cbd5e1;
+            --border-light: #94a3b8;
+            --shadow-glow: 0 0 20px rgba(0, 184, 212, 0.15);
+        }
+
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 217, 255, 0.2), var(--shadow-md); }
+            50% { box-shadow: 0 0 30px rgba(0, 217, 255, 0.4), var(--shadow-lg); }
+        }
+        @keyframes success-pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; width: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            animation: fade-in 0.6s ease-out;
+            transition: background var(--transition-normal), color var(--transition-fast);
+        }
+
+        .navbar {
+            background: rgba(10, 14, 39, 0.95);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            gap: 16px;
+            box-shadow: var(--shadow-md);
+            transition: opacity 0.5s ease;
+        }
+        body.light-theme .navbar {
+            background: rgba(240, 244, 248, 0.95);
+        }
+        .navbar-title { 
+            font-weight: 600; font-size: 1.1rem; letter-spacing: 1px; color: var(--accent-primary); 
+            text-transform: uppercase; flex: 1; display: flex; align-items: center; gap: 10px;
+        }
+        .navbar-title img { max-height: 45px; border-radius: 8px; object-fit: contain; }
+        .navbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        #scan-view, #parent-view, #register-view, #home-view {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            padding: 24px; overflow-y: auto; animation: fade-in 0.4s ease-out;
+        }
+        #scan-view, #parent-view, #register-view { display: none; }
+
+        #home-view { background: transparent; justify-content: center; }
+        .home-clock {
+            font-size: 5.5rem; font-weight: 800; color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 8px 30px rgba(0, 0, 0, 0.7); margin-bottom: 10px;
+            letter-spacing: 2px; text-align: center;
+        }
+        .home-subtitle {
+            font-size: 1.2rem; color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.6); text-align: center;
+            background: rgba(0, 0, 0, 0.5); padding: 12px 28px; border-radius: 30px;
+            backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 32px;
+            border-radius: var(--radius-lg); width: 100%; max-width: 480px; box-shadow: var(--shadow-lg);
+            animation: slide-up 0.5s ease-out; transition: all var(--transition-normal); position: relative; 
+            overflow: hidden; margin: auto;
+            margin-bottom: 20px; flex-shrink: 0;
+        }
+        .card:hover { border-color: var(--border-light); box-shadow: var(--shadow-lg), var(--shadow-glow); transform: translateY(-2px); }
+        .card h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 24px; color: var(--accent-primary); letter-spacing: 0.5px; }
+
+        input[type="text"], input[type="email"], input[type="date"], input[type="password"], input[type="number"], select {
+            width: 100%; padding: 12px 16px; font-size: 0.95rem; background: var(--bg-hover);
+            border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary);
+            outline: none; transition: all var(--transition-fast); margin-bottom: 15px; box-sizing: border-box;
+        }
+        input:focus, select:focus { border-color: var(--accent-primary); background: rgba(0, 217, 255, 0.05); }
+
+        .btn {
+            padding: 11px 20px; border: 1px solid transparent; border-radius: var(--radius-md);
+            cursor: pointer; font-weight: 600; color: var(--text-primary); display: inline-flex;
+            align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem;
+            transition: all var(--transition-fast); text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-m { background: var(--accent-primary); color: var(--bg-dark); border-color: var(--accent-primary); }
+        .btn-m:hover:not(:disabled) { background: var(--accent-secondary); box-shadow: 0 0 20px rgba(0, 217, 255, 0.3); transform: translateY(-2px); }
+        .btn-s { background: var(--accent-success); color: var(--bg-dark); border-color: var(--accent-success); }
+        .btn-s:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); transform: translateY(-2px); }
+        .btn-d { background: var(--accent-danger); color: white; border-color: var(--accent-danger); }
+        .btn-d:hover:not(:disabled) { box-shadow: 0 0 20px rgba(255, 68, 68, 0.3); transform: translateY(-2px); }
+        .btn-i { background: var(--accent-secondary); color: white; border-color: var(--accent-secondary); }
+        .btn-i:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0, 184, 212, 0.3); transform: translateY(-2px); }
+        .btn-w { background: var(--accent-warning); color: var(--bg-dark); border-color: var(--accent-warning); }
+        .btn-w:hover:not(:disabled) { box-shadow: 0 0 20px rgba(255, 184, 0, 0.3); transform: translateY(-2px); }
+        .btn-dark { background: transparent; border: 1px solid var(--border-light); color: var(--text-primary); }
+        .btn-full { width: 100%; margin-top: 10px; margin-bottom: 10px; }
+
+        .btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+        .btn-group .btn { flex: 1; min-width: 110px; }
+
+        .video-container {
+            position: relative; width: 100%; height: 320px; border-radius: var(--radius-lg);
+            overflow: hidden; background: #000; border: 2px solid var(--border-subtle);
+            display: none; box-shadow: var(--shadow-lg); transition: all 0.3s;
+        }
+        .video-container.active { display: block; border-color: var(--accent-primary); animation: glow-pulse 2s infinite; }
+        
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+        
+        .scan-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 45%, rgba(0, 217, 255, 0.4) 50%, transparent 55%);
+            background-size: 100% 200%; animation: scanline 2.5s linear infinite; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+        }
+        .video-container.scanning .scan-overlay { opacity: 1; }
+
+        .ai-status {
+            font-size: 0.85rem; color: var(--accent-warning); text-align: center; margin-top: 10px; font-weight: bold;
+        }
+
+        #resBox {
+            margin-top: 15px; display: none; padding: 20px; border-radius: var(--radius-md);
+            border: 1px solid var(--border-light); background: var(--bg-hover);
+            animation: success-pop 0.4s ease-out; text-align: center;
+        }
+        #resBox h2 { margin: 0 0 5px 0; font-size: 1.2rem; color: var(--accent-success); }
+        #resBox h3 { margin: 0; font-size: 1rem; color: var(--text-secondary); }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            z-index: 2000; display: none; padding: 24px; overflow-y: auto;
+            flex-direction: column; align-items: center; justify-content: flex-start;
+            backdrop-filter: blur(5px);
+        }
+
+        #master-panel {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 14, 39, 0.95); z-index: 1000; padding: 24px; box-sizing: border-box;
+            overflow-y: auto; border: 1px solid var(--border-subtle); backdrop-filter: blur(10px);
+        }
+        body.light-theme #master-panel {
+            background: rgba(240, 244, 248, 0.95);
+        }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 20px; }
+        .panel-header h1 { color: var(--accent-primary); margin: 0; font-size: 1.5rem; flex: 1; }
+        
+        .panel-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        
+        .tabs-container { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border-subtle); }
+        .tab-btn { padding: 12px 20px; cursor: pointer; border: none; background: transparent; border-bottom: 2px solid transparent; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+        .tab-btn.active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); }
+        
+        .power-bar { background: var(--bg-hover); padding: 16px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; border: 1px solid var(--border-subtle); }
+        .power-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; background: transparent; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); }
+        thead { background: var(--bg-hover); border-bottom: 1px solid var(--border-light); }
+        th { padding: 14px 16px; text-align: left; font-size: 0.8rem; font-weight: 700; color: var(--accent-primary); text-transform: uppercase; }
+        td { border-bottom: 1px solid var(--border-subtle); padding: 12px 16px; color: var(--text-primary); }
+        tbody tr:hover { background: var(--bg-hover); border-left: 3px solid var(--accent-primary); }
+
+        .status-badge { padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .status-in { background: rgba(0, 255, 136, 0.15); color: var(--accent-success); border: 1px solid rgba(0, 255, 136, 0.3); }
+        .status-none { background: rgba(255, 68, 68, 0.15); color: var(--accent-danger); border: 1px solid rgba(255, 68, 68, 0.3); }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-card); }
+        ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+
+        .credits-footer {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        @media print { .no-print { display: none !important; } body { background: white; color: black; } }
+
+        #blockedOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #blockedOverlay.hidden { display: none; }
+        #blockedOverlay .card {
+            max-width: 380px;
+            text-align: center;
+            background: #ffffff;
+            color: #111111;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
     </style>
 </head>
 <body>
@@ -510,7 +772,7 @@
             construirFaceMatcher(); 
         });
         
-        // CORREGIDO: Usar la ruta correcta para logs (asistencias)
+        // CORREGIDO: Usar la ruta correcta para logs (antes marcas)
         database.ref('escuelas_data/' + TENANT_ID + '/logs').on('value', (s) => { 
             logsGlobal = []; 
             s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
@@ -758,14 +1020,14 @@
         }
 
         function completarEscaneoBD(id, hISO, esLejano, dist, strEmocion, emoticon) {
-            const marcas = logsGlobal.filter(l => (l.fechaISO ? l.fechaISO === hISO : coincideFecha(l.hora, hISO)) && l.id === id && l.tipo !== 'JUSTIFICADA');
-            const tieneE = marcas.some(l => l.tipo === 'ENTRADA'), tieneS = marcas.some(l => l.tipo === 'SALIDA');
+            const logs = logsGlobal.filter(l => (l.fechaISO ? l.fechaISO === hISO : coincideFecha(l.hora, hISO)) && l.id === id && l.tipo !== 'JUSTIFICADA');
+            const tieneE = logs.some(l => l.tipo === 'ENTRADA'), tieneS = logs.some(l => l.tipo === 'SALIDA');
             
             let tipo = "";
             if (!tieneE) tipo = "ENTRADA"; else if (!tieneS) tipo = "SALIDA"; 
             else { mostrarMensajeTemp("Ya registró Entrada y Salida hoy.", "var(--accent-warning)"); if(scannerActivo) toggleScanner(); return; }
             
-            // CORREGIDO: Usar la ruta correcta para logs (asistencias)
+            // CORREGIDO: Usar la ruta correcta para logs (antes marcas)
             database.ref('escuelas_data/' + TENANT_ID + '/logs').push({ id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo, lejano: esLejano, distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon });
             playSuccessSound();
 
@@ -970,7 +1232,7 @@
             const tbody = document.getElementById('tablaLogsLejanos'); tbody.innerHTML = "";
             if (logsLejanosGlobal.length === 0) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color: var(--text-muted);'>No hay reportes de escaneos lejanos.</td></tr>"; return; }
             logsLejanosGlobal.slice().reverse().forEach(log => {
-                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size:0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
+                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
             });
         }
 
@@ -1003,7 +1265,7 @@
         function justificarAusencia(id, nombre) {
             const hISO = document.getElementById('reportDate').value;
             if(confirm(`¿Desea justificar la ausencia de ${nombre}?`)) {
-                // CORREGIDO: Usar la ruta correcta para logs (asistencias)
+                // CORREGIDO: Usar la ruta correcta para logs (antes marcas)
                 database.ref('escuelas_data/' + TENANT_ID + '/logs').push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
                 alert('Ausencia justificada.');
             }
@@ -1012,7 +1274,7 @@
         function borrarHistorialDia() { 
             const hISO = document.getElementById('reportDate').value; 
             logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => 
-                // CORREGIDO: Usar la ruta correcta para borrar logs
+                // CORREGIDO: Usar la ruta correcta para borrar logs (antes marcas)
                 database.ref('escuelas_data/' + TENANT_ID + '/logs/' + l.key).remove()
             ); 
             alert('Registros del día eliminados.'); 
@@ -1025,7 +1287,7 @@
             document.getElementById('parentStudentPuesto').innerText = (p.tipoUsuario || "Perfil") + " / " + (p.puesto || "N/A");
             document.getElementById('btnConsultaWA').onclick = () => { const mensaje = encodeURIComponent(`Hola, quisiera realizar una consulta sobre el usuario: ${p.nombre}`); window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${mensaje}`, '_blank'); };
             
-            // CORREGIDO: Usar la ruta correcta para consultar logs
+            // CORREGIDO: Usar la ruta correcta para consultar logs (antes marcas)
             database.ref('escuelas_data/' + TENANT_ID + '/logs').orderByChild('id').equalTo(id).once('value', (s) => {
                 const list = document.getElementById('parentLogList'); list.innerHTML = "";
                 if(s.exists()){ s.forEach(c => { let l=c.val(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(${l.distanciaMetros}m)</span>` : ""; let statusColor = l.tipo === 'ENTRADA' ? '#00ff88' : (l.tipo === 'SALIDA' ? '#ff4444' : '#ffb800'); list.innerHTML = `<div style="padding:10px; border-bottom:1px solid #3a4560;"><span>${l.hora}</span> - <b style="color:${statusColor}">${l.tipo}</b>${alertTag}</div>` + list.innerHTML; }); }
@@ -1037,89 +1299,4 @@
         // Resto de utilidades de UI intactas...
         function procesarSubidaFondo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxW = 1920; if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/jpeg', 0.6); try { localStorage.setItem('CUSTOM_BG', dataUrl); document.body.style.backgroundImage = `url(${dataUrl})`; alert('Fondo actualizado localmente.'); } catch(err) { alert('Imagen muy pesada.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
         function procesarSubidaLogo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxH = 200; if(h > maxH) { w = Math.round(w * maxH / h); h = maxH; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/png', 0.8); try { localStorage.setItem('CUSTOM_LOGO', dataUrl); cargarLogoPersonalizado(); alert('Logo actualizado.'); } catch(err) { alert('Imagen excede límite.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
-        function mostrarEstadisticas() { const total = Object.keys(db.personas).length; const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE') || coincideFecha(l.hora, new Date().toLocaleDateString('sv-SE')))).length; alert(`ESTADÍSTICAS DEL DÍA:\nTotal Registrados: ${total}\nPresentes (Entradas): ${presentes}\nAusentes: ${total - presentes}\nAsistencia: ${total>0?((presentes/total)*100).toFixed(1):0}%`); }
-        function mostrarConfiguracion() { let configDiv = document.createElement('div'); configDiv.innerHTML = `<div><button class="btn btn-m" onclick="setTheme('dark')">Modo Oscuro</button> <button class="btn btn-s" onclick="setTheme('light')">Modo Claro</button></div>`; let win = window.open('', 'Configuración', 'width=400,height=300'); win.document.write(`<html><head><title>Configuración</title><style>body{padding:20px}.btn{padding:8px 12px;cursor:pointer}</style></head><body>${configDiv.innerHTML}<script>function setTheme(theme) { window.opener.setSystemTheme(theme); window.close(); }<\/script></body></html>`); win.document.close(); }
-        function setSystemTheme(theme) { if (theme === 'light') { document.body.classList.add('light-theme'); localStorage.setItem('theme', 'light'); } else { document.body.classList.remove('light-theme'); localStorage.setItem('theme', 'dark'); } }
-        function agregarMiembroManual() { const id = prompt("Cédula/Código nuevo:"); if(id) { db.personas[id] = { nombre: prompt("Nombre Completo:"), puesto: prompt("Sección:"), telefono: prompt("WhatsApp:"), tipoUsuario: 'Estudiante' }; renderAlumnos(); } }
-        
-        // FUNCIÓN ACTUALIZADA PARA IMPORTAR CSV Y GUARDAR AUTOMÁTICAMENTE EN FIREBASE
-        function importarCSV() { 
-            const f = document.getElementById('csvFile').files[0]; 
-            if (!f) {
-                alert("Por favor, seleccione un archivo CSV.");
-                return;
-            }
-            
-            const r = new FileReader(); 
-            r.onload = (e) => { 
-                let importados = 0;
-                e.target.result.split('\n').forEach((l, i) => { 
-                    if(i>0 && l.trim()){ 
-                        let c=l.split(','); 
-                        if(c[0]) { 
-                            db.personas[c[0].trim()] = { 
-                                nombre: c[1]?.trim() || '', 
-                                puesto: c[2]?.trim() || '', 
-                                telefono: c[3]?.trim() || '', 
-                                tipoUsuario: c[4]?.trim() || 'Estudiante' 
-                            }; 
-                            importados++;
-                        } 
-                    } 
-                }); 
-                
-                // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
-                database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas)
-                    .then(() => {
-                        renderAlumnos(); 
-                        alert(`Importados ${importados} registros y guardados en Firebase.`); 
-                    })
-                    .catch((error) => {
-                        alert("Error al guardar en Firebase: " + error.message);
-                    });
-            }; 
-            r.readAsText(f); 
-        }
-        
-        function exportarCSV() { let csv = 'Código,Nombre,Sección,WhatsApp,Rol\n'; Object.entries(db.personas).forEach(([id, p]) => { csv += `${id},${p.nombre},${p.puesto || ''},${p.telefono || ''},${p.tipoUsuario || 'Estudiante'}\n`; }); const link = document.createElement('a'); link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); link.download = `Usuarios.csv`; link.click(); }
-        function exportarPDFMiembros() { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text("Lista de Usuarios", 14, 20); const bodyData = []; Object.entries(db.personas).forEach(([id, p]) => { let rostrosStatus = p.descriptor ? 'Sí' : 'No'; bodyData.push([id, p.tipoUsuario, p.nombre, p.puesto, p.telefono, rostrosStatus]); }); doc.autoTable({ head: [['Código', 'Rol', 'Nombre', 'Sección', 'WhatsApp', 'IA']], body: bodyData, startY: 30, theme: 'grid' }); doc.save(`Usuarios.pdf`); }
-        function duplicarMiembro() { const id = prompt('Código a duplicar:'); if(id && db.personas[id]) { const newId = prompt('Nuevo código:'); if(newId) { db.personas[newId] = {...db.personas[id]}; renderAlumnos(); alert('Duplicado'); } } }
-        function enviarWA(tel) { if(!tel || tel==='') { alert("Sin número."); return;} window.open(`https://wa.me/506${tel.replace(/\D/g,'')}`, '_blank'); }
-        function enviarWA_Ausente(tel, nombre) { if(!tel || tel==='') { alert("Sin número."); return;} const msj = encodeURIComponent(`Hola, le informamos que ${nombre} está ausente hoy.`); window.open(`https://wa.me/506${tel.replace(/\D/g,'')}?text=${msj}`, '_blank'); }
-        function descargarCarnet(id) { const p = db.personas[id]; const win = window.open('','',`width=350,height=500`); win.document.write(`<html><head><style>body{font-family:sans-serif;background:#0a0e27;color:#e8eef5;margin:0;padding:0;display:flex;align-items:center;justify-content:center;height:100vh;}.card{width:280px;height:420px;background:#1a1f3a;border-radius:12px;padding:20px;text-align:center}</style></head><body><div class="card"><h3>${p.nombre}</h3><div id="q"></div></div><script>new QRCode(document.getElementById("q"),{text:"${id}",width:130,height:130});setTimeout(()=>window.print(),800);<\/script></body></html>`); win.document.close(); }
-        function imprimirTodosLosCarnets() { const win = window.open('',''); win.document.write(`<html><body>`); Object.entries(db.personas).forEach(([id,p]) => { win.document.write(`<div style="display:inline-block;border:1px solid #000;margin:10px;padding:10px;"><div id="qr-${id}"></div><br>${p.nombre}</div>`); }); win.document.write(`<script>${Object.keys(db.personas).map(id => `new QRCode(document.getElementById("qr-${id}"),{text:"${id}",width:100,height:100});`).join('\n')} setTimeout(()=>window.print(),1500);<\/script></body></html>`); win.document.close(); }
-        
-        function mostrarVista(id) { document.getElementById('home-view').style.display = (id==='home-view')?'flex':'none'; document.getElementById('scan-view').style.display = (id==='scan-view')?'flex':'none'; document.getElementById('parent-view').style.display = (id==='parent-view')?'flex':'none'; document.getElementById('register-view').style.display = (id==='register-view')?'flex':'none'; if(id!=='scan-view' && scannerActivo) toggleScanner(); if(id!=='parent-view' && queryScannerActivo) toggleQueryScanner(); if(id!=='register-view' && regStream) { regStream.getTracks().forEach(t => t.stop()); regStream = null; document.getElementById('reg-cam-container').classList.remove('active', 'scanning'); } resetIdleTimer(); }
-        function cerrarMaster() { document.getElementById('master-panel').style.display = 'none'; detenerCamaras(); resetIdleTimer(); }
-        function cerrarVistaProtegida(id) { document.getElementById(id).style.display = 'none'; mostrarVista('home-view'); detenerCamaras(); }
-        function cambiarTab(n) { document.getElementById('sec-alumnos').style.display = (n===1)?'block':'none'; document.getElementById('sec-reporte').style.display = (n===2)?'block':'none'; document.getElementById('sec-geolocalizacion').style.display = (n===3)?'block':'none'; document.getElementById('tab1').className = (n===1)?'tab-btn active':'tab-btn'; document.getElementById('tab2').className = (n===2)?'tab-btn active':'tab-btn'; document.getElementById('tab3').className = (n===3)?'tab-btn active':'tab-btn'; }
-        function filtrarRapido() { let f = document.getElementById('busqueda').value.toUpperCase(); let rows = document.getElementById("tablaAlumnos").getElementsByTagName("tr"); for (let i = 0; i < rows.length; i++) { rows[i].style.display = (rows[i].textContent.toUpperCase().indexOf(f) > -1) ? "" : "none"; } }
-        function consultarPadre() { const id = document.getElementById('parentInput').value.trim(); ejecutarConsultaIdDirecta(id); }
-        function limpiarConsultaPadres() { document.getElementById('parentResult').style.display='none'; document.getElementById('parentInput').value=''; if(queryScannerActivo) toggleQueryScanner(); }
-        function coincideFecha(horaLog, fechaInputISO) { if(!horaLog || !fechaInputISO) return false; let [y, m, d] = fechaInputISO.split('-'); m = parseInt(m).toString(); d = parseInt(d).toString(); return horaLog.includes(`${m}/${d}/${y}`) || horaLog.includes(`${m.padStart(2,'0')}/${d}/${y}`) || horaLog.includes(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`); }
-        
-        function filtrarVistaReporte(tipo) {
-            const fechaBuscada = document.getElementById('reportDate').value; if(!fechaBuscada) return alert("Seleccione una fecha");
-            const cuerpo = document.getElementById('cuerpoReporte'), head = document.getElementById('headReporte'), titulo = document.getElementById('tituloReporte'); cuerpo.innerHTML = "";
-            let logsDelDia = logsGlobal.filter(l => l.fechaISO ? l.fechaISO === fechaBuscada : coincideFecha(l.hora, fechaBuscada));
-
-            if (tipo === 'ENTRADA' || tipo === 'SALIDA') {
-                titulo.innerText = tipo === 'ENTRADA' ? `✅ Llegaron` : `🚪 Salieron`; head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
-                logsDelDia.filter(l => l.tipo === tipo).forEach(l => { const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); });
-            } else if (tipo === 'TODOS') {
-                titulo.innerText = `📋 Todos los Movimientos`; head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Tipo</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
-                logsDelDia.filter(l => l.tipo !== 'JUSTIFICADA').forEach(l => { const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td><span class="status-badge ${l.tipo === 'ENTRADA' ? 'status-in' : 'status-none'}">${l.tipo}</span></td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); });
-            } else {
-                titulo.innerText = `❌ Ausentes / ⭐ Justificados`; head.innerHTML = `<tr><th>Estado</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>WhatsApp</th><th class="no-print">Acción</th></tr>`;
-                const presentes = [...new Set(logsDelDia.filter(l => l.tipo === 'ENTRADA').map(l => l.id))]; const justificados = [...new Set(logsDelDia.filter(l => l.tipo === 'JUSTIFICADA').map(l => l.id))];
-                Object.entries(db.personas).forEach(([id, p]) => { if(!presentes.includes(id)) { const isJustificado = justificados.includes(id); const estadoTag = isJustificado ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Justificado</span>` : `<span style="color:var(--accent-danger); font-weight:bold;">❌ Ausente</span>`; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${estadoTag}</td><td><b>${id}</b></td><td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || 'Sin teléfono'}</td><td class="no-print" style="display:flex; gap: 5px;">${!isJustificado ? `<button class="btn btn-m" style="padding: 4px 8px; font-size: 0.75rem;" onclick="justificarAusencia('${id}', '${p.nombre}')">✅ Justificar</button>` : ''}<button class="btn btn-s" style="padding: 4px 8px; font-size: 0.75rem;" onclick="enviarWA_Ausente('${p.telefono || ''}', '${p.nombre}')">💬 Msg</button></td></tr>`); } });
-            }
-        }
-
-        function exportarPDFReporte() { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text(document.getElementById('tituloReporte').innerText, 14, 20); doc.autoTable({ html: '#tabla-logs-final', startY: 30, theme: 'grid' }); doc.save(`Reporte_Asistencia.pdf`); }
-        function mostrarAyuda(t) { alert("SISTEMA DE ASISTENCIA\n\n1. Asegúrate de estar dentro del rango.\n2. Presiona Iniciar Escáner.\n3. Mire a la cámara."); }
-
-        mostrarVista('home-view'); resetIdleTimer();
-    </script>
-</body>
-</html>
+        function mostrarEstadisticas() { const total = Object.keys(db.personas).length; const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE
