@@ -798,19 +798,22 @@
         // LÓGICA DE BASE DE DATOS AISLADA (FLAT STRUCTURE)
         // ===========================================================
 
-        database.ref('personas/' + TENANT_ID).on('value', (s) => { 
+        // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
+        database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => { 
             db.personas = s.val() || {}; 
             renderAlumnos(); 
             construirFaceMatcher(); 
         });
         
-        database.ref('marcas/' + TENANT_ID).on('value', (s) => { 
+        // CORREGIDO: Usar la ruta correcta para marcas
+        database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', (s) => { 
             logsGlobal = []; 
             s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
             renderAlumnos(); 
         });
 
-        database.ref('logs_lejanos/' + TENANT_ID).on('value', (s) => {
+        // CORREGIDO: Usar la ruta correcta para logs lejanos
+        database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').on('value', (s) => {
             logsLejanosGlobal = [];
             s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
             renderGeolocalizacion();
@@ -1005,14 +1008,14 @@
             
             const newUser = { nombre, puesto: section, telefono: phone, tipoUsuario: rol, descriptor: finalDescArray };
             
-            // Aislado al tenant
-            database.ref('personas/' + TENANT_ID + '/' + id).update(newUser);
+            // CORREGIDO: Usar la ruta correcta según las reglas
+            database.ref('escuelas_data/' + TENANT_ID + '/personas/' + id).update(newUser);
             
             if (rol === 'Padre/Encargado' && studentId) {
                 if (db.personas[studentId]) {
                     const stu = db.personas[studentId];
-                    if (!stu.descriptorPadre1) { database.ref('personas/' + TENANT_ID + '/' + studentId + '/descriptorPadre1').set(finalDescArray); } 
-                    else { database.ref('personas/' + TENANT_ID + '/' + studentId + '/descriptorPadre2').set(finalDescArray); }
+                    if (!stu.descriptorPadre1) { database.ref('escuelas_data/' + TENANT_ID + '/personas/' + studentId + '/descriptorPadre1').set(finalDescArray); } 
+                    else { database.ref('escuelas_data/' + TENANT_ID + '/personas/' + studentId + '/descriptorPadre2').set(finalDescArray); }
                     alert(`✅ Registro exitoso.\n\nEnlazado como encargado del estudiante ${studentId}.`);
                 } else { alert("⚠️ Perfil guardado, pero el ID del estudiante no existe."); }
             } else { alert("✅ Registro almacenado en la partición de su escuela."); }
@@ -1038,8 +1041,8 @@
                     const esLejano = dist > geoConfig.radio;
 
                     if (esLejano) {
-                        // Aislado
-                        database.ref('logs_lejanos/' + TENANT_ID).push({ id, nombre: db.personas[id]?.nombre || "Desconocido", hora: new Date().toLocaleString(), distancia: Math.round(dist), lat: latDisp, lng: lngDisp });
+                        // CORREGIDO: Usar la ruta correcta para logs lejanos
+                        database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').push({ id, nombre: db.personas[id]?.nombre || "Desconocido", hora: new Date().toLocaleString(), distancia: Math.round(dist), lat: latDisp, lng: lngDisp });
                         mostrarMensajeTemp("⚠️ Fuera del rango. Escaneo detectado (" + Math.round(dist) + "m) pero NO registrado.", "var(--accent-danger)");
                         playErrorSound();
                         if(scannerActivo) toggleScanner(); return;
@@ -1057,8 +1060,8 @@
             if (!tieneE) tipo = "ENTRADA"; else if (!tieneS) tipo = "SALIDA"; 
             else { mostrarMensajeTemp("Ya registró Entrada y Salida hoy.", "var(--accent-warning)"); if(scannerActivo) toggleScanner(); return; }
             
-            // Aislado
-            database.ref('marcas/' + TENANT_ID).push({ id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo, lejano: esLejano, distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon });
+            // CORREGIDO: Usar la ruta correcta para marcas
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo, lejano: esLejano, distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon });
             playSuccessSound();
 
             const res = document.getElementById('resBox'); res.style.display = 'block'; res.style.background = tipo === "ENTRADA" ? "rgba(0, 255, 136, 0.1)" : "rgba(255, 68, 68, 0.1)";
@@ -1252,7 +1255,7 @@
                         <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.telefono || ''}" onchange="db.personas['${id}'].telefono=this.value"></td>
                         <td><button class="btn ${tieneRostroEst ? 'btn-m' : 'btn-dark'}" style="padding:4px 8px; font-size:0.75rem;" onclick="abrirRegistroRostro('${id}', 'estudiante')">${tieneRostroEst ? '👤 Configurado' : '📸 Configurar'}</button></td>
                         <td><div style="display:flex; flex-direction:column; gap:4px;"><button class="btn ${p.descriptorPadre1 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre1')">👨‍👦 Encargado 1: ${p.descriptorPadre1 ? '✓' : '✗'}</button><button class="btn ${p.descriptorPadre2 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre2')">👨‍👦 Encargado 2: ${p.descriptorPadre2 ? '✓' : '✗'}</button></div></td>
-                        <td class="no-print"><div style="display:flex; gap: 4px;"><button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono || ''}')" title="WhatsApp">💬</button><button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Ver Carnet">📇</button><button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { database.ref('personas/' + TENANT_ID + '/' + '${id}').remove(); }" title="Eliminar">🗑️</button></div></td>
+                        <td class="no-print"><div style="display:flex; gap: 4px;"><button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono || ''}')" title="WhatsApp">💬</button><button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Ver Carnet">📇</button><button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { database.ref('escuelas_data/' + TENANT_ID + '/personas/' + '${id}').remove(); }" title="Eliminar">🗑️</button></div></td>
                     </tr>
                 `);
             });
@@ -1262,14 +1265,17 @@
             const tbody = document.getElementById('tablaLogsLejanos'); tbody.innerHTML = "";
             if (logsLejanosGlobal.length === 0) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color: var(--text-muted);'>No hay reportes de escaneos lejanos.</td></tr>"; return; }
             logsLejanosGlobal.slice().reverse().forEach(log => {
-                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('logs_lejanos/' + TENANT_ID + '/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
+                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
             });
         }
 
         function editarNumeroJunta() { let n = prompt("Número de contacto general:", NUMERO_OFICIAL_JUNTA); if(n) { database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').set(n); alert("Actualizado en su partición."); } }
         
-        // Aislado: Set guarda solo en tenant personas
-        function sincronizarConNube() { database.ref('personas/' + TENANT_ID).set(db.personas); alert("Datos guardados en la partición de la escuela."); }
+        // CORREGIDO: Usar la ruta correcta según las reglas
+        function sincronizarConNube() { 
+            database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas); 
+            alert("Datos guardados en la partición de la escuela."); 
+        }
         
         function guardarConfigGeo() {
             const lat = parseFloat(document.getElementById('geoLat').value), lng = parseFloat(document.getElementById('geoLng').value), radio = parseInt(document.getElementById('geoRadio').value);
@@ -1279,15 +1285,33 @@
             alert("Ubicación configurada en la partición de la escuela.");
         }
 
-        function mostrarConfirmacionBorrar() { if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos DE ESTA ESCUELA?\n\nPresione OK para confirmar.')) { database.ref('personas/' + TENANT_ID).remove(); database.ref('marcas/' + TENANT_ID).remove(); database.ref('logs_lejanos/' + TENANT_ID).remove(); location.reload(); } }
+        // CORREGIDO: Usar la ruta correcta para borrar todos los datos
+        function mostrarConfirmacionBorrar() { 
+            if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos DE ESTA ESCUELA?\n\nPresione OK para confirmar.')) { 
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').remove(); 
+                database.ref('escuelas_data/' + TENANT_ID + '/marcas').remove(); 
+                database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').remove(); 
+                location.reload(); 
+            } 
+        }
+        
         function justificarAusencia(id, nombre) {
             const hISO = document.getElementById('reportDate').value;
             if(confirm(`¿Desea justificar la ausencia de ${nombre}?`)) {
-                database.ref('marcas/' + TENANT_ID).push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
+                // CORREGIDO: Usar la ruta correcta para marcas
+                database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
                 alert('Ausencia justificada.');
             }
         }
-        function borrarHistorialDia() { const hISO = document.getElementById('reportDate').value; logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => database.ref('marcas/' + TENANT_ID + '/' + l.key).remove()); alert('Registros del día eliminados.'); }
+        
+        function borrarHistorialDia() { 
+            const hISO = document.getElementById('reportDate').value; 
+            logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => 
+                // CORREGIDO: Usar la ruta correcta para borrar marcas
+                database.ref('escuelas_data/' + TENANT_ID + '/marcas/' + l.key).remove()
+            ); 
+            alert('Registros del día eliminados.'); 
+        }
         
         function ejecutarConsultaIdDirecta(id) {
             if(!db.personas[id]) return alert("Usuario no encontrado.");
@@ -1296,8 +1320,8 @@
             document.getElementById('parentStudentPuesto').innerText = (p.tipoUsuario || "Perfil") + " / " + (p.puesto || "N/A");
             document.getElementById('btnConsultaWA').onclick = () => { const mensaje = encodeURIComponent(`Hola, quisiera realizar una consulta sobre el usuario: ${p.nombre}`); window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${mensaje}`, '_blank'); };
             
-            // Reemplazo de consulta orderByChild aislada a la nueva ruta plana "marcas"
-            database.ref('marcas/' + TENANT_ID).orderByChild('id').equalTo(id).once('value', (s) => {
+            // CORREGIDO: Usar la ruta correcta para consultar marcas
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').orderByChild('id').equalTo(id).once('value', (s) => {
                 const list = document.getElementById('parentLogList'); list.innerHTML = "";
                 if(s.exists()){ s.forEach(c => { let l=c.val(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(${l.distanciaMetros}m)</span>` : ""; let statusColor = l.tipo === 'ENTRADA' ? '#00ff88' : (l.tipo === 'SALIDA' ? '#ff4444' : '#ffb800'); list.innerHTML = `<div style="padding:10px; border-bottom:1px solid #3a4560;"><span>${l.hora}</span> - <b style="color:${statusColor}">${l.tipo}</b>${alertTag}</div>` + list.innerHTML; }); }
                 else { list.innerHTML = "<p style='color: var(--text-muted); text-align:center;'>Sin registros el día de hoy.</p>"; }
@@ -1339,8 +1363,8 @@
                     } 
                 }); 
                 
-                // Guardar automáticamente en Firebase después de importar
-                database.ref('personas/' + TENANT_ID).set(db.personas)
+                // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas)
                     .then(() => {
                         renderAlumnos(); 
                         alert(`Importados ${importados} registros y guardados en Firebase.`); 
