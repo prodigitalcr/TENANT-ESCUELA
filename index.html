@@ -764,11 +764,6 @@
 
         document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
         
-        // ===========================================================
-        // 🚀 REEMPLAZO ARQUITECTÓNICO - FLAT DATA STRUCTURE
-        // ===========================================================
-        // const dbTenantRoot = 'escuelas_data/' + TENANT_ID; // REEMPLAZADO POR ARQUITECTURA PLANA
-
         // Listener Config - Aislado
         database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', (s) => { if(s.val()) NUMERO_OFICIAL_JUNTA = s.val(); });
         database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', (s) => { 
@@ -781,18 +776,27 @@
         });
 
         if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-theme'); }
-        if (localStorage.getItem('CUSTOM_BG')) { document.body.style.backgroundImage = `url(${localStorage.getItem('CUSTOM_BG')})`; }
         
-        function cargarLogoPersonalizado() {
-            const logoBase64 = localStorage.getItem('CUSTOM_LOGO');
+        // NUEVO: Listener de Diseño (Logo y Fondo) aislado por Tenant desde Firebase
+        database.ref('escuelas_data/' + TENANT_ID + '/branding').on('value', (s) => {
+            const diseno = s.val() || {};
             const navContainer = document.getElementById('nav-logo-container');
-            if(logoBase64) {
-                navContainer.innerHTML = `<img src="${logoBase64}" alt="Logo Oficial">`;
+            
+            // Cargar fondo de la base de datos
+            if (diseno.fondo) {
+                document.body.style.backgroundImage = `url(${diseno.fondo})`;
+            } else {
+                document.body.style.backgroundImage = "";
+            }
+            
+            // Cargar logo de la base de datos
+            if (diseno.logo) {
+                navContainer.innerHTML = `<img src="${diseno.logo}" alt="Logo Oficial">`;
             } else {
                 navContainer.innerHTML = `🤖 Asistencia IA`;
             }
-        }
-        cargarLogoPersonalizado();
+        });
+
 
         // ===========================================================
         // LÓGICA DE BASE DE DATOS AISLADA (FLAT STRUCTURE)
@@ -1157,24 +1161,37 @@
 
                     if(match.label !== 'unknown') {
                         enCooldown = true; const exactitudSuficiente = distance < 0.35;
+                        const inputCodigo = document.getElementById('parentInput').value.trim();
 
                         if (match.label.includes('_p1') || match.label.includes('_p2')) {
-                            const idEstudiante = match.label.split('_')[0]; const nombreEstudiante = db.personas[idEstudiante]?.nombre || "";
-                            playParentMelody();
+                            const idEstudiante = match.label.split('_')[0]; 
+                            const nombreEstudiante = db.personas[idEstudiante]?.nombre || "";
 
-                            if (exactitudSuficiente) {
-                                ctx.fillStyle = "rgba(0, 255, 136, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`✅ Encargado Autorizado (>95%)`, box.x, box.y - 25); ctx.fillText(`Ingresando a: ${nombreEstudiante}`, box.x, box.y - 10);
+                            // NUEVA LÓGICA DE VALIDACIÓN ESTRICTA
+                            if (inputCodigo === idEstudiante && exactitudSuficiente) {
+                                playParentMelody();
+                                ctx.fillStyle = "rgba(0, 255, 136, 0.9)"; ctx.font = "14px Arial"; 
+                                ctx.fillText(`✅ Encargado Autorizado (>95%)`, box.x, box.y - 25); 
+                                ctx.fillText(`Ingresando a: ${nombreEstudiante}`, box.x, box.y - 10);
                                 setTimeout(() => { toggleQueryScanner(); ejecutarConsultaIdDirecta(idEstudiante); }, 1500);
                             } else {
-                                ctx.fillStyle = "rgba(255, 184, 0, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`⚠️ Encargado Identificado`, box.x, box.y - 25); ctx.fillText(`Digite la cédula del alumno por seguridad`, box.x, box.y - 10);
-                                setTimeout(() => { toggleQueryScanner(); let idPrompt = prompt("Rostro de encargado reconocido. Por seguridad, digite la cédula del estudiante:"); if(idPrompt && idPrompt.trim() === idEstudiante) { ejecutarConsultaIdDirecta(idEstudiante); } else { alert("Validación incorrecta."); } }, 1500);
+                                playErrorSound();
+                                ctx.fillStyle = "rgba(255, 184, 0, 0.9)"; ctx.font = "14px Arial"; 
+                                ctx.fillText(`⚠️ Encargado Identificado`, box.x, box.y - 25); 
+                                ctx.fillText(`Digite el código de su hijo/a primero`, box.x, box.y - 10);
+                                setTimeout(() => { enCooldown = false; }, 2000);
                             }
                         } else {
-                            playSuccessSound(); ctx.fillStyle = "rgba(0, 217, 255, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`✅ Perfil: ${db.personas[match.label]?.nombre}`, box.x, box.y - 10);
+                            // LÓGICA PARA PERFIL PROPIO (ESTUDIANTES, DOCENTES)
+                            playSuccessSound(); 
+                            ctx.fillStyle = "rgba(0, 217, 255, 0.9)"; ctx.font = "14px Arial"; 
+                            ctx.fillText(`✅ Perfil: ${db.personas[match.label]?.nombre}`, box.x, box.y - 10);
                             setTimeout(() => { toggleQueryScanner(); ejecutarConsultaIdDirecta(match.label); }, 1500);
                         }
-                        setTimeout(() => { enCooldown = false; }, 4000);
-                    } else { ctx.fillStyle = "rgba(255, 68, 68, 0.8)"; ctx.font = "16px Arial"; ctx.fillText("Rostro no reconocido", box.x, box.y - 10); }
+                    } else { 
+                        ctx.fillStyle = "rgba(255, 68, 68, 0.8)"; ctx.font = "16px Arial"; 
+                        ctx.fillText("Rostro no reconocido", box.x, box.y - 10); 
+                    }
                 }
             }
             setTimeout(loopConsultaFacial, 150);
@@ -1329,9 +1346,69 @@
             });
         }
 
-        // Resto de utilidades de UI intactas...
-        function procesarSubidaFondo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxW = 1920; if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/jpeg', 0.6); try { localStorage.setItem('CUSTOM_BG', dataUrl); document.body.style.backgroundImage = `url(${dataUrl})`; alert('Fondo actualizado localmente.'); } catch(err) { alert('Imagen muy pesada.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
-        function procesarSubidaLogo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxH = 200; if(h > maxH) { w = Math.round(w * maxH / h); h = maxH; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/png', 0.8); try { localStorage.setItem('CUSTOM_LOGO', dataUrl); cargarLogoPersonalizado(); alert('Logo actualizado.'); } catch(err) { alert('Imagen excede límite.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
+        // ===========================================================
+        // NUEVAS FUNCIONES DE DISEÑO (FIREBASE)
+        // ===========================================================
+        function procesarSubidaFondo(event) { 
+            const file = event.target.files[0]; 
+            if (!file) return; 
+            
+            if(file.size > 1500000) {
+                alert("La imagen es muy pesada. Recomendamos imágenes de menos de 1.5MB.");
+                return;
+            }
+
+            const reader = new FileReader(); 
+            reader.onload = (e) => { 
+                const img = new Image(); 
+                img.onload = () => { 
+                    const canvas = document.createElement('canvas'); 
+                    let w = img.width; let h = img.height; const maxW = 1920; 
+                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; } 
+                    canvas.width = w; canvas.height = h; 
+                    const ctx = canvas.getContext('2d'); 
+                    ctx.drawImage(img, 0, 0, w, h); 
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.6); 
+                    
+                    database.ref('escuelas_data/' + TENANT_ID + '/branding/fondo').set(dataUrl)
+                        .then(() => alert('✅ Fondo actualizado en Firebase exitosamente.'))
+                        .catch(err => alert('❌ Error al guardar el fondo: ' + err.message));
+                }; 
+                img.src = e.target.result; 
+            }; 
+            reader.readAsDataURL(file); 
+        }
+
+        function procesarSubidaLogo(event) { 
+            const file = event.target.files[0]; 
+            if (!file) return; 
+
+            if(file.size > 800000) {
+                alert("El logo debe pesar menos de 800KB.");
+                return;
+            }
+
+            const reader = new FileReader(); 
+            reader.onload = (e) => { 
+                const img = new Image(); 
+                img.onload = () => { 
+                    const canvas = document.createElement('canvas'); 
+                    let w = img.width; let h = img.height; const maxH = 200; 
+                    if(h > maxH) { w = Math.round(w * maxH / h); h = maxH; } 
+                    canvas.width = w; canvas.height = h; 
+                    const ctx = canvas.getContext('2d'); 
+                    ctx.drawImage(img, 0, 0, w, h); 
+                    const dataUrl = canvas.toDataURL('image/png', 0.8); 
+                    
+                    database.ref('escuelas_data/' + TENANT_ID + '/branding/logo').set(dataUrl)
+                        .then(() => alert('✅ Logo actualizado en Firebase exitosamente.'))
+                        .catch(err => alert('❌ Error al guardar el logo: ' + err.message));
+                }; 
+                img.src = e.target.result; 
+            }; 
+            reader.readAsDataURL(file); 
+        }
+
         function mostrarEstadisticas() { const total = Object.keys(db.personas).length; const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE') || coincideFecha(l.hora, new Date().toLocaleDateString('sv-SE')))).length; alert(`ESTADÍSTICAS DEL DÍA:\nTotal Registrados: ${total}\nPresentes (Entradas): ${presentes}\nAusentes: ${total - presentes}\nAsistencia: ${total>0?((presentes/total)*100).toFixed(1):0}%`); }
         function mostrarConfiguracion() { let configDiv = document.createElement('div'); configDiv.innerHTML = `<div><button class="btn btn-m" onclick="setTheme('dark')">Modo Oscuro</button> <button class="btn btn-s" onclick="setTheme('light')">Modo Claro</button></div>`; let win = window.open('', 'Configuración', 'width=400,height=300'); win.document.write(`<html><head><title>Configuración</title><style>body{padding:20px}.btn{padding:8px 12px;cursor:pointer}</style></head><body>${configDiv.innerHTML}<script>function setTheme(theme) { window.opener.setSystemTheme(theme); window.close(); }<\/script></body></html>`); win.document.close(); }
         function setSystemTheme(theme) { if (theme === 'light') { document.body.classList.add('light-theme'); localStorage.setItem('theme', 'light'); } else { document.body.classList.remove('light-theme'); localStorage.setItem('theme', 'dark'); } }
@@ -1407,7 +1484,7 @@
             } else {
                 titulo.innerText = `❌ Ausentes / ⭐ Justificados`; head.innerHTML = `<tr><th>Estado</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>WhatsApp</th><th class="no-print">Acción</th></tr>`;
                 const presentes = [...new Set(logsDelDia.filter(l => l.tipo === 'ENTRADA').map(l => l.id))]; const justificados = [...new Set(logsDelDia.filter(l => l.tipo === 'JUSTIFICADA').map(l => l.id))];
-                Object.entries(db.personas).forEach(([id, p]) => { if(!presentes.includes(id)) { const isJustificado = justificados.includes(id); const estadoTag = isJustificado ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Justificado</span>` : `<span style="color:var(--accent-danger); font-weight:bold;">❌ Ausente</span>`; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${estadoTag}</td><td><b>${id}</b></td><td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || 'Sin teléfono'}</td><td class="no-print" style="display:flex; gap: 5px;">${!isJustificado ? `<button class="btn btn-m" style="padding: 4px 8px; font-size: 0.75rem;" onclick="justificarAusencia('${id}', '${p.nombre}')">✅ Justificar</button>` : ''}<button class="btn btn-s" style="padding: 4px 8px; font-size: 0.75rem;" onclick="enviarWA_Ausente('${p.telefono || ''}', '${p.nombre}')">💬 Msg</button></td></tr>`); } });
+                Object.entries(db.personas).forEach(([id, p]) => { if(!presentes.includes(id)) { const isJustificado = justificados.includes(id); const estadoTag = isJustificado ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Justificado</span>` : `<span style="color:var(--accent-danger); font-weight:bold;">❌ Ausente</span>`; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${estadoTag}</td><td><b>${id}</b></td><td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || 'Sin teléfono'}</td><td class=\"no-print\" style=\"display:flex; gap: 5px;\">${!isJustificado ? `<button class=\"btn btn-m\" style=\"padding: 4px 8px; font-size: 0.75rem;\" onclick=\"justificarAusencia('${id}', '${p.nombre}')\">✅ Justificar</button>` : ''}<button class=\"btn btn-s\" style=\"padding: 4px 8px; font-size: 0.75rem;\" onclick=\"enviarWA_Ausente('${p.telefono || ''}', '${p.nombre}')\">💬 Msg</button></td></tr>`); } });
             }
         }
 
