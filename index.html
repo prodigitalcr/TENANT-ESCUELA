@@ -661,7 +661,7 @@
         // -----------------------------------------------------------
         // 2️⃣  MONITOREO DEL ESTADO GLOBAL ADMIN (status en tenants/)
         // -----------------------------------------------------------
-        database.ref(`tenants/${TENANT_ID}`).on('value', (snapshot) => {
+        database.ref('tenants/' + TENANT_ID).on('value', (snapshot) => {
             const tenantData = snapshot.val();
             if (tenantData) {
                 const estadoSaaS = tenantData.status || tenantData.estado || 'activo';
@@ -712,7 +712,7 @@
         // -----------------------------------------------------------
         function monitorBlockFlag() {
             const overlay = document.getElementById('blockedOverlay');
-            database.ref(`tenantDB/${TENANT_ID}`)
+            database.ref('tenantDB/' + TENANT_ID)
                 .on('value', snap => {
                     const data = snap.val();
                     if (!data) return;
@@ -763,9 +763,14 @@
 
         document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
         
+        // -----------------------------------------------------------
+        // 🚀 AQUI ESTÁ EL CANDADO MAESTRO QUE EVITA GUARDAR EN LA RAÍZ
+        // -----------------------------------------------------------
+        const dbTenantRoot = 'escuelas_data/' + TENANT_ID;
+
         // Listener Config - Aislado
-        database.ref(`tenants/${TENANT_ID}/config/numeroOficial`).on('value', (s) => { if(s.val()) NUMERO_OFICIAL_JUNTA = s.val(); });
-        database.ref(`tenants/${TENANT_ID}/config/geocerca`).on('value', (s) => { 
+        database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', (s) => { if(s.val()) NUMERO_OFICIAL_JUNTA = s.val(); });
+        database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', (s) => { 
             if(s.val()) { 
                 geoConfig = s.val(); 
                 document.getElementById('geoLat').value = geoConfig.lat;
@@ -791,22 +796,20 @@
         // ===========================================================
         // LÓGICA DE BASE DE DATOS AISLADA
         // ===========================================================
-        // IMPORTANTE: Todas las referencias base ahora apuntan a escuelas_data/${TENANT_ID}
-        const dbTenantRoot = `escuelas_data/${TENANT_ID}`;
 
-        database.ref(`${dbTenantRoot}/personas`).on('value', (s) => { 
+        database.ref(dbTenantRoot + '/personas').on('value', (s) => { 
             db.personas = s.val() || {}; 
             renderAlumnos(); 
             construirFaceMatcher(); 
         });
         
-        database.ref(`${dbTenantRoot}/logs`).on('value', (s) => { 
+        database.ref(dbTenantRoot + '/logs').on('value', (s) => { 
             logsGlobal = []; 
             s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
             renderAlumnos(); 
         });
 
-        database.ref(`${dbTenantRoot}/logs_lejanos`).on('value', (s) => {
+        database.ref(dbTenantRoot + '/logs_lejanos').on('value', (s) => {
             logsLejanosGlobal = [];
             s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
             renderGeolocalizacion();
@@ -860,7 +863,7 @@
         }
 
         // ===========================================================
-        // SISTEMA DE INACTIVIDAD (IDLE) Y AUDIO (Omitido en gran parte para brevedad de vista)
+        // SISTEMA DE INACTIVIDAD (IDLE) Y AUDIO
         // ===========================================================
         let idleTimeout;
         const IDLE_TIME = 45000;
@@ -1002,13 +1005,13 @@
             const newUser = { nombre, puesto: section, telefono: phone, tipoUsuario: rol, descriptor: finalDescArray };
             
             // Aislado al tenant
-            database.ref(`${dbTenantRoot}/personas/${id}`).update(newUser);
+            database.ref(dbTenantRoot + '/personas/' + id).update(newUser);
             
             if (rol === 'Padre/Encargado' && studentId) {
                 if (db.personas[studentId]) {
                     const stu = db.personas[studentId];
-                    if (!stu.descriptorPadre1) { database.ref(`${dbTenantRoot}/personas/${studentId}/descriptorPadre1`).set(finalDescArray); } 
-                    else { database.ref(`${dbTenantRoot}/personas/${studentId}/descriptorPadre2`).set(finalDescArray); }
+                    if (!stu.descriptorPadre1) { database.ref(dbTenantRoot + '/personas/' + studentId + '/descriptorPadre1').set(finalDescArray); } 
+                    else { database.ref(dbTenantRoot + '/personas/' + studentId + '/descriptorPadre2').set(finalDescArray); }
                     alert(`✅ Registro exitoso.\n\nEnlazado como encargado del estudiante ${studentId}.`);
                 } else { alert("⚠️ Perfil guardado, pero el ID del estudiante no existe."); }
             } else { alert("✅ Registro almacenado en la partición de su escuela."); }
@@ -1035,7 +1038,7 @@
 
                     if (esLejano) {
                         // Aislado
-                        database.ref(`${dbTenantRoot}/logs_lejanos`).push({ id, nombre: db.personas[id]?.nombre || "Desconocido", hora: new Date().toLocaleString(), distancia: Math.round(dist), lat: latDisp, lng: lngDisp });
+                        database.ref(dbTenantRoot + '/logs_lejanos').push({ id, nombre: db.personas[id]?.nombre || "Desconocido", hora: new Date().toLocaleString(), distancia: Math.round(dist), lat: latDisp, lng: lngDisp });
                         mostrarMensajeTemp("⚠️ Fuera del rango. Escaneo detectado (" + Math.round(dist) + "m) pero NO registrado.", "var(--accent-danger)");
                         playErrorSound();
                         if(scannerActivo) toggleScanner(); return;
@@ -1054,7 +1057,7 @@
             else { mostrarMensajeTemp("Ya registró Entrada y Salida hoy.", "var(--accent-warning)"); if(scannerActivo) toggleScanner(); return; }
             
             // Aislado
-            database.ref(`${dbTenantRoot}/logs`).push({ id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo, lejano: esLejano, distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon });
+            database.ref(dbTenantRoot + '/logs').push({ id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo, lejano: esLejano, distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon });
             playSuccessSound();
 
             const res = document.getElementById('resBox'); res.style.display = 'block'; res.style.background = tipo === "ENTRADA" ? "rgba(0, 255, 136, 0.1)" : "rgba(255, 68, 68, 0.1)";
@@ -1248,7 +1251,7 @@
                         <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.telefono || ''}" onchange="db.personas['${id}'].telefono=this.value"></td>
                         <td><button class="btn ${tieneRostroEst ? 'btn-m' : 'btn-dark'}" style="padding:4px 8px; font-size:0.75rem;" onclick="abrirRegistroRostro('${id}', 'estudiante')">${tieneRostroEst ? '👤 Configurado' : '📸 Configurar'}</button></td>
                         <td><div style="display:flex; flex-direction:column; gap:4px;"><button class="btn ${p.descriptorPadre1 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre1')">👨‍👦 Encargado 1: ${p.descriptorPadre1 ? '✓' : '✗'}</button><button class="btn ${p.descriptorPadre2 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre2')">👨‍👦 Encargado 2: ${p.descriptorPadre2 ? '✓' : '✗'}</button></div></td>
-                        <td class="no-print"><div style="display:flex; gap: 4px;"><button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono || ''}')" title="WhatsApp">💬</button><button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Ver Carnet">📇</button><button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { database.ref('${dbTenantRoot}/personas/'+'${id}').remove(); }" title="Eliminar">🗑️</button></div></td>
+                        <td class="no-print"><div style="display:flex; gap: 4px;"><button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono || ''}')" title="WhatsApp">💬</button><button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Ver Carnet">📇</button><button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { database.ref(dbTenantRoot + '/personas/'+'${id}').remove(); }" title="Eliminar">🗑️</button></div></td>
                     </tr>
                 `);
             });
@@ -1262,30 +1265,30 @@
             });
         }
 
-        function eliminarLogLejano(key) { if(confirm("¿Eliminar registro lejano?")) { database.ref(`${dbTenantRoot}/logs_lejanos/${key}`).remove(); } }
+        function eliminarLogLejano(key) { if(confirm("¿Eliminar registro lejano?")) { database.ref(dbTenantRoot + '/logs_lejanos/' + key).remove(); } }
 
-        function editarNumeroJunta() { let n = prompt("Número de contacto general:", NUMERO_OFICIAL_JUNTA); if(n) { database.ref(`tenants/${TENANT_ID}/config/numeroOficial`).set(n); alert("Actualizado en su partición."); } }
+        function editarNumeroJunta() { let n = prompt("Número de contacto general:", NUMERO_OFICIAL_JUNTA); if(n) { database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').set(n); alert("Actualizado en su partición."); } }
         
         // Aislado: Set guarda solo en tenant personas
-        function sincronizarConNube() { database.ref(`${dbTenantRoot}/personas`).set(db.personas); alert("Datos guardados en la partición de la escuela."); }
+        function sincronizarConNube() { database.ref(dbTenantRoot + '/personas').set(db.personas); alert("Datos guardados en la partición de la escuela."); }
         
         function guardarConfigGeo() {
             const lat = parseFloat(document.getElementById('geoLat').value), lng = parseFloat(document.getElementById('geoLng').value), radio = parseInt(document.getElementById('geoRadio').value);
             if (isNaN(lat) || isNaN(lng) || isNaN(radio)) { alert("Valores inválidos."); return; }
             geoConfig = { lat, lng, radio };
-            database.ref(`tenants/${TENANT_ID}/config/geocerca`).set(geoConfig);
+            database.ref('tenants/' + TENANT_ID + '/config/geocerca').set(geoConfig);
             alert("Ubicación configurada en la partición de la escuela.");
         }
 
-        function mostrarConfirmacionBorrar() { if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos DE ESTA ESCUELA?\n\nPresione OK para confirmar.')) { database.ref(`${dbTenantRoot}/personas`).remove(); database.ref(`${dbTenantRoot}/logs`).remove(); database.ref(`${dbTenantRoot}/logs_lejanos`).remove(); location.reload(); } }
+        function mostrarConfirmacionBorrar() { if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos DE ESTA ESCUELA?\n\nPresione OK para confirmar.')) { database.ref(dbTenantRoot + '/personas').remove(); database.ref(dbTenantRoot + '/logs').remove(); database.ref(dbTenantRoot + '/logs_lejanos').remove(); location.reload(); } }
         function justificarAusencia(id, nombre) {
             const hISO = document.getElementById('reportDate').value;
             if(confirm(`¿Desea justificar la ausencia de ${nombre}?`)) {
-                database.ref(`${dbTenantRoot}/logs`).push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
+                database.ref(dbTenantRoot + '/logs').push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
                 alert('Ausencia justificada.');
             }
         }
-        function borrarHistorialDia() { const hISO = document.getElementById('reportDate').value; logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => database.ref(`${dbTenantRoot}/logs/`+l.key).remove()); alert('Registros del día eliminados.'); }
+        function borrarHistorialDia() { const hISO = document.getElementById('reportDate').value; logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => database.ref(dbTenantRoot + '/logs/'+l.key).remove()); alert('Registros del día eliminados.'); }
         
         function ejecutarConsultaIdDirecta(id) {
             if(!db.personas[id]) return alert("Usuario no encontrado.");
@@ -1295,7 +1298,7 @@
             document.getElementById('btnConsultaWA').onclick = () => { const mensaje = encodeURIComponent(`Hola, quisiera realizar una consulta sobre el usuario: ${p.nombre}`); window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${mensaje}`, '_blank'); };
             
             // Reemplazo de consulta orderByChild aislada
-            database.ref(`${dbTenantRoot}/logs`).orderByChild('id').equalTo(id).once('value', (s) => {
+            database.ref(dbTenantRoot + '/logs').orderByChild('id').equalTo(id).once('value', (s) => {
                 const list = document.getElementById('parentLogList'); list.innerHTML = "";
                 if(s.exists()){ s.forEach(c => { let l=c.val(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(${l.distanciaMetros}m)</span>` : ""; let statusColor = l.tipo === 'ENTRADA' ? '#00ff88' : (l.tipo === 'SALIDA' ? '#ff4444' : '#ffb800'); list.innerHTML = `<div style="padding:10px; border-bottom:1px solid #3a4560;"><span>${l.hora}</span> - <b style="color:${statusColor}">${l.tipo}</b>${alertTag}</div>` + list.innerHTML; }); }
                 else { list.innerHTML = "<p style='color: var(--text-muted); text-align:center;'>Sin registros el día de hoy.</p>"; }
