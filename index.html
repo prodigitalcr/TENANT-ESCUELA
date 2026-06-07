@@ -614,7 +614,7 @@
                     </div>
                     <div>
                         <label style="font-weight: bold; color: var(--text-primary);">Radio Permitido (metros):</label>
-                        <input type="number" id="geoRadio" value="150" placeholder="Ej: 150">
+                        <input type="number" id="geoRadio" value="150">
                     </div>
                 </div>
                 
@@ -636,7 +636,7 @@
 
             <!-- Sección para mostrar ubicación en tiempo real -->
             <div class="power-bar" style="margin-top: 20px;">
-                <h3 style="color: var(--accent-primary); margin-bottom: 10px;">📡 Ubicación en Tiempo Real y Tracking de Precisión</h3>
+                <h3 style="color: var(--accent-primary); margin-bottom: 10px;">📡 Ubicación en Tiempo Real</h3>
                 <div id="ubicacionTiempoReal" style="font-size: 0.9rem; color: var(--text-secondary);">
                     Esperando ubicación...
                 </div>
@@ -833,17 +833,22 @@
         // Parámetros geocerca por defecto
         let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 150, mapsUrl: "" };
 
-        // Variables de geolocalización de alta precisión
+        // Nuevas variables globales para seguimiento de ubicación
         let watchId = null;
         let ubicacionActual = null;
         let ultimaUbicacion = null;
-        let distanciaMinima = 1; // Un metro de cambio mínimo para refrescar tracking
+        let distanciaMinima = 5; // metros
 
         // Variables para manejo de conexión
         let connectionStatus = true;
         let lastSyncTime = null;
 
         document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
+        
+        // ===========================================================
+        // 🚀 REEMPLAZO ARQUITECTÓNICO - FLAT DATA STRUCTURE
+        // ===========================================================
+        // const dbTenantRoot = 'escuelas_data/' + TENANT_ID; // REEMPLAZADO POR ARQUITECTURA PLANA
 
         // Listener Config - Aislado
         database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', (s) => { 
@@ -863,28 +868,28 @@
             } 
         });
 
-        // Cargar configuración de fondo y logo desde Firebase de forma multi-tenant
+        // Cargar configuración de fondo y logo desde Firebase
         database.ref('tenants/' + TENANT_ID + '/config/customBg').on('value', (s) => {
             const bgUrl = s.val();
             if (bgUrl) {
                 document.body.style.backgroundImage = `url(${bgUrl})`;
-                localStorage.setItem('CUSTOM_BG_' + TENANT_ID, bgUrl);
+                localStorage.setItem('CUSTOM_BG', bgUrl);
             }
         });
         
         database.ref('tenants/' + TENANT_ID + '/config/customLogo').on('value', (s) => {
             const logoUrl = s.val();
             if (logoUrl) {
-                localStorage.setItem('CUSTOM_LOGO_' + TENANT_ID, logoUrl);
+                localStorage.setItem('CUSTOM_LOGO', logoUrl);
                 cargarLogoPersonalizado();
             }
         });
 
         if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-theme'); }
-        if (localStorage.getItem('CUSTOM_BG_' + TENANT_ID)) { document.body.style.backgroundImage = `url(${localStorage.getItem('CUSTOM_BG_' + TENANT_ID)})`; }
+        if (localStorage.getItem('CUSTOM_BG')) { document.body.style.backgroundImage = `url(${localStorage.getItem('CUSTOM_BG')})`; }
         
         function cargarLogoPersonalizado() {
-            const logoBase64 = localStorage.getItem('CUSTOM_LOGO_' + TENANT_ID);
+            const logoBase64 = localStorage.getItem('CUSTOM_LOGO');
             const navContainer = document.getElementById('nav-logo-container');
             if(logoBase64) {
                 navContainer.innerHTML = `<img src="${logoBase64}" alt="Logo Oficial">`;
@@ -897,18 +902,22 @@
         // ===========================================================
         // LÓGICA DE BASE DE DATOS AISLADA (FLAT STRUCTURE)
         // ===========================================================
+
+        // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
         database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => { 
             db.personas = s.val() || {}; 
             renderAlumnos(); 
             construirFaceMatcher(); 
         });
         
+        // CORREGIDO: Usar la ruta correcta para marcas
         database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', (s) => { 
             logsGlobal = []; 
             s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
             renderAlumnos(); 
         });
 
+        // CORREGIDO: Usar la ruta correcta para logs lejanos
         database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').on('value', (s) => {
             logsLejanosGlobal = [];
             s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
@@ -927,6 +936,7 @@
             }
         }
 
+        // Monitoreo de conexión
         window.addEventListener('online', () => {
             actualizarEstadoConexion(true);
             sincronizarConNube();
@@ -972,7 +982,6 @@
                     if (contextoLogin === 'admin') {
                         document.getElementById('master-panel').style.display = 'block';
                         inicializarIA();
-                        iniciarSeguimientoUbicacion(); // Activa GPS de alta precisión al entrar al panel
                         resetIdleTimer();
                     } else if (contextoLogin === 'escaner') {
                         mostrarVista('scan-view');
@@ -1022,9 +1031,7 @@
         // DISTANCIA E INTELIGENCIA ARTIFICIAL
         // ===========================================================
         function calcularDistancia(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Radio de la Tierra en metros
-            const dLat = (lat2 - lat1) * Math.PI / 180; 
-            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
         }
@@ -1127,6 +1134,7 @@
             
             const newUser = { nombre, puesto: section, telefono: phone, tipoUsuario: rol, descriptor: finalDescArray };
             
+            // CORREGIDO: Usar la ruta correcta según las reglas
             database.ref('escuelas_data/' + TENANT_ID + '/personas/' + id).update(newUser);
             
             if (rol === 'Padre/Encargado' && studentId) {
@@ -1148,53 +1156,40 @@
         }
 
         // ===========================================================
-        // REGISTRO DE ASISTENCIA CON EXCLUSIÓN DE GEOCERCA RE-DISEÑADO
+        // REGISTRO DE ASISTENCIA (GEOLOCALIZADA)
         // ===========================================================
         function registrarAsistenciaConGPS(id, strEmocion = "Neutral", emoticon = "😐") {
-            // Evaluamos primero si hay un tracking GPS en tiempo real activo
-            if (ubicacionActual) {
-                procesarAsistencia(id, ubicacionActual.lat, ubicacionActual.lng, strEmocion, emoticon);
-            } else {
-                // Si el tracking no ha guardado datos aún, hacemos una consulta forzada con la máxima precisión posible
-                if ("geolocation" in navigator) {
+            if ("geolocation" in navigator) {
+                // Usar ubicación en tiempo real si está disponible
+                if (ubicacionActual) {
+                    procesarAsistencia(id, ubicacionActual.lat, ubicacionActual.lng, strEmocion, emoticon);
+                } else {
+                    // Fallback a obtener ubicación puntual
                     navigator.geolocation.getCurrentPosition(
                         (pos) => {
-                            const latObtenida = pos.coords.latitude;
-                            const lngObtenida = pos.coords.longitude;
-                            // Guardamos esta última lectura para futuras referencias
-                            ubicacionActual = {
-                                lat: latObtenida,
-                                lng: lngObtenida,
-                                accuracy: pos.coords.accuracy,
-                                timestamp: new Date()
-                            };
-                            actualizarDisplayUbicacion();
-                            procesarAsistencia(id, latObtenida, lngObtenida, strEmocion, emoticon);
+                            procesarAsistencia(id, pos.coords.latitude, pos.coords.longitude, strEmocion, emoticon);
                         },
                         (err) => {
-                            // En caso de fallo extremo o ausencia de permisos, se fuerza el registro desactivando restricción
+                            // Si falla geolocalización, registrar sin validación de distancia
                             completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon);
                         },
                         { 
                             enableHighAccuracy: true, 
-                            timeout: 8000,
-                            maximumAge: 0 
+                            timeout: 10000,
+                            maximumAge: 30000 // Usar ubicación de hasta 30 segundos de antigüedad
                         }
                     );
-                } else { 
-                    completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon); 
                 }
-            }
+            } else { completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon); }
         }
 
-        // Procesa la asitencia localizando al estudiante en el perímetro del centro
+        // Función centralizada para procesar la asistencia con ubicación
         function procesarAsistencia(id, latDisp, lngDisp, strEmocion, emoticon) {
             const dist = calcularDistancia(latDisp, lngDisp, geoConfig.lat, geoConfig.lng);
             const hISO = new Date().toLocaleDateString('sv-SE');
             const esLejano = dist > geoConfig.radio;
 
             if (esLejano) {
-                // Almacena en la base de datos el intento rechazado por geocerca
                 database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').push({
                     id, 
                     nombre: db.personas[id]?.nombre || "Desconocido", 
@@ -1202,9 +1197,9 @@
                     distancia: Math.round(dist), 
                     lat: latDisp, 
                     lng: lngDisp,
-                    precision: ubicacionActual?.accuracy ? Math.round(ubicacionActual.accuracy) : "No especificada"
+                    precision: ubicacionActual?.accuracy || "No disponible"
                 });
-                mostrarMensajeTemp("⚠️ Fuera de geocerca. Intento detectado a (" + Math.round(dist) + "m) RECHAZADO.", "var(--accent-danger)");
+                mostrarMensajeTemp("⚠️ Fuera del rango. Escaneo detectado (" + Math.round(dist) + "m) pero NO registrado.", "var(--accent-danger)");
                 playErrorSound();
                 if(scannerActivo) toggleScanner(); 
                 return;
@@ -1220,17 +1215,8 @@
             if (!tieneE) tipo = "ENTRADA"; else if (!tieneS) tipo = "SALIDA"; 
             else { mostrarMensajeTemp("Ya registró Entrada y Salida hoy.", "var(--accent-warning)"); if(scannerActivo) toggleScanner(); return; }
             
-            database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ 
-                id, 
-                nombre: db.personas[id].nombre, 
-                hora: new Date().toLocaleString(), 
-                fechaISO: hISO, 
-                tipo, 
-                lejano: esLejano, 
-                distanciaMetros: esLejano ? Math.round(dist) : 0, 
-                emocion: strEmocion, 
-                emoticon 
-            });
+            // CORREGIDO: Usar la ruta correcta para marcas
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo, lejano: esLejano, distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon });
             playSuccessSound();
 
             const res = document.getElementById('resBox'); res.style.display = 'block'; res.style.background = tipo === "ENTRADA" ? "rgba(0, 255, 136, 0.1)" : "rgba(255, 68, 68, 0.1)";
@@ -1414,6 +1400,7 @@
                 const isP = pres.includes(id); const tieneRostroEst = p.descriptor && p.descriptor.length === 128;
                 let tipoUserHtml = `<span class="status-badge" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border-light);">${p.tipoUsuario || 'Estudiante'}</span>`;
 
+                // Formatear número de teléfono para mostrarlo de forma consistente
                 const telefonoFormateado = p.telefono ? 
                     p.telefono.replace(/\D/g, '').replace(/(\d{4})(\d{4})/, '$1-$2') : '';
 
@@ -1444,42 +1431,17 @@
             const tbody = document.getElementById('tablaLogsLejanos'); tbody.innerHTML = "";
             if (logsLejanosGlobal.length === 0) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color: var(--text-muted);'>No hay reportes de escaneos lejanos.</td></tr>"; return; }
             logsLejanosGlobal.slice().reverse().forEach(log => {
-                tbody.insertAdjacentHTML('beforeend', `
-                    <tr>
-                        <td>${log.hora}</td>
-                        <td><b>${log.id}</b></td>
-                        <td>${log.nombre}</td>
-                        <td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td>
-                        <td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td>
-                        <td class="no-print">
-                            <div style="display:flex; gap: 5px;">
-                                <button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button>
-                                <button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="eliminarLogLejano('${log.key}')">🗑️ Eliminar</button>
-                            </div>
-                        </td>
-                    </tr>
-                `);
+                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
             });
         }
 
-        // Corrige y elimina de forma directa un registro de escaneo lejano por su Key de Firebase
-        function eliminarLogLejano(key) {
-            if (confirm("¿Está seguro de eliminar permanentemente este registro del historial lejano?")) {
-                database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + key).remove()
-                    .then(() => {
-                        alert("Registro eliminado exitosamente.");
-                    })
-                    .catch((err) => {
-                        alert("Error al eliminar el registro: " + err.message);
-                    });
-            }
-        }
-
+        // Función para enviar WhatsApp con número formateado
         function enviarWA(tel) { 
             if(!tel || tel==='') { 
                 alert("Sin número."); 
                 return;
             } 
+            // Limpiar y formatear el número
             const numeroLimpio = tel.replace(/\D/g,'');
             window.open(`https://wa.me/506${numeroLimpio}`, '_blank'); 
         }
@@ -1487,6 +1449,7 @@
         function editarNumeroJunta() { 
             let n = prompt("Número de contacto general:", NUMERO_OFICIAL_JUNTA); 
             if(n) { 
+                // Limpiar y validar el número
                 const numeroLimpio = n.replace(/\D/g, '');
                 if (numeroLimpio.length === 8) {
                     database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').set(numeroLimpio); 
@@ -1498,21 +1461,25 @@
             } 
         }
         
+        // CORREGIDO: Usar la ruta correcta según las reglas
         function sincronizarConNube() { 
             database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas); 
             alert("Datos guardados en la partición de la escuela."); 
             lastSyncTime = new Date();
         }
         
+        // Modificación en la función de guardar configuración geográfica
         function guardarConfigGeo() {
+            // Solo permitir modificar el radio, no las coordenadas (que se obtienen automáticamente)
             const radio = parseInt(document.getElementById('geoRadio').value);
             const mapsUrl = document.getElementById('geoMapsUrl').value.trim();
             
             if (isNaN(radio) || radio <= 0) {
-                alert("Radio de exclusión inválido. Debe ser un número de metros positivo.");
+                alert("Radio inválido. Debe ser un número positivo.");
                 return;
             }
             
+            // Usar las coordenadas actuales del sistema si están disponibles
             let lat = geoConfig.lat;
             let lng = geoConfig.lng;
             
@@ -1525,15 +1492,16 @@
             }
             
             if (isNaN(lat) || isNaN(lng)) {
-                alert("Coordenadas no válidas. Por favor, espere a obtener su ubicación GPS de alta precisión.");
+                alert("Coordenadas inválidas. Por favor obtenga la ubicación actual.");
                 return;
             }
             
             geoConfig = { lat, lng, radio, mapsUrl };
             database.ref('tenants/' + TENANT_ID + '/config/geocerca').set(geoConfig);
-            alert("Configuración de geocerca (en metros) guardada en su escuela.");
+            alert("Ubicación configurada en la partición de la escuela.");
         }
 
+        // Función para refrescar la geocerca
         function refrescarGeocerca() {
             database.ref('tenants/' + TENANT_ID + '/config/geocerca').once('value', (s) => {
                 if(s.val()) { 
@@ -1548,6 +1516,7 @@
             });
         }
 
+        // CORREGIDO: Usar la ruta correcta para borrar todos los datos
         function mostrarConfirmacionBorrar() { 
             if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos DE ESTA ESCUELA?\n\nPresione OK para confirmar.')) { 
                 database.ref('escuelas_data/' + TENANT_ID + '/personas').remove(); 
@@ -1560,6 +1529,7 @@
         function justificarAusencia(id, nombre) {
             const hISO = document.getElementById('reportDate').value;
             if(confirm(`¿Desea justificar la ausencia de ${nombre}?`)) {
+                // CORREGIDO: Usar la ruta correcta para marcas
                 database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
                 alert('Ausencia justificada.');
             }
@@ -1568,6 +1538,7 @@
         function borrarHistorialDia() { 
             const hISO = document.getElementById('reportDate').value; 
             logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => 
+                // CORREGIDO: Usar la ruta correcta para borrar marcas
                 database.ref('escuelas_data/' + TENANT_ID + '/marcas/' + l.key).remove()
             ); 
             alert('Registros del día eliminados.'); 
@@ -1580,6 +1551,7 @@
             document.getElementById('parentStudentPuesto').innerText = (p.tipoUsuario || "Perfil") + " / " + (p.puesto || "N/A");
             document.getElementById('btnConsultaWA').onclick = () => { const mensaje = encodeURIComponent(`Hola, quisiera realizar una consulta sobre el usuario: ${p.nombre}`); window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${mensaje}`, '_blank'); };
             
+            // CORREGIDO: Usar la ruta correcta para consultar marcas
             database.ref('escuelas_data/' + TENANT_ID + '/marcas').orderByChild('id').equalTo(id).once('value', (s) => {
                 const list = document.getElementById('parentLogList'); list.innerHTML = "";
                 if(s.exists()){ s.forEach(c => { let l=c.val(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(${l.distanciaMetros}m)</span>` : ""; let statusColor = l.tipo === 'ENTRADA' ? '#00ff88' : (l.tipo === 'SALIDA' ? '#ff4444' : '#ffb800'); list.innerHTML = `<div style="padding:10px; border-bottom:1px solid #3a4560;"><span>${l.hora}</span> - <b style="color:${statusColor}">${l.tipo}</b>${alertTag}</div>` + list.innerHTML; }); }
@@ -1588,41 +1560,44 @@
             });
         }
 
-        // Almacenamiento seguro del fondo oficial por cada Tenant en Firebase Storage
+        // Resto de utilidades de UI intactas...
         function procesarSubidaFondo(event) { 
             const file = event.target.files[0]; 
             if (!file) return; 
             
+            // Guardar en Firebase Storage
             const storageRef = storage.ref();
             const fondoRef = storageRef.child(`${TENANT_ID}/fondo.jpg`);
             
             fondoRef.put(file).then((snapshot) => {
                 return snapshot.ref.getDownloadURL();
             }).then((downloadURL) => {
+                // Guardar URL en Firebase Database
                 database.ref('tenants/' + TENANT_ID + '/config/customBg').set(downloadURL);
                 document.body.style.backgroundImage = `url(${downloadURL})`;
-                localStorage.setItem('CUSTOM_BG_' + TENANT_ID, downloadURL);
-                alert('Fondo de pantalla guardado en el perfil de su escuela.');
+                localStorage.setItem('CUSTOM_BG', downloadURL);
+                alert('Fondo actualizado y guardado en la base de datos.');
             }).catch((error) => {
-                alert('Error al subir fondo: ' + error.message);
+                alert('Error al subir el fondo: ' + error.message);
             });
         }
         
-        // Almacenamiento seguro del logo oficial por cada Tenant en Firebase Storage
         function procesarSubidaLogo(event) { 
             const file = event.target.files[0]; 
             if (!file) return; 
             
+            // Guardar en Firebase Storage
             const storageRef = storage.ref();
             const logoRef = storageRef.child(`${TENANT_ID}/logo.png`);
             
             logoRef.put(file).then((snapshot) => {
                 return snapshot.ref.getDownloadURL();
             }).then((downloadURL) => {
+                // Guardar URL en Firebase Database
                 database.ref('tenants/' + TENANT_ID + '/config/customLogo').set(downloadURL);
-                localStorage.setItem('CUSTOM_LOGO_' + TENANT_ID, downloadURL);
+                localStorage.setItem('CUSTOM_LOGO', downloadURL);
                 cargarLogoPersonalizado();
-                alert('Logo del centro cargado y sincronizado.');
+                alert('Logo actualizado y guardado en la base de datos.');
             }).catch((error) => {
                 alert('Error al subir el logo: ' + error.message);
             });
@@ -1665,6 +1640,7 @@
             } 
         }
         
+        // FUNCIÓN ACTUALIZADA PARA IMPORTAR CSV Y GUARDAR AUTOMÁTICAMENTE EN FIREBASE
         function importarCSV() { 
             const f = document.getElementById('csvFile').files[0]; 
             if (!f) {
@@ -1690,6 +1666,7 @@
                     } 
                 }); 
                 
+                // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
                 database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas)
                     .then(() => {
                         renderAlumnos(); 
@@ -1787,7 +1764,6 @@
         function cerrarMaster() { 
             document.getElementById('master-panel').style.display = 'none'; 
             detenerCamaras(); 
-            detenerSeguimientoUbicacion(); // Detiene el consumo de bateria de tracking continuo de GPS
             resetIdleTimer(); 
         }
         
@@ -1893,18 +1869,17 @@
             alert("SISTEMA DE ASISTENCIA\n\n1. Asegúrate de estar dentro del rango.\n2. Presiona Iniciar Escáner.\n3. Mire a la cámara."); 
         }
 
-        // ===========================================================
-        // SECCIÓN GEOLOCALIZACIÓN Y SEGUIMIENTO ACTIVO DE ALTA PRECISIÓN
-        // ===========================================================
+        // Funciones para geolocalización mejorada
+        // Función para obtener ubicación con alta precisión
         function obtenerUbicacionActual() {
             if (!navigator.geolocation) {
-                alert("Geolocalización no soportada en este navegador.");
+                alert("Geolocalización no soportada en este navegador");
                 return;
             }
 
             const opciones = {
                 enableHighAccuracy: true,
-                timeout: 12000,
+                timeout: 10000,
                 maximumAge: 0
             };
 
@@ -1921,7 +1896,7 @@
                     document.getElementById('geoLng').value = ubicacionActual.lng.toFixed(6);
                     
                     actualizarDisplayUbicacion();
-                    alert(`Ubicación GPS obtenida con éxito. Precisión actual: ${ubicacionActual.accuracy.toFixed(1)} metros.`);
+                    alert(`Ubicación obtenida con precisión de ${ubicacionActual.accuracy} metros`);
                 },
                 (error) => {
                     manejarErrorGeolocalizacion(error);
@@ -1930,17 +1905,12 @@
             );
         }
 
+        // Función para iniciar seguimiento continuo de ubicación
         function iniciarSeguimientoUbicacion() {
-            if (!navigator.geolocation) {
-                alert("Geolocalización no soportada.");
-                return;
-            }
-
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
             }
 
-            // Opciones estrictas para garantizar coordenadas reales en tiempo real
             const opciones = {
                 enableHighAccuracy: true,
                 timeout: 5000,
@@ -1956,10 +1926,10 @@
                         timestamp: new Date()
                     };
 
-                    // Filtrado de cambio de distancia física para evitar re-renderizados innecesarios
+                    // Solo actualizar si hay un cambio significativo
                     if (!ultimaUbicacion || 
                         calcularDistancia(ultimaUbicacion.lat, ultimaUbicacion.lng, 
-                                        nuevaUbicacion.lat, nuevaUbicacion.lng) >= distanciaMinima) {
+                                        nuevaUbicacion.lat, nuevaUbicacion.lng) > distanciaMinima) {
                         
                         ubicacionActual = nuevaUbicacion;
                         ultimaUbicacion = nuevaUbicacion;
@@ -1972,90 +1942,97 @@
                 opciones
             );
 
-            console.log("Tracking GPS de precisión iniciado.");
+            alert("Seguimiento de ubicación iniciado");
         }
 
+        // Función para detener seguimiento
         function detenerSeguimientoUbicacion() {
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
                 watchId = null;
-                document.getElementById('ubicacionTiempoReal').innerHTML = "Seguimiento satelital en espera.";
-                alert("Seguimiento de ubicación detenido.");
+                document.getElementById('ubicacionTiempoReal').innerHTML = "Seguimiento detenido";
+                alert("Seguimiento de ubicación detenido");
             }
         }
 
+        // Función para actualizar display de ubicación
         function actualizarDisplayUbicacion() {
             if (!ubicacionActual) return;
 
             const html = `
-                <div style="margin: 10px 0; background: rgba(0, 217, 255, 0.05); border: 1px solid var(--border-subtle); padding: 12px; border-radius: var(--radius-md);">
-                    <p><strong>Latitud GPS:</strong> ${ubicacionActual.lat.toFixed(6)}</p>
-                    <p><strong>Longitud GPS:</strong> ${ubicacionActual.lng.toFixed(6)}</p>
-                    <p><strong>Precisión del sensor:</strong> ± ${ubicacionActual.accuracy.toFixed(1)} metros</p>
-                    <p><strong>Última Sincronización:</strong> ${ubicacionActual.timestamp.toLocaleTimeString()}</p>
+                <div style="margin: 10px 0;">
+                    <p><strong>Latitud:</strong> ${ubicacionActual.lat.toFixed(6)}</p>
+                    <p><strong>Longitud:</strong> ${ubicacionActual.lng.toFixed(6)}</p>
+                    <p><strong>Precisión:</strong> ${ubicacionActual.accuracy.toFixed(2)} metros</p>
+                    <p><strong>Última actualización:</strong> ${ubicacionActual.timestamp.toLocaleTimeString()}</p>
                 </div>
             `;
             
             document.getElementById('ubicacionTiempoReal').innerHTML = html;
         }
 
+        // Manejo de errores de geolocalización
         function manejarErrorGeolocalizacion(error) {
             let mensaje = "";
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    mensaje = "Permiso de geolocalización denegado.";
+                    mensaje = "Permiso de geolocalización denegado";
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    mensaje = "La señal GPS no está disponible o la precisión es deficiente.";
+                    mensaje = "Información de ubicación no disponible";
                     break;
                 case error.TIMEOUT:
-                    mensaje = "Tiempo de espera agotado al conectar con satélites.";
+                    mensaje = "Tiempo de espera agotado para obtener ubicación";
                     break;
                 case error.UNKNOWN_ERROR:
-                    mensaje = "Error de GPS desconocido.";
+                    mensaje = "Error desconocido en geolocalización";
                     break;
             }
-            console.warn("GPS Warning: " + mensaje);
+            alert("Error de geolocalización: " + mensaje);
         }
 
+        // Función para actualizar la vista previa del mapa
         function actualizarVistaPreviaMapa() {
             const mapsUrl = document.getElementById('geoMapsUrl').value.trim();
             const mapPreview = document.getElementById('mapPreview');
             
             if (mapsUrl) {
+                // Extraer coordenadas de la URL de Google Maps
                 const match = mapsUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
                 if (match) {
                     const lat = match[1];
                     const lng = match[2];
                     mapPreview.innerHTML = `<iframe src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1000!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1ses!2s!4v1234567890123!5m2!1ses!2s" allowfullscreen="" loading="lazy"></iframe>`;
                 } else {
-                    mapPreview.innerHTML = `<span>URL de Google Maps no procesable</span>`;
+                    mapPreview.innerHTML = `<span>URL de Google Maps inválida</span>`;
                 }
             } else {
-                mapPreview.innerHTML = `<span>Vista previa del mapa del centro educativo</span>`;
+                mapPreview.innerHTML = `<span>Vista previa del mapa</span>`;
             }
         }
 
+        // Evento para actualizar vista previa cuando cambia la URL
         document.getElementById('geoMapsUrl').addEventListener('input', actualizarVistaPreviaMapa);
 
+        // Limpiar seguimiento al cerrar la aplicación
         window.addEventListener('beforeunload', function() {
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
             }
         });
 
-        // Sincronización periódica automática
+        // Función para sincronización automática periódica
         function iniciarSincronizacionAutomatica() {
             setInterval(() => {
                 if (connectionStatus && document.getElementById('master-panel').style.display === 'block') {
                     sincronizarConNube();
                 }
-            }, 45000); // Sincroniza cada 45 segundos
+            }, 30000); // Cada 30 segundos
         }
 
+        // Iniciar sincronización automática
         iniciarSincronizacionAutomatica();
 
-        // Inicializar interfaz limpia
         mostrarVista('home-view'); 
         resetIdleTimer();
         actualizarEstadoConexion(navigator.onLine);
