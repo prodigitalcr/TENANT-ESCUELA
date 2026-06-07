@@ -11,6 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     
     <!-- Face-API.js (Reconocimiento Facial) -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -177,12 +178,12 @@
         /* -----------------------------------------------------------
            INPUTS Y BOTONES
            ----------------------------------------------------------- */
-        input[type="text"], input[type="email"], input[type="date"], input[type="password"], input[type="number"], select {
+        input[type="text"], input[type="email"], input[type="date"], input[type="password"], input[type="number"], select, textarea {
             width: 100%; padding: 12px 16px; font-size: 0.95rem; background: var(--bg-hover);
             border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary);
             outline: none; transition: all var(--transition-fast); margin-bottom: 15px; box-sizing: border-box;
         }
-        input:focus, select:focus { border-color: var(--accent-primary); background: rgba(0, 217, 255, 0.05); }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent-primary); background: rgba(0, 217, 255, 0.05); }
 
         .btn {
             padding: 11px 20px; border: 1px solid transparent; border-radius: var(--radius-md);
@@ -319,6 +320,46 @@
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+
+        /* Estilos adicionales para geocerca */
+        .map-preview {
+            width: 100%;
+            height: 200px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            margin-top: 10px;
+            background: var(--bg-hover);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .map-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: var(--radius-md);
+        }
+
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: var(--radius-md);
+            font-size: 0.8rem;
+            font-weight: bold;
+            z-index: 1000;
+            background: var(--accent-success);
+            color: var(--bg-dark);
+            box-shadow: var(--shadow-md);
+        }
+
+        .connection-status.offline {
+            background: var(--accent-danger);
+            color: white;
         }
     </style>
 </head>
@@ -576,8 +617,21 @@
                         <input type="number" id="geoRadio" value="150">
                     </div>
                 </div>
-                <button class="btn btn-i" style="margin-top: 15px;" onclick="obtenerUbicacionActual()">📡 Obtener Ubicación Actual</button>
-                <button class="btn btn-s" style="margin-top: 15px; margin-left: 10px;" onclick="guardarConfigGeo()">💾 Guardar Geocerca</button>
+                
+                <div style="margin-top: 15px;">
+                    <label style="font-weight: bold; color: var(--text-primary);">URL de Google Maps:</label>
+                    <textarea id="geoMapsUrl" placeholder="Pegue aquí la URL de Google Maps del centro educativo" rows="2" style="resize: vertical;"></textarea>
+                </div>
+                
+                <div class="map-preview" id="mapPreview">
+                    <span>Vista previa del mapa</span>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn btn-i" onclick="obtenerUbicacionActual()">📡 Obtener Ubicación Actual</button>
+                    <button class="btn btn-s" onclick="guardarConfigGeo()">💾 Guardar Geocerca</button>
+                    <button class="btn btn-m" onclick="refrescarGeocerca()">🔄 Refrescar</button>
+                </div>
             </div>
 
             <!-- Sección para mostrar ubicación en tiempo real -->
@@ -586,8 +640,10 @@
                 <div id="ubicacionTiempoReal" style="font-size: 0.9rem; color: var(--text-secondary);">
                     Esperando ubicación...
                 </div>
-                <button class="btn btn-m" style="margin-top: 10px;" onclick="iniciarSeguimientoUbicacion()">🔄 Seguimiento Continuo</button>
-                <button class="btn btn-d" style="margin-top: 10px; margin-left: 10px;" onclick="detenerSeguimientoUbicacion()">⏹ Detener Seguimiento</button>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn btn-m" onclick="iniciarSeguimientoUbicacion()">🔄 Seguimiento Continuo</button>
+                    <button class="btn btn-d" onclick="detenerSeguimientoUbicacion()">⏹ Detener Seguimiento</button>
+                </div>
             </div>
 
             <h2 style="color:var(--accent-primary); margin: 25px 0 10px 0;">🌍 Historial de Escaneos Lejanos Detectados (Rechazados)</h2>
@@ -642,6 +698,9 @@
         </div>
     </div>
 
+    <!-- INDICADOR DE CONEXIÓN -->
+    <div id="connectionStatus" class="connection-status">Conectado</div>
+
     <script>
         // ===========================================================
         // CONFIGURACIÓN FIREBASE (Con tus credenciales y reglas)
@@ -661,6 +720,7 @@
         
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        const storage = firebase.storage();
 
         // -----------------------------------------------------------
         // 1️⃣ IDENTIFICADOR DEL TENANT (dinámico por URL o subdominio)
@@ -771,13 +831,17 @@
         let logsLejanosGlobal = [];
 
         // Parámetros geocerca por defecto
-        let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 150 };
+        let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 150, mapsUrl: "" };
 
         // Nuevas variables globales para seguimiento de ubicación
         let watchId = null;
         let ubicacionActual = null;
         let ultimaUbicacion = null;
         let distanciaMinima = 5; // metros
+
+        // Variables para manejo de conexión
+        let connectionStatus = true;
+        let lastSyncTime = null;
 
         document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
         
@@ -787,14 +851,38 @@
         // const dbTenantRoot = 'escuelas_data/' + TENANT_ID; // REEMPLAZADO POR ARQUITECTURA PLANA
 
         // Listener Config - Aislado
-        database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', (s) => { if(s.val()) NUMERO_OFICIAL_JUNTA = s.val(); });
+        database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', (s) => { 
+            if(s.val()) {
+                NUMERO_OFICIAL_JUNTA = s.val(); 
+            }
+        });
+        
         database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', (s) => { 
             if(s.val()) { 
                 geoConfig = s.val(); 
                 document.getElementById('geoLat').value = geoConfig.lat;
                 document.getElementById('geoLng').value = geoConfig.lng;
                 document.getElementById('geoRadio').value = geoConfig.radio;
+                document.getElementById('geoMapsUrl').value = geoConfig.mapsUrl || "";
+                actualizarVistaPreviaMapa();
             } 
+        });
+
+        // Cargar configuración de fondo y logo desde Firebase
+        database.ref('tenants/' + TENANT_ID + '/config/customBg').on('value', (s) => {
+            const bgUrl = s.val();
+            if (bgUrl) {
+                document.body.style.backgroundImage = `url(${bgUrl})`;
+                localStorage.setItem('CUSTOM_BG', bgUrl);
+            }
+        });
+        
+        database.ref('tenants/' + TENANT_ID + '/config/customLogo').on('value', (s) => {
+            const logoUrl = s.val();
+            if (logoUrl) {
+                localStorage.setItem('CUSTOM_LOGO', logoUrl);
+                cargarLogoPersonalizado();
+            }
         });
 
         if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-theme'); }
@@ -836,6 +924,27 @@
             renderGeolocalizacion();
         });
 
+        // ===========================================================
+        // MONITOREO DE CONEXIÓN
+        // ===========================================================
+        function actualizarEstadoConexion(estado) {
+            connectionStatus = estado;
+            const statusElement = document.getElementById('connectionStatus');
+            if (statusElement) {
+                statusElement.className = estado ? 'connection-status' : 'connection-status offline';
+                statusElement.textContent = estado ? 'Conectado' : 'Desconectado';
+            }
+        }
+
+        // Monitoreo de conexión
+        window.addEventListener('online', () => {
+            actualizarEstadoConexion(true);
+            sincronizarConNube();
+        });
+        
+        window.addEventListener('offline', () => {
+            actualizarEstadoConexion(false);
+        });
 
         // ===========================================================
         // SISTEMA DE INICIO DE SESIÓN SEGURO
@@ -1356,12 +1465,14 @@
         function sincronizarConNube() { 
             database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas); 
             alert("Datos guardados en la partición de la escuela."); 
+            lastSyncTime = new Date();
         }
         
         // Modificación en la función de guardar configuración geográfica
         function guardarConfigGeo() {
             // Solo permitir modificar el radio, no las coordenadas (que se obtienen automáticamente)
             const radio = parseInt(document.getElementById('geoRadio').value);
+            const mapsUrl = document.getElementById('geoMapsUrl').value.trim();
             
             if (isNaN(radio) || radio <= 0) {
                 alert("Radio inválido. Debe ser un número positivo.");
@@ -1385,9 +1496,24 @@
                 return;
             }
             
-            geoConfig = { lat, lng, radio };
+            geoConfig = { lat, lng, radio, mapsUrl };
             database.ref('tenants/' + TENANT_ID + '/config/geocerca').set(geoConfig);
             alert("Ubicación configurada en la partición de la escuela.");
+        }
+
+        // Función para refrescar la geocerca
+        function refrescarGeocerca() {
+            database.ref('tenants/' + TENANT_ID + '/config/geocerca').once('value', (s) => {
+                if(s.val()) { 
+                    geoConfig = s.val(); 
+                    document.getElementById('geoLat').value = geoConfig.lat;
+                    document.getElementById('geoLng').value = geoConfig.lng;
+                    document.getElementById('geoRadio').value = geoConfig.radio;
+                    document.getElementById('geoMapsUrl').value = geoConfig.mapsUrl || "";
+                    actualizarVistaPreviaMapa();
+                    alert("Geocerca actualizada desde la base de datos.");
+                }
+            });
         }
 
         // CORREGIDO: Usar la ruta correcta para borrar todos los datos
@@ -1435,12 +1561,84 @@
         }
 
         // Resto de utilidades de UI intactas...
-        function procesarSubidaFondo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxW = 1920; if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/jpeg', 0.6); try { localStorage.setItem('CUSTOM_BG', dataUrl); document.body.style.backgroundImage = `url(${dataUrl})`; alert('Fondo actualizado localmente.'); } catch(err) { alert('Imagen muy pesada.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
-        function procesarSubidaLogo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxH = 200; if(h > maxH) { w = Math.round(w * maxH / h); h = maxH; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/png', 0.8); try { localStorage.setItem('CUSTOM_LOGO', dataUrl); cargarLogoPersonalizado(); alert('Logo actualizado.'); } catch(err) { alert('Imagen excede límite.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
-        function mostrarEstadisticas() { const total = Object.keys(db.personas).length; const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE') || coincideFecha(l.hora, new Date().toLocaleDateString('sv-SE')))).length; alert(`ESTADÍSTICAS DEL DÍA:\nTotal Registrados: ${total}\nPresentes (Entradas): ${presentes}\nAusentes: ${total - presentes}\nAsistencia: ${total>0?((presentes/total)*100).toFixed(1):0}%`); }
-        function mostrarConfiguracion() { let configDiv = document.createElement('div'); configDiv.innerHTML = `<div><button class="btn btn-m" onclick="setTheme('dark')">Modo Oscuro</button> <button class="btn btn-s" onclick="setTheme('light')">Modo Claro</button></div>`; let win = window.open('', 'Configuración', 'width=400,height=300'); win.document.write(`<html><head><title>Configuración</title><style>body{padding:20px}.btn{padding:8px 12px;cursor:pointer}</style></head><body>${configDiv.innerHTML}<script>function setTheme(theme) { window.opener.setSystemTheme(theme); window.close(); }<\/script></body></html>`); win.document.close(); }
-        function setSystemTheme(theme) { if (theme === 'light') { document.body.classList.add('light-theme'); localStorage.setItem('theme', 'light'); } else { document.body.classList.remove('light-theme'); localStorage.setItem('theme', 'dark'); } }
-        function agregarMiembroManual() { const id = prompt("Cédula/Código nuevo:"); if(id) { db.personas[id] = { nombre: prompt("Nombre Completo:"), puesto: prompt("Sección:"), telefono: prompt("WhatsApp:"), tipoUsuario: 'Estudiante' }; renderAlumnos(); } }
+        function procesarSubidaFondo(event) { 
+            const file = event.target.files[0]; 
+            if (!file) return; 
+            
+            // Guardar en Firebase Storage
+            const storageRef = storage.ref();
+            const fondoRef = storageRef.child(`${TENANT_ID}/fondo.jpg`);
+            
+            fondoRef.put(file).then((snapshot) => {
+                return snapshot.ref.getDownloadURL();
+            }).then((downloadURL) => {
+                // Guardar URL en Firebase Database
+                database.ref('tenants/' + TENANT_ID + '/config/customBg').set(downloadURL);
+                document.body.style.backgroundImage = `url(${downloadURL})`;
+                localStorage.setItem('CUSTOM_BG', downloadURL);
+                alert('Fondo actualizado y guardado en la base de datos.');
+            }).catch((error) => {
+                alert('Error al subir el fondo: ' + error.message);
+            });
+        }
+        
+        function procesarSubidaLogo(event) { 
+            const file = event.target.files[0]; 
+            if (!file) return; 
+            
+            // Guardar en Firebase Storage
+            const storageRef = storage.ref();
+            const logoRef = storageRef.child(`${TENANT_ID}/logo.png`);
+            
+            logoRef.put(file).then((snapshot) => {
+                return snapshot.ref.getDownloadURL();
+            }).then((downloadURL) => {
+                // Guardar URL en Firebase Database
+                database.ref('tenants/' + TENANT_ID + '/config/customLogo').set(downloadURL);
+                localStorage.setItem('CUSTOM_LOGO', downloadURL);
+                cargarLogoPersonalizado();
+                alert('Logo actualizado y guardado en la base de datos.');
+            }).catch((error) => {
+                alert('Error al subir el logo: ' + error.message);
+            });
+        }
+        
+        function mostrarEstadisticas() { 
+            const total = Object.keys(db.personas).length; 
+            const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE') || coincideFecha(l.hora, new Date().toLocaleDateString('sv-SE')))).length; 
+            alert(`ESTADÍSTICAS DEL DÍA:\nTotal Registrados: ${total}\nPresentes (Entradas): ${presentes}\nAusentes: ${total - presentes}\nAsistencia: ${total>0?((presentes/total)*100).toFixed(1):0}%`); 
+        }
+        
+        function mostrarConfiguracion() { 
+            let configDiv = document.createElement('div'); 
+            configDiv.innerHTML = `<div><button class="btn btn-m" onclick="setTheme('dark')">Modo Oscuro</button> <button class="btn btn-s" onclick="setTheme('light')">Modo Claro</button></div>`; 
+            let win = window.open('', 'Configuración', 'width=400,height=300'); 
+            win.document.write(`<html><head><title>Configuración</title><style>body{padding:20px}.btn{padding:8px 12px;cursor:pointer}</style></head><body>${configDiv.innerHTML}<script>function setTheme(theme) { window.opener.setSystemTheme(theme); window.close(); }<\/script></body></html>`); 
+            win.document.close(); 
+        }
+        
+        function setSystemTheme(theme) { 
+            if (theme === 'light') { 
+                document.body.classList.add('light-theme'); 
+                localStorage.setItem('theme', 'light'); 
+            } else { 
+                document.body.classList.remove('light-theme'); 
+                localStorage.setItem('theme', 'dark'); 
+            } 
+        }
+        
+        function agregarMiembroManual() { 
+            const id = prompt("Cédula/Código nuevo:"); 
+            if(id) { 
+                db.personas[id] = { 
+                    nombre: prompt("Nombre Completo:"), 
+                    puesto: prompt("Sección:"), 
+                    telefono: prompt("WhatsApp:"), 
+                    tipoUsuario: 'Estudiante' 
+                }; 
+                renderAlumnos(); 
+            } 
+        }
         
         // FUNCIÓN ACTUALIZADA PARA IMPORTAR CSV Y GUARDAR AUTOMÁTICAMENTE EN FIREBASE
         function importarCSV() { 
@@ -1481,42 +1679,195 @@
             r.readAsText(f); 
         }
         
-        function exportarCSV() { let csv = 'Código,Nombre,Sección,WhatsApp,Rol\n'; Object.entries(db.personas).forEach(([id, p]) => { csv += `${id},${p.nombre},${p.puesto || ''},${p.telefono || ''},${p.tipoUsuario || 'Estudiante'}\n`; }); const link = document.createElement('a'); link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); link.download = `Usuarios.csv`; link.click(); }
-        function exportarPDFMiembros() { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text("Lista de Usuarios", 14, 20); const bodyData = []; Object.entries(db.personas).forEach(([id, p]) => { let rostrosStatus = p.descriptor ? 'Sí' : 'No'; bodyData.push([id, p.tipoUsuario, p.nombre, p.puesto, p.telefono, rostrosStatus]); }); doc.autoTable({ head: [['Código', 'Rol', 'Nombre', 'Sección', 'WhatsApp', 'IA']], body: bodyData, startY: 30, theme: 'grid' }); doc.save(`Usuarios.pdf`); }
-        function duplicarMiembro() { const id = prompt('Código a duplicar:'); if(id && db.personas[id]) { const newId = prompt('Nuevo código:'); if(newId) { db.personas[newId] = {...db.personas[id]}; renderAlumnos(); alert('Duplicado'); } } }
-        function enviarWA_Ausente(tel, nombre) { if(!tel || tel==='') { alert("Sin número."); return;} const msj = encodeURIComponent(`Hola, le informamos que ${nombre} está ausente hoy.`); window.open(`https://wa.me/506${tel.replace(/\D/g,'')}?text=${msj}`, '_blank'); }
-        function descargarCarnet(id) { const p = db.personas[id]; const win = window.open('','',`width=350,height=500`); win.document.write(`<html><head><style>body{font-family:sans-serif;background:#0a0e27;color:#e8eef5;margin:0;padding:0;display:flex;align-items:center;justify-content:center;height:100vh;}.card{width:280px;height:420px;background:#1a1f3a;border-radius:12px;padding:20px;text-align:center}</style></head><body><div class="card"><h3>${p.nombre}</h3><div id="q"></div></div><script>new QRCode(document.getElementById("q"),{text:"${id}",width:130,height:130});setTimeout(()=>window.print(),800);<\/script></body></html>`); win.document.close(); }
-        function imprimirTodosLosCarnets() { const win = window.open('',''); win.document.write(`<html><body>`); Object.entries(db.personas).forEach(([id,p]) => { win.document.write(`<div style="display:inline-block;border:1px solid #000;margin:10px;padding:10px;"><div id="qr-${id}"></div><br>${p.nombre}</div>`); }); win.document.write(`<script>${Object.keys(db.personas).map(id => `new QRCode(document.getElementById("qr-${id}"),{text:"${id}",width:100,height:100});`).join('\n')} setTimeout(()=>window.print(),1500);<\/script></body></html>`); win.document.close(); }
+        function exportarCSV() { 
+            let csv = 'Código,Nombre,Sección,WhatsApp,Rol\n'; 
+            Object.entries(db.personas).forEach(([id, p]) => { 
+                csv += `${id},${p.nombre},${p.puesto || ''},${p.telefono || ''},${p.tipoUsuario || 'Estudiante'}\n`; 
+            }); 
+            const link = document.createElement('a'); 
+            link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); 
+            link.download = `Usuarios.csv`; 
+            link.click(); 
+        }
         
-        function mostrarVista(id) { document.getElementById('home-view').style.display = (id==='home-view')?'flex':'none'; document.getElementById('scan-view').style.display = (id==='scan-view')?'flex':'none'; document.getElementById('parent-view').style.display = (id==='parent-view')?'flex':'none'; document.getElementById('register-view').style.display = (id==='register-view')?'flex':'none'; if(id!=='scan-view' && scannerActivo) toggleScanner(); if(id!=='parent-view' && queryScannerActivo) toggleQueryScanner(); if(id!=='register-view' && regStream) { regStream.getTracks().forEach(t => t.stop()); regStream = null; document.getElementById('reg-cam-container').classList.remove('active', 'scanning'); } resetIdleTimer(); }
-        function cerrarMaster() { document.getElementById('master-panel').style.display = 'none'; detenerCamaras(); resetIdleTimer(); }
-        function cerrarVistaProtegida(id) { document.getElementById(id).style.display = 'none'; mostrarVista('home-view'); detenerCamaras(); }
-        function cambiarTab(n) { document.getElementById('sec-alumnos').style.display = (n===1)?'block':'none'; document.getElementById('sec-reporte').style.display = (n===2)?'block':'none'; document.getElementById('sec-geolocalizacion').style.display = (n===3)?'block':'none'; document.getElementById('tab1').className = (n===1)?'tab-btn active':'tab-btn'; document.getElementById('tab2').className = (n===2)?'tab-btn active':'tab-btn'; document.getElementById('tab3').className = (n===3)?'tab-btn active':'tab-btn'; }
-        function filtrarRapido() { let f = document.getElementById('busqueda').value.toUpperCase(); let rows = document.getElementById("tablaAlumnos").getElementsByTagName("tr"); for (let i = 0; i < rows.length; i++) { rows[i].style.display = (rows[i].textContent.toUpperCase().indexOf(f) > -1) ? "" : "none"; } }
-        function consultarPadre() { const id = document.getElementById('parentInput').value.trim(); ejecutarConsultaIdDirecta(id); }
-        function limpiarConsultaPadres() { document.getElementById('parentResult').style.display='none'; document.getElementById('parentInput').value=''; if(queryScannerActivo) toggleQueryScanner(); }
-        function coincideFecha(horaLog, fechaInputISO) { if(!horaLog || !fechaInputISO) return false; let [y, m, d] = fechaInputISO.split('-'); m = parseInt(m).toString(); d = parseInt(d).toString(); return horaLog.includes(`${m}/${d}/${y}`) || horaLog.includes(`${m.padStart(2,'0')}/${d}/${y}`) || horaLog.includes(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`); }
+        function exportarPDFMiembros() { 
+            const { jsPDF } = window.jspdf; 
+            const doc = new jsPDF(); 
+            doc.text("Lista de Usuarios", 14, 20); 
+            const bodyData = []; 
+            Object.entries(db.personas).forEach(([id, p]) => { 
+                let rostrosStatus = p.descriptor ? 'Sí' : 'No'; 
+                bodyData.push([id, p.tipoUsuario, p.nombre, p.puesto, p.telefono, rostrosStatus]); 
+            }); 
+            doc.autoTable({ 
+                head: [['Código', 'Rol', 'Nombre', 'Sección', 'WhatsApp', 'IA']], 
+                body: bodyData, 
+                startY: 30, 
+                theme: 'grid' 
+            }); 
+            doc.save(`Usuarios.pdf`); 
+        }
+        
+        function duplicarMiembro() { 
+            const id = prompt('Código a duplicar:'); 
+            if(id && db.personas[id]) { 
+                const newId = prompt('Nuevo código:'); 
+                if(newId) { 
+                    db.personas[newId] = {...db.personas[id]}; 
+                    renderAlumnos(); 
+                    alert('Duplicado'); 
+                } 
+            } 
+        }
+        
+        function enviarWA_Ausente(tel, nombre) { 
+            if(!tel || tel==='') { 
+                alert("Sin número."); 
+                return;
+            } 
+            const msj = encodeURIComponent(`Hola, le informamos que ${nombre} está ausente hoy.`); 
+            window.open(`https://wa.me/506${tel.replace(/\D/g,'')}?text=${msj}`, '_blank'); 
+        }
+        
+        function descargarCarnet(id) { 
+            const p = db.personas[id]; 
+            const win = window.open('','',`width=350,height=500`); 
+            win.document.write(`<html><head><style>body{font-family:sans-serif;background:#0a0e27;color:#e8eef5;margin:0;padding:0;display:flex;align-items:center;justify-content:center;height:100vh;}.card{width:280px;height:420px;background:#1a1f3a;border-radius:12px;padding:20px;text-align:center}</style></head><body><div class="card"><h3>${p.nombre}</h3><div id="q"></div></div><script>new QRCode(document.getElementById("q"),{text:"${id}",width:130,height:130});setTimeout(()=>window.print(),800);<\/script></body></html>`); 
+            win.document.close(); 
+        }
+        
+        function imprimirTodosLosCarnets() { 
+            const win = window.open('',''); 
+            win.document.write(`<html><body>`); 
+            Object.entries(db.personas).forEach(([id,p]) => { 
+                win.document.write(`<div style="display:inline-block;border:1px solid #000;margin:10px;padding:10px;"><div id="qr-${id}"></div><br>${p.nombre}</div>`); 
+            }); 
+            win.document.write(`<script>${Object.keys(db.personas).map(id => `new QRCode(document.getElementById("qr-${id}"),{text:"${id}",width:100,height:100});`).join('\n')} setTimeout(()=>window.print(),1500);<\/script></body></html>`); 
+            win.document.close(); 
+        }
+        
+        function mostrarVista(id) { 
+            document.getElementById('home-view').style.display = (id==='home-view')?'flex':'none'; 
+            document.getElementById('scan-view').style.display = (id==='scan-view')?'flex':'none'; 
+            document.getElementById('parent-view').style.display = (id==='parent-view')?'flex':'none'; 
+            document.getElementById('register-view').style.display = (id==='register-view')?'flex':'none'; 
+            if(id!=='scan-view' && scannerActivo) toggleScanner(); 
+            if(id!=='parent-view' && queryScannerActivo) toggleQueryScanner(); 
+            if(id!=='register-view' && regStream) { 
+                regStream.getTracks().forEach(t => t.stop()); 
+                regStream = null; 
+                document.getElementById('reg-cam-container').classList.remove('active', 'scanning'); 
+            } 
+            resetIdleTimer(); 
+        }
+        
+        function cerrarMaster() { 
+            document.getElementById('master-panel').style.display = 'none'; 
+            detenerCamaras(); 
+            resetIdleTimer(); 
+        }
+        
+        function cerrarVistaProtegida(id) { 
+            document.getElementById(id).style.display = 'none'; 
+            mostrarVista('home-view'); 
+            detenerCamaras(); 
+        }
+        
+        function cambiarTab(n) { 
+            document.getElementById('sec-alumnos').style.display = (n===1)?'block':'none'; 
+            document.getElementById('sec-reporte').style.display = (n===2)?'block':'none'; 
+            document.getElementById('sec-geolocalizacion').style.display = (n===3)?'block':'none'; 
+            document.getElementById('tab1').className = (n===1)?'tab-btn active':'tab-btn'; 
+            document.getElementById('tab2').className = (n===2)?'tab-btn active':'tab-btn'; 
+            document.getElementById('tab3').className = (n===3)?'tab-btn active':'tab-btn'; 
+        }
+        
+        function filtrarRapido() { 
+            let f = document.getElementById('busqueda').value.toUpperCase(); 
+            let rows = document.getElementById("tablaAlumnos").getElementsByTagName("tr"); 
+            for (let i = 0; i < rows.length; i++) { 
+                rows[i].style.display = (rows[i].textContent.toUpperCase().indexOf(f) > -1) ? "" : "none"; 
+            } 
+        }
+        
+        function consultarPadre() { 
+            const id = document.getElementById('parentInput').value.trim(); 
+            ejecutarConsultaIdDirecta(id); 
+        }
+        
+        function limpiarConsultaPadres() { 
+            document.getElementById('parentResult').style.display='none'; 
+            document.getElementById('parentInput').value=''; 
+            if(queryScannerActivo) toggleQueryScanner(); 
+        }
+        
+        function coincideFecha(horaLog, fechaInputISO) { 
+            if(!horaLog || !fechaInputISO) return false; 
+            let [y, m, d] = fechaInputISO.split('-'); 
+            m = parseInt(m).toString(); 
+            d = parseInt(d).toString(); 
+            return horaLog.includes(`${m}/${d}/${y}`) || horaLog.includes(`${m.padStart(2,'0')}/${d}/${y}`) || horaLog.includes(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`); 
+        }
         
         function filtrarVistaReporte(tipo) {
-            const fechaBuscada = document.getElementById('reportDate').value; if(!fechaBuscada) return alert("Seleccione una fecha");
-            const cuerpo = document.getElementById('cuerpoReporte'), head = document.getElementById('headReporte'), titulo = document.getElementById('tituloReporte'); cuerpo.innerHTML = "";
+            const fechaBuscada = document.getElementById('reportDate').value; 
+            if(!fechaBuscada) return alert("Seleccione una fecha");
+            const cuerpo = document.getElementById('cuerpoReporte'), 
+                  head = document.getElementById('headReporte'), 
+                  titulo = document.getElementById('tituloReporte'); 
+            cuerpo.innerHTML = "";
             let logsDelDia = logsGlobal.filter(l => l.fechaISO ? l.fechaISO === fechaBuscada : coincideFecha(l.hora, fechaBuscada));
 
             if (tipo === 'ENTRADA' || tipo === 'SALIDA') {
-                titulo.innerText = tipo === 'ENTRADA' ? `✅ Llegaron` : `🚪 Salieron`; head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
-                logsDelDia.filter(l => l.tipo === tipo).forEach(l => { const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); });
+                titulo.innerText = tipo === 'ENTRADA' ? `✅ Llegaron` : `🚪 Salieron`; 
+                head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
+                logsDelDia.filter(l => l.tipo === tipo).forEach(l => { 
+                    const p = db.personas[l.id] || {}; 
+                    let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; 
+                    let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; 
+                    let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; 
+                    cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); 
+                });
             } else if (tipo === 'TODOS') {
-                titulo.innerText = `📋 Todos los Movimientos`; head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Tipo</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
-                logsDelDia.filter(l => l.tipo !== 'JUSTIFICADA').forEach(l => { const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td><span class="status-badge ${l.tipo === 'ENTRADA' ? 'status-in' : 'status-none'}">${l.tipo}</span></td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); });
+                titulo.innerText = `📋 Todos los Movimientos`; 
+                head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Tipo</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
+                logsDelDia.filter(l => l.tipo !== 'JUSTIFICADA').forEach(l => { 
+                    const p = db.personas[l.id] || {}; 
+                    let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; 
+                    let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; 
+                    let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; 
+                    cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td><span class="status-badge ${l.tipo === 'ENTRADA' ? 'status-in' : 'status-none'}">${l.tipo}</span></td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); 
+                });
             } else {
-                titulo.innerText = `❌ Ausentes / ⭐ Justificados`; head.innerHTML = `<tr><th>Estado</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>WhatsApp</th><th class="no-print">Acción</th></tr>`;
-                const presentes = [...new Set(logsDelDia.filter(l => l.tipo === 'ENTRADA').map(l => l.id))]; const justificados = [...new Set(logsDelDia.filter(l => l.tipo === 'JUSTIFICADA').map(l => l.id))];
-                Object.entries(db.personas).forEach(([id, p]) => { if(!presentes.includes(id)) { const isJustificado = justificados.includes(id); const estadoTag = isJustificado ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Justificado</span>` : `<span style="color:var(--accent-danger); font-weight:bold;">❌ Ausente</span>`; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${estadoTag}</td><td><b>${id}</b></td><td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || 'Sin teléfono'}</td><td class="no-print" style="display:flex; gap: 5px;">${!isJustificado ? `<button class="btn btn-m" style="padding: 4px 8px; font-size: 0.75rem;" onclick="justificarAusencia('${id}', '${p.nombre}')">✅ Justificar</button>` : ''}<button class="btn btn-s" style="padding: 4px 8px; font-size: 0.75rem;" onclick="enviarWA_Ausente('${p.telefono || ''}', '${p.nombre}')">💬 Msg</button></td></tr>`); } });
+                titulo.innerText = `❌ Ausentes / ⭐ Justificados`; 
+                head.innerHTML = `<tr><th>Estado</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>WhatsApp</th><th class="no-print">Acción</th></tr>`;
+                const presentes = [...new Set(logsDelDia.filter(l => l.tipo === 'ENTRADA').map(l => l.id))]; 
+                const justificados = [...new Set(logsDelDia.filter(l => l.tipo === 'JUSTIFICADA').map(l => l.id))];
+                Object.entries(db.personas).forEach(([id, p]) => { 
+                    if(!presentes.includes(id)) { 
+                        const isJustificado = justificados.includes(id); 
+                        const estadoTag = isJustificado ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Justificado</span>` : `<span style="color:var(--accent-danger); font-weight:bold;">❌ Ausente</span>`; 
+                        cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${estadoTag}</td><td><b>${id}</b></td><td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || 'Sin teléfono'}</td><td class="no-print" style="display:flex; gap: 5px;">${!isJustificado ? `<button class="btn btn-m" style="padding: 4px 8px; font-size: 0.75rem;" onclick="justificarAusencia('${id}', '${p.nombre}')">✅ Justificar</button>` : ''}<button class="btn btn-s" style="padding: 4px 8px; font-size: 0.75rem;" onclick="enviarWA_Ausente('${p.telefono || ''}', '${p.nombre}')">💬 Msg</button></td></tr>`); 
+                    } 
+                });
             }
         }
 
-        function exportarPDFReporte() { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text(document.getElementById('tituloReporte').innerText, 14, 20); doc.autoTable({ html: '#tabla-logs-final', startY: 30, theme: 'grid' }); doc.save(`Reporte_Asistencia.pdf`); }
-        function mostrarAyuda(t) { alert("SISTEMA DE ASISTENCIA\n\n1. Asegúrate de estar dentro del rango.\n2. Presiona Iniciar Escáner.\n3. Mire a la cámara."); }
+        function exportarPDFReporte() { 
+            const { jsPDF } = window.jspdf; 
+            const doc = new jsPDF(); 
+            doc.text(document.getElementById('tituloReporte').innerText, 14, 20); 
+            doc.autoTable({ 
+                html: '#tabla-logs-final', 
+                startY: 30, 
+                theme: 'grid' 
+            }); 
+            doc.save(`Reporte_Asistencia.pdf`); 
+        }
+        
+        function mostrarAyuda(t) { 
+            alert("SISTEMA DE ASISTENCIA\n\n1. Asegúrate de estar dentro del rango.\n2. Presiona Iniciar Escáner.\n3. Mire a la cámara."); 
+        }
 
         // Funciones para geolocalización mejorada
         // Función para obtener ubicación con alta precisión
@@ -1640,6 +1991,29 @@
             alert("Error de geolocalización: " + mensaje);
         }
 
+        // Función para actualizar la vista previa del mapa
+        function actualizarVistaPreviaMapa() {
+            const mapsUrl = document.getElementById('geoMapsUrl').value.trim();
+            const mapPreview = document.getElementById('mapPreview');
+            
+            if (mapsUrl) {
+                // Extraer coordenadas de la URL de Google Maps
+                const match = mapsUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (match) {
+                    const lat = match[1];
+                    const lng = match[2];
+                    mapPreview.innerHTML = `<iframe src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1000!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1ses!2s!4v1234567890123!5m2!1ses!2s" allowfullscreen="" loading="lazy"></iframe>`;
+                } else {
+                    mapPreview.innerHTML = `<span>URL de Google Maps inválida</span>`;
+                }
+            } else {
+                mapPreview.innerHTML = `<span>Vista previa del mapa</span>`;
+            }
+        }
+
+        // Evento para actualizar vista previa cuando cambia la URL
+        document.getElementById('geoMapsUrl').addEventListener('input', actualizarVistaPreviaMapa);
+
         // Limpiar seguimiento al cerrar la aplicación
         window.addEventListener('beforeunload', function() {
             if (watchId !== null) {
@@ -1647,7 +2021,21 @@
             }
         });
 
-        mostrarVista('home-view'); resetIdleTimer();
+        // Función para sincronización automática periódica
+        function iniciarSincronizacionAutomatica() {
+            setInterval(() => {
+                if (connectionStatus && document.getElementById('master-panel').style.display === 'block') {
+                    sincronizarConNube();
+                }
+            }, 30000); // Cada 30 segundos
+        }
+
+        // Iniciar sincronización automática
+        iniciarSincronizacionAutomatica();
+
+        mostrarVista('home-view'); 
+        resetIdleTimer();
+        actualizarEstadoConexion(navigator.onLine);
     </script>
 </body>
 </html>
