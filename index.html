@@ -1579,9 +1579,9 @@
             let lat = geoConfig.lat;
             let lng = geoConfig.lng;
             
-            if (ubicacionActual) {
-                lat = ubicacionActual.lat;
-                lng = ubicacionActual.lng;
+            if (gpsState.ubicacionActual) {
+                lat = gpsState.ubicacionActual.lat;
+                lng = gpsState.ubicacionActual.lng;
             } else if (document.getElementById('geoLat').value && document.getElementById('geoLng').value) {
                 lat = parseFloat(document.getElementById('geoLat').value);
                 lng = parseFloat(document.getElementById('geoLng').value);
@@ -1634,12 +1634,35 @@
         }
         
         function borrarHistorialDia() { 
-            const hISO = document.getElementById('reportDate').value; 
-            logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => 
-                // CORREGIDO: Usar la ruta correcta para borrar marcas
-                database.ref('escuelas_data/' + TENANT_ID + '/marcas/' + l.key).remove()
-            ); 
-            alert('Registros del día eliminados.'); 
+            const hISO = document.getElementById('reportDate').value;
+            if (!hISO) { alert("Seleccione una fecha primero."); return; }
+
+            const logsDelDia = logsGlobal.filter(l => 
+                (l.fechaISO === hISO) || coincideFecha(l.hora, hISO)
+            );
+
+            if (logsDelDia.length === 0) {
+                alert("No hay registros para eliminar en esa fecha.");
+                return;
+            }
+
+            // Leer directamente desde Firebase para tener las keys exactas
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').once('value', (snapshot) => {
+                const updates = {};
+                snapshot.forEach((child) => {
+                    const val = child.val();
+                    const matchFecha = (val.fechaISO === hISO) || coincideFecha(val.hora, hISO);
+                    if (matchFecha) {
+                        updates['escuelas_data/' + TENANT_ID + '/marcas/' + child.key] = null;
+                    }
+                });
+                const totalBorrar = Object.keys(updates).length;
+                if (totalBorrar === 0) { alert("No se encontraron registros para borrar."); return; }
+
+                database.ref().update(updates)
+                    .then(() => { alert('✅ ' + totalBorrar + ' registros del día eliminados correctamente.'); })
+                    .catch((err) => { alert('❌ Error al borrar: ' + err.message); });
+            });
         }
         
         function ejecutarConsultaIdDirecta(id) {
@@ -1663,56 +1686,72 @@
             const file = event.target.files[0]; 
             if (!file) return;
 
-            // Mostrar progreso
             const btn = document.querySelector('button[onclick*="bgUploader"]');
-            if (btn) btn.innerText = '⏳ Subiendo...';
-            
-            // Firebase Storage → ruta exclusiva del tenant
-            const fondoRef = storage.ref().child('tenants/' + TENANT_ID + '/branding/fondo');
-            
-            fondoRef.put(file).then((snapshot) => {
-                return snapshot.ref.getDownloadURL();
-            }).then((downloadURL) => {
-                // 1️⃣ Guardar URL en Firestore del tenant (aislado)
-                database.ref('tenants/' + TENANT_ID + '/config/customBg').set(downloadURL);
-                // 2️⃣ Aplicar inmediatamente
-                document.body.style.backgroundImage = `url(${downloadURL})`;
-                // 3️⃣ Caché local con clave exclusiva del tenant
-                localStorage.setItem('CUSTOM_BG_' + TENANT_ID, downloadURL);
-                if (btn) btn.innerText = '🖼️ FONDO';
-                alert('✅ Fondo guardado exclusivamente en la base de datos de esta escuela.');
-            }).catch((error) => {
-                if (btn) btn.innerText = '🖼️ FONDO';
-                alert('❌ Error al subir el fondo: ' + error.message);
-            });
+            if (btn) btn.innerText = '⏳ 0%';
+
+            // Firebase Storage → ruta exclusiva del tenant (patrón on() para SDK 8)
+            const fondoRef = storage.ref('tenants/' + TENANT_ID + '/branding/fondo');
+            const uploadTask = fondoRef.put(file);
+
+            uploadTask.on(
+                firebase.storage.TaskEvent.STATE_CHANGED,
+                (snapshot) => {
+                    const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                    if (btn) btn.innerText = '⏳ ' + pct + '%';
+                },
+                (error) => {
+                    if (btn) btn.innerText = '🖼️ FONDO';
+                    alert('❌ Error al subir el fondo: ' + error.code + ' — ' + error.message);
+                },
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                        database.ref('tenants/' + TENANT_ID + '/config/customBg').set(downloadURL);
+                        document.body.style.backgroundImage = 'url(' + downloadURL + ')';
+                        localStorage.setItem('CUSTOM_BG_' + TENANT_ID, downloadURL);
+                        if (btn) btn.innerText = '🖼️ FONDO';
+                        alert('✅ Fondo guardado en Firebase de esta escuela.');
+                    }).catch((err) => {
+                        if (btn) btn.innerText = '🖼️ FONDO';
+                        alert('❌ Error obteniendo URL del fondo: ' + err.message);
+                    });
+                }
+            );
         }
         
         function procesarSubidaLogo(event) { 
             const file = event.target.files[0]; 
             if (!file) return;
 
-            // Mostrar progreso
             const btn = document.querySelector('button[onclick*="logoUploader"]');
-            if (btn) btn.innerText = '⏳ Subiendo...';
-            
-            // Firebase Storage → ruta exclusiva del tenant
-            const logoRef = storage.ref().child('tenants/' + TENANT_ID + '/branding/logo');
-            
-            logoRef.put(file).then((snapshot) => {
-                return snapshot.ref.getDownloadURL();
-            }).then((downloadURL) => {
-                // 1️⃣ Guardar URL en Firestore del tenant (aislado)
-                database.ref('tenants/' + TENANT_ID + '/config/customLogo').set(downloadURL);
-                // 2️⃣ Caché local con clave exclusiva del tenant
-                localStorage.setItem('CUSTOM_LOGO_' + TENANT_ID, downloadURL);
-                // 3️⃣ Actualizar navbar
-                cargarLogoPersonalizado();
-                if (btn) btn.innerText = '🎨 LOGO';
-                alert('✅ Logo guardado exclusivamente en la base de datos de esta escuela.');
-            }).catch((error) => {
-                if (btn) btn.innerText = '🎨 LOGO';
-                alert('❌ Error al subir el logo: ' + error.message);
-            });
+            if (btn) btn.innerText = '⏳ 0%';
+
+            // Firebase Storage → ruta exclusiva del tenant (patrón on() para SDK 8)
+            const logoRef = storage.ref('tenants/' + TENANT_ID + '/branding/logo');
+            const uploadTask = logoRef.put(file);
+
+            uploadTask.on(
+                firebase.storage.TaskEvent.STATE_CHANGED,
+                (snapshot) => {
+                    const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                    if (btn) btn.innerText = '⏳ ' + pct + '%';
+                },
+                (error) => {
+                    if (btn) btn.innerText = '🎨 LOGO';
+                    alert('❌ Error al subir el logo: ' + error.code + ' — ' + error.message);
+                },
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                        database.ref('tenants/' + TENANT_ID + '/config/customLogo').set(downloadURL);
+                        localStorage.setItem('CUSTOM_LOGO_' + TENANT_ID, downloadURL);
+                        cargarLogoPersonalizado();
+                        if (btn) btn.innerText = '🎨 LOGO';
+                        alert('✅ Logo guardado en Firebase de esta escuela.');
+                    }).catch((err) => {
+                        if (btn) btn.innerText = '🎨 LOGO';
+                        alert('❌ Error obteniendo URL del logo: ' + err.message);
+                    });
+                }
+            );
         }
         
         function mostrarEstadisticas() { 
