@@ -24,9 +24,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
     <style>
-        /* -----------------------------------------------------------
+        /* ----
            VARIABLES Y TEMA MINIMALISTA NEGRO / CLARO
-           ----------------------------------------------------------- */
+           ---- */
         :root {
             --bg-dark: #0a0e27;
             --bg-darker: #050810;
@@ -62,7 +62,7 @@
         body.light-theme {
             --bg-dark: #f0f4f8;
             --bg-darker: #e2e8f0;
-            --bg-card: #ffffff;
+            --bg-card: #ffff;
             --bg-hover: #f1f5f9;
             --text-primary: #1e293b;
             --text-secondary: #475569;
@@ -72,9 +72,9 @@
             --shadow-glow: 0 0 20px rgba(0, 184, 212, 0.15);
         }
 
-        /* -----------------------------------------------------------
+        /* ----
            ANIMACIONES
-           ----------------------------------------------------------- */
+           ---- */
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes glow-pulse {
@@ -91,9 +91,9 @@
             100% { transform: translateY(100%); }
         }
 
-        /* -----------------------------------------------------------
+        /* ----
            RESET Y BASE
-           ----------------------------------------------------------- */
+           ---- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; width: 100%; }
         body {
@@ -113,9 +113,9 @@
             transition: background var(--transition-normal), color var(--transition-fast);
         }
 
-        /* -----------------------------------------------------------
+        /* ----
            NAVBAR MINIMALISTA
-           ----------------------------------------------------------- */
+           ---- */
         .navbar {
             background: rgba(10, 14, 39, 0.95);
             border-bottom: 1px solid var(--border-subtle);
@@ -139,9 +139,9 @@
         .navbar-title img { max-height: 45px; border-radius: 8px; object-fit: contain; }
         .navbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-        /* -----------------------------------------------------------
+        /* ----
            VISTAS PRINCIPALES (SCROLL MOBILE)
-           ----------------------------------------------------------- */
+           ---- */
         #scan-view, #parent-view, #register-view, #home-view {
             flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
             padding: 24px; overflow-y: auto; animation: fade-in 0.4s ease-out;
@@ -162,9 +162,9 @@
             backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);
         }
 
-        /* -----------------------------------------------------------
+        /* ----
            TARJETAS MINIMALISTAS (SCROLL)
-           ----------------------------------------------------------- */
+           ---- */
         .card {
             background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 32px;
             border-radius: var(--radius-lg); width: 100%; max-width: 480px; box-shadow: var(--shadow-lg);
@@ -175,9 +175,9 @@
         .card:hover { border-color: var(--border-light); box-shadow: var(--shadow-lg), var(--shadow-glow); transform: translateY(-2px); }
         .card h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 24px; color: var(--accent-primary); letter-spacing: 0.5px; }
 
-        /* -----------------------------------------------------------
+        /* ----
            INPUTS Y BOTONES
-           ----------------------------------------------------------- */
+           ---- */
         input[type="text"], input[type="email"], input[type="date"], input[type="password"], input[type="number"], select, textarea {
             width: 100%; padding: 12px 16px; font-size: 0.95rem; background: var(--bg-hover);
             border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary);
@@ -209,9 +209,9 @@
         .btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
         .btn-group .btn { flex: 1; min-width: 110px; }
 
-        /* -----------------------------------------------------------
+        /* ----
            CÁMARA FACIAL E IA
-           ----------------------------------------------------------- */
+           ---- */
         .video-container {
             position: relative; width: 100%; height: 320px; border-radius: var(--radius-lg);
             overflow: hidden; background: #000; border: 2px solid var(--border-subtle);
@@ -233,9 +233,9 @@
             font-size: 0.85rem; color: var(--accent-warning); text-align: center; margin-top: 10px; font-weight: bold;
         }
 
-        /* -----------------------------------------------------------
+        /* ----
            RESULTADOS Y MODALES (SCROLL)
-           ----------------------------------------------------------- */
+           ---- */
         #resBox {
             margin-top: 15px; display: none; padding: 20px; border-radius: var(--radius-md);
             border: 1px solid var(--border-light); background: var(--bg-hover);
@@ -251,9 +251,9 @@
             backdrop-filter: blur(5px);
         }
 
-        /* -----------------------------------------------------------
+        /* ----
            PANEL MAESTRO Y TABLAS
-           ----------------------------------------------------------- */
+           ---- */
         #master-panel {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(10, 14, 39, 0.95); z-index: 1000; padding: 24px; box-sizing: border-box;
@@ -315,8 +315,8 @@
         #blockedOverlay .card {
             max-width: 380px;
             text-align: center;
-            background: #ffffff;
-            color: #111111;
+            background: #ffff;
+            color: #1111;
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.4);
@@ -361,6 +361,47 @@
             background: var(--accent-danger);
             color: white;
         }
+
+        /* Precisión GPS en tiempo real */
+        .gps-status {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 8px;
+            padding: 6px 10px;
+            border-radius: var(--radius-md);
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            min-height: 28px;
+            line-height: 1;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 340px;
+            box-sizing: border-box;
+            justify-content: center;
+        }
+        .gps-status.excelente { color: var(--accent-success); border: 1px solid rgba(0,255,136,0.3); }
+        .gps-status.buena { color: #00d9ff; border: 1px solid rgba(0,217,255,0.3); }
+        .gps-status.media { color: var(--accent-warning); border: 1px solid rgba(255,184,0,0.3); }
+        .gps-status.mala { color: var(--accent-danger); border: 1px solid rgba(255,68,68,0.3); }
+        .gps-status span.pulso {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            animation: gps-pulso 1.2s infinite;
+        }
+        @keyframes gps-pulso {
+            0% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 0 0 rgba(0,255,136,0.7); }
+            70% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 8px rgba(0,255,136,0); }
+            100% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+        }
+
+        /* Panel geo admin */
+        .precision-input { max-width: 160px !important; }
     </style>
 </head>
 <body>
@@ -462,6 +503,9 @@
             </div>
             
             <p id="scan-ai-status" class="ai-status">Esperando activación...</p>
+            <div id="scan-gps-status" class="gps-status mala" style="margin: 8px auto; display:none;">
+                <span class="pulso" style="background: var(--accent-danger);"></span> <span id="scan-gps-text">GPS sin calentar</span>
+            </div>
 
             <button id="btnCamaraMain" class="btn btn-i btn-full" onclick="toggleScanner()">🟢 Iniciar Escáner</button>
 
@@ -532,7 +576,7 @@
         <div class="tabs-container">
             <button id="tab1" class="tab-btn active" onclick="cambiarTab(1)">👥 Miembros</button>
             <button id="tab2" class="tab-btn" onclick="cambiarTab(2)">📊 Reportes</button>
-            <button id="tab3" class="tab-btn" onclick="cambiarTab(3)">🌍 Geolocalización</button>
+            <button id="tab3" class="tab-btn" onclick="cambiarTab(3)">🌍 Geolocalización e Historial Lejano</button>
         </div>
 
         <!-- SECCIÓN MIEMBROS -->
@@ -557,15 +601,15 @@
             <table id="tabla-miembros-pdf">
                 <thead>
                     <tr>
-                        <th>Estado</th>
-                        <th>Código</th>
-                        <th>Rol</th>
-                        <th>Nombre</th>
-                        <th>Sección/Motivo</th>
-                        <th>WhatsApp</th>
-                        <th>Rostro Principal</th>
-                        <th>Rostros Encargados</th>
-                        <th class="no-print">Acciones</th>
+                    <th>Estado</th>
+                    <th>Código</th>
+                    <th>Rol</th>
+                    <th>Nombre</th>
+                    <th>Sección/Motivo</th>
+                    <th>WhatsApp</th>
+                    <th>Rostro Principal</th>
+                    <th>Rostros Encargados</th>
+                    <th class="no-print">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaAlumnos"></tbody>
@@ -605,16 +649,20 @@
                 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                     <div>
-                        <label style="font-weight: bold; color: var(--text-primary);">Latitud Centro:</label>
-                        <input type="number" step="any" id="geoLat" value="9.93880000" readonly>
+                    <label style="font-weight: bold; color: var(--text-primary);">Latitud Centro:</label>
+                    <input type="number" step="any" id="geoLat" value="9.9388" readonly>
                     </div>
                     <div>
-                        <label style="font-weight: bold; color: var(--text-primary);">Longitud Centro:</label>
-                        <input type="number" step="any" id="geoLng" value="-84.12000000" readonly>
+                    <label style="font-weight: bold; color: var(--text-primary);">Longitud Centro:</label>
+                    <input type="number" step="any" id="geoLng" value="-84.1200" readonly>
                     </div>
                     <div>
-                        <label style="font-weight: bold; color: var(--text-primary);">Radio Permitido (metros):</label>
-                        <input type="number" id="geoRadio" value="150" placeholder="Ej: 150">
+                    <label style="font-weight: bold; color: var(--text-primary);">Radio Permitido (metros):</label>
+                    <input type="number" id="geoRadio" value="150">
+                    </div>
+                    <div>
+                    <label style="font-weight: bold; color: var(--text-primary);">Precisión GPS Máxima (m):</label>
+                    <input type="number" id="geoPrecisionMinima" value="35" class="precision-input" title="Lecturas GPS con accuracy mayor a este valor serán rechazadas. 20-40m recomendado.">
                     </div>
                 </div>
                 
@@ -636,12 +684,12 @@
 
             <!-- Sección para mostrar ubicación en tiempo real -->
             <div class="power-bar" style="margin-top: 20px;">
-                <h3 style="color: var(--accent-primary); margin-bottom: 10px;">📡 Ubicación en Tiempo Real (Alta Precisión)</h3>
+                <h3 style="color: var(--accent-primary); margin-bottom: 10px;">📡 Ubicación en Tiempo Real</h3>
                 <div id="ubicacionTiempoReal" style="font-size: 0.9rem; color: var(--text-secondary);">
-                    Esperando ubicación precisa...
+                    Esperando ubicación...
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button class="btn btn-m" onclick="iniciarSeguimientoUbicacion()">🔄 Seguimiento Continuo GPS</button>
+                    <button class="btn btn-m" onclick="iniciarSeguimientoUbicacion()">🔄 Seguimiento Continuo</button>
                     <button class="btn btn-d" onclick="detenerSeguimientoUbicacion()">⏹ Detener Seguimiento</button>
                 </div>
             </div>
@@ -650,14 +698,14 @@
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
-                        <tr>
-                            <th>Fecha/Hora</th>
-                            <th>Código</th>
-                            <th>Nombre Alumno</th>
-                            <th>Distancia Calculada (metros)</th>
-                            <th>Coordenadas Dispositivo</th>
-                            <th class="no-print">Acciones</th>
-                        </tr>
+                    <tr>
+                    <th>Fecha/Hora</th>
+                    <th>Código</th>
+                    <th>Nombre Alumno</th>
+                    <th>Distancia Calculada</th>
+                    <th>Coordenadas Dispositivo</th>
+                    <th class="no-print">Acciones</th>
+                    </tr>
                     </thead>
                     <tbody id="tablaLogsLejanos"></tbody>
                 </table>
@@ -702,10 +750,10 @@
     <div id="connectionStatus" class="connection-status">Conectado</div>
 
     <script>
-        // ===========================================================
+        // ====
         // CONFIGURACIÓN FIREBASE (Con tus credenciales y reglas)
-        // ===========================================================
-        let NUMERO_OFICIAL_JUNTA = "88888888"; 
+        // ====
+        let NUMERO_OFICIAL_JUNTA = "8888"; 
         
         const firebaseConfig = {
             apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
@@ -722,17 +770,17 @@
         const database = firebase.database();
         const storage = firebase.storage();
 
-        // -----------------------------------------------------------
+        // ----
         // 1️⃣ IDENTIFICADOR DEL TENANT (dinámico por URL o subdominio)
-        // -----------------------------------------------------------
+        // ----
         const urlParams = new URLSearchParams(window.location.search);
         let paramId = urlParams.get('id') || urlParams.get('tenant');
         if (paramId) paramId = paramId.replace(/\/$/, ""); // Eliminar slash final si existe
         const TENANT_ID = paramId || "escuela-la-carpio";
 
-        // -----------------------------------------------------------
+        // ----
         // 2️⃣  MONITOREO DEL ESTADO GLOBAL ADMIN (status en tenants/)
-        // -----------------------------------------------------------
+        // ----
         database.ref('tenants/' + TENANT_ID).on('value', (snapshot) => {
             const tenantData = snapshot.val();
             if (tenantData) {
@@ -741,47 +789,47 @@
                 
                 if (estadoSaaS === 'bloqueado' || estadoSaaS === 'suspendido' || estadoSaaS === 'moroso' || config.bloqueado === true) {
                     const htmlMora = config.htmlMora || `
-                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
-                            <h1 style="color:#ff4444;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">⚠️ Acceso Suspendido</h1>
-                            <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
-                                El servicio asociado a este entorno (<strong>${TENANT_ID}</strong>) se encuentra temporalmente inactivo.<br><br>
-                                Por favor, contacte a soporte técnico o a la administración de SaaS para restablecer la conexión.
-                            </p>
-                        </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
+                    <h1 style="color:#ff4444;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">⚠️ Acceso Suspendido</h1>
+                    <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
+                    El servicio asociado a este entorno (<strong>${TENANT_ID}</strong>) se encuentra temporalmente inactivo.<br><br>
+                    Por favor, contacte a soporte técnico o a la administración de SaaS para restablecer la conexión.
+                    </p>
+                    </div>
                     `;
                     document.body.innerHTML = htmlMora;
                     
                     try {
-                        if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
-                        if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
+                    if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
+                    if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
                     } catch(e) {}
                 } else if (estadoSaaS === 'mantenimiento') {
                     const htmlMantenimiento = config.htmlMantenimiento || `
-                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
-                            <h1 style="color:#ffb800;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">🔧 Mantenimiento en curso</h1>
-                            <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
-                                El sistema para (<strong>${TENANT_ID}</strong>) está experimentando tareas de mantenimiento programado.<br><br>
-                                Por favor, intente ingresar más tarde.
-                            </p>
-                        </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
+                    <h1 style="color:#ffb800;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">🔧 Mantenimiento en curso</h1>
+                    <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
+                    El sistema para (<strong>${TENANT_ID}</strong>) está experimentando tareas de mantenimiento programado.<br><br>
+                    Por favor, intente ingresar más tarde.
+                    </p>
+                    </div>
                     `;
                     document.body.innerHTML = htmlMantenimiento;
                     
                     try {
-                        if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
-                        if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
+                    if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
+                    if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
                     } catch(e) {}
                 } else if (estadoSaaS === 'activo') {
                     if (!document.getElementById('main-navbar')) {
-                        window.location.reload();
+                    window.location.reload();
                     }
                 }
             }
         });
 
-        // -----------------------------------------------------------
+        // ----
         // 3️⃣  BLOQUEO AUTOMÁTICO (Vía nodo público de seguridad tenantDB/)
-        // -----------------------------------------------------------
+        // ----
         function monitorBlockFlag() {
             const overlay = document.getElementById('blockedOverlay');
             database.ref('tenantDB/' + TENANT_ID)
@@ -792,58 +840,78 @@
                     const isBlocked = data.bloqueado === true || data.estado === 'bloqueado';
 
                     if (isBlocked) {
-                        const customHtml = data.htmlMora;
-                        if (customHtml) {
-                            document.body.innerHTML = customHtml;
-                        } else {
-                            if (overlay) overlay.classList.remove('hidden');
-                        }
-
-                        try {
-                            if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
-                            if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
-                        } catch(e) {}
-                    } else if (data.estado === 'mantenimiento') {
-                        const customHtml = data.htmlMantenimiento;
-                        if (customHtml) {
-                            document.body.innerHTML = customHtml;
-                        }
-
-                        try {
-                            if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
-                            if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
-                        } catch(e) {}
+                    const customHtml = data.htmlMora;
+                    if (customHtml) {
+                    document.body.innerHTML = customHtml;
                     } else {
-                        if (overlay) overlay.classList.add('hidden');
-                        if (!document.getElementById('main-navbar') && document.body.innerHTML.includes('suspendido')) {
-                            window.location.reload();
-                        }
+                    if (overlay) overlay.classList.remove('hidden');
+                    }
+
+                    try {
+                    if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
+                    if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
+                    } catch(e) {}
+                    } else if (data.estado === 'mantenimiento') {
+                    const customHtml = data.htmlMantenimiento;
+                    if (customHtml) {
+                    document.body.innerHTML = customHtml;
+                    }
+
+                    try {
+                    if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
+                    if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
+                    } catch(e) {}
+                    } else {
+                    if (overlay) overlay.classList.add('hidden');
+                    if (!document.getElementById('main-navbar') && document.body.innerHTML.includes('suspendido')) {
+                    window.location.reload();
+                    }
                     }
                 });
         }
         monitorBlockFlag();
 
-        // -----------------------------------------------------------
+        // ----
         // 4️⃣  Resto de la lógica del cliente (AISLADA AL TENANT)
-        // -----------------------------------------------------------
+        // ----
         let db = { personas: {} };
         let logsGlobal = [];
         let logsLejanosGlobal = [];
 
+        // ====
+        // SISTEMA DE GEOLOCALIZACIÓN DE ALTA PRECISIÓN
+        // ====
         // Parámetros geocerca por defecto
-        let geoConfig = { lat: 9.93880000, lng: -84.12000000, radio: 150, mapsUrl: "" };
+        let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 150, mapsUrl: "", precisionMinima: 35 };
 
-        // Nuevas variables globales para seguimiento de ubicación
-        let watchId = null;
-        let ubicacionActual = null;
-        let ultimaUbicacion = null;
-        let distanciaMinima = 1; // metros - aumentado sensibilidad
+        // Estado del motor GPS
+        let gpsState = {
+            watchId: null,
+            ubicacionActual: null,
+            ultimaUbicacion: null,
+            bufferLecturas: [],
+            estaCalentando: false,
+            calentamientoCompletado: false,
+            calentarTimeoutId: null,
+            precisionActual: null,
+            lecturasRechazadas: 0
+        };
+        const DISTANCIA_MINIMA_REPORTE = 2; // metros para considerar movimiento real
+        const MAX_BUFFER_LECTURAS = 8;      // lecturas para promediar
+        const TIEMPO_CALENTAMIENTO_MS = 4000; // 4 segundos de calentamiento GPS
+        const LECTURAS_CALENTAMIENTO = 4;    // mínimo de lecturas durante calentamiento
+        const MAX_LECTURAS_RECHAZADAS = 12;  // fallback después de N rechazos
 
         // Variables para manejo de conexión
         let connectionStatus = true;
         let lastSyncTime = null;
 
         document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
+        
+        // ====
+        // 🚀 REEMPLAZO ARQUITECTÓNICO - FLAT DATA STRUCTURE
+        // ====
+        // const dbTenantRoot = 'escuelas_data/' + TENANT_ID; // REEMPLAZADO POR ARQUITECTURA PLANA
 
         // Listener Config - Aislado
         database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', (s) => { 
@@ -855,83 +923,76 @@
         database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', (s) => { 
             if(s.val()) { 
                 geoConfig = s.val(); 
-                document.getElementById('geoLat').value = parseFloat(geoConfig.lat).toFixed(8);
-                document.getElementById('geoLng').value = parseFloat(geoConfig.lng).toFixed(8);
+                document.getElementById('geoLat').value = geoConfig.lat;
+                document.getElementById('geoLng').value = geoConfig.lng;
                 document.getElementById('geoRadio').value = geoConfig.radio;
+                document.getElementById('geoPrecisionMinima').value = geoConfig.precisionMinima || 35;
                 document.getElementById('geoMapsUrl').value = geoConfig.mapsUrl || "";
                 actualizarVistaPreviaMapa();
             } 
         });
 
-        // Cargar configuración de fondo y logo desde Firebase de forma robusta
+        // Cargar configuración de fondo y logo desde Firebase (aislado por tenant)
         database.ref('tenants/' + TENANT_ID + '/config/customBg').on('value', (s) => {
             const bgUrl = s.val();
-            if (bgUrl && typeof bgUrl === 'string') {
+            if (bgUrl) {
                 document.body.style.backgroundImage = `url(${bgUrl})`;
-                localStorage.setItem('CUSTOM_BG', bgUrl);
+                localStorage.setItem('CUSTOM_BG_' + TENANT_ID, bgUrl);
             }
         });
         
         database.ref('tenants/' + TENANT_ID + '/config/customLogo').on('value', (s) => {
             const logoUrl = s.val();
-            if (logoUrl && typeof logoUrl === 'string') {
-                localStorage.setItem('CUSTOM_LOGO', logoUrl);
+            if (logoUrl) {
+                localStorage.setItem('CUSTOM_LOGO_' + TENANT_ID, logoUrl);
                 cargarLogoPersonalizado();
             }
         });
 
         if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-theme'); }
-        if (localStorage.getItem('CUSTOM_BG')) { document.body.style.backgroundImage = `url(${localStorage.getItem('CUSTOM_BG')})`; }
+        // Caché local aislada por tenant
+        const _cachedBg = localStorage.getItem('CUSTOM_BG_' + TENANT_ID);
+        if (_cachedBg) { document.body.style.backgroundImage = `url(${_cachedBg})`; }
         
         function cargarLogoPersonalizado() {
-            const logoBase64 = localStorage.getItem('CUSTOM_LOGO');
+            const logoUrl = localStorage.getItem('CUSTOM_LOGO_' + TENANT_ID);
             const navContainer = document.getElementById('nav-logo-container');
-            if(logoBase64 && logoBase64 !== 'null' && logoBase64 !== 'undefined') {
-                navContainer.innerHTML = `<img src="${logoBase64}" alt="Logo Oficial" style="max-height: 45px; border-radius: 8px; object-fit: contain;">`;
+            if(logoUrl) {
+                navContainer.innerHTML = `<img src="${logoUrl}" alt="Logo Oficial">`;
             } else {
                 navContainer.innerHTML = `🤖 Asistencia IA`;
             }
         }
         cargarLogoPersonalizado();
 
-        // ===========================================================
+        // ====
         // LÓGICA DE BASE DE DATOS AISLADA (FLAT STRUCTURE)
-        // ===========================================================
+        // ====
 
+        // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
         database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => { 
             db.personas = s.val() || {}; 
             renderAlumnos(); 
             construirFaceMatcher(); 
         });
         
+        // CORREGIDO: Usar la ruta correcta para marcas
         database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', (s) => { 
             logsGlobal = []; 
             s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
             renderAlumnos(); 
         });
 
+        // CORREGIDO: Usar la ruta correcta para logs lejanos
         database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').on('value', (s) => {
             logsLejanosGlobal = [];
             s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
             renderGeolocalizacion();
         });
 
-        // Función encapsulada para eliminar logs lejanos (resuelve bug de inyección)
-        function eliminarLogLejano(key) {
-            if(confirm('¿Eliminar este registro de escaneo lejano de la base de datos?')) {
-                database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + key).remove()
-                .then(() => {
-                    showToastMsg("✅ Registro lejano eliminado correctamente", "var(--accent-success)");
-                })
-                .catch((error) => {
-                    alert("⚠️ Error al eliminar. Verifique que posee permisos de Administrador/Director.\nDetalle: " + error.message);
-                });
-            }
-        }
-
-        // ===========================================================
+        // ====
         // MONITOREO DE CONEXIÓN
-        // ===========================================================
+        // ====
         function actualizarEstadoConexion(estado) {
             connectionStatus = estado;
             const statusElement = document.getElementById('connectionStatus');
@@ -941,12 +1002,19 @@
             }
         }
 
-        window.addEventListener('online', () => { actualizarEstadoConexion(true); sincronizarConNube(); });
-        window.addEventListener('offline', () => { actualizarEstadoConexion(false); });
+        // Monitoreo de conexión
+        window.addEventListener('online', () => {
+            actualizarEstadoConexion(true);
+            sincronizarConNube();
+        });
+        
+        window.addEventListener('offline', () => {
+            actualizarEstadoConexion(false);
+        });
 
-        // ===========================================================
+        // ====
         // SISTEMA DE INICIO DE SESIÓN SEGURO
-        // ===========================================================
+        // ====
         let contextoLogin = '';
 
         function abrirLogin(tipo) {
@@ -978,11 +1046,11 @@
                 .then((userCredential) => {
                     cerrarLogin();
                     if (contextoLogin === 'admin') {
-                        document.getElementById('master-panel').style.display = 'block';
-                        inicializarIA();
-                        resetIdleTimer();
+                    document.getElementById('master-panel').style.display = 'block';
+                    inicializarIA();
+                    resetIdleTimer();
                     } else if (contextoLogin === 'escaner') {
-                        mostrarVista('scan-view');
+                    mostrarVista('scan-view');
                     }
                 })
                 .catch((error) => {
@@ -990,9 +1058,9 @@
                 });
         }
 
-        // ===========================================================
+        // ====
         // SISTEMA DE INACTIVIDAD (IDLE) Y AUDIO
-        // ===========================================================
+        // ====
         let idleTimeout;
         const IDLE_TIME = 45000;
         function resetIdleTimer() {
@@ -1025,9 +1093,9 @@
             try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(180, ctx.currentTime); gain.gain.setValueAtTime(0.12, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4); osc.start(); osc.stop(ctx.currentTime + 0.45); } catch(e) {}
         }
 
-        // ===========================================================
+        // ====
         // DISTANCIA E INTELIGENCIA ARTIFICIAL
-        // ===========================================================
+        // ====
         function calcularDistancia(lat1, lon1, lat2, lon2) {
             const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
@@ -1062,9 +1130,9 @@
             faceMatcher = labeledDescriptors.length > 0 ? new faceapi.FaceMatcher(labeledDescriptors, 0.5) : null;
         }
 
-        // ===========================================================
+        // ====
         // REGISTRO DE USUARIOS
-        // ===========================================================
+        // ====
         let regDescriptors = [], regPhase = 0, regStream = null;
 
         function toggleStudentField() {
@@ -1132,6 +1200,7 @@
             
             const newUser = { nombre, puesto: section, telefono: phone, tipoUsuario: rol, descriptor: finalDescArray };
             
+            // CORREGIDO: Usar la ruta correcta según las reglas
             database.ref('escuelas_data/' + TENANT_ID + '/personas/' + id).update(newUser);
             
             if (rol === 'Padre/Encargado' && studentId) {
@@ -1152,41 +1221,71 @@
             cerrarVistaProtegida('register-view'); construirFaceMatcher();
         }
 
-        // ===========================================================
-        // REGISTRO DE ASISTENCIA (GEOLOCALIZADA Y ALTA PRECISIÓN)
-        // ===========================================================
-        function registrarAsistenciaConGPS(id, strEmocion = "Neutral", emoticon = "😐") {
-            if ("geolocation" in navigator) {
-                // Usar ubicación en tiempo real si el watcher está activo y es reciente
-                if (ubicacionActual && (new Date() - ubicacionActual.timestamp < 15000)) {
-                    procesarAsistencia(id, ubicacionActual.lat, ubicacionActual.lng, strEmocion, emoticon, ubicacionActual.accuracy);
-                } else {
-                    // Fallback de ultra precisión
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            procesarAsistencia(id, pos.coords.latitude, pos.coords.longitude, strEmocion, emoticon, pos.coords.accuracy);
-                        },
-                        (err) => {
-                            // Si falla geolocalización, registrar sin validación
-                            completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon);
-                        },
-                        { 
-                            enableHighAccuracy: true, 
-                            timeout: 10000,
-                            maximumAge: 0 // Forzar lectura fresquisima
-                        }
-                    );
+        // ====
+        // REGISTRO DE ASISTENCIA CON GPS DE ALTA PRECISIÓN
+        // ====
+        async function registrarAsistenciaConGPS(id, strEmocion = "Neutral", emoticon = "😐") {
+            const gpsBadge = document.getElementById('scan-gps-status');
+            const gpsText = document.getElementById('scan-gps-text');
+
+            if (!navigator.geolocation) {
+                mostrarMensajeTemp("⚠️ GPS no disponible en este dispositivo.", "var(--accent-warning)");
+                setTimeout(() => completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon), 400);
+                return;
+            }
+
+            // Si ya tenemos una ubicación fresca y precisa (< 25s), úsala directamente
+            if (gpsState.ubicacionActual && (Date.now() - gpsState.ubicacionActual.timestamp < 25000)) {
+                procesarAsistencia(id, gpsState.ubicacionActual.lat, gpsState.ubicacionActual.lng, strEmocion, emoticon, gpsState.ubicacionActual.accuracy);
+                return;
+            }
+
+            // Precalentar GPS: forzar lecturas de alta precisión antes de usar
+            mostrarMensajeTemp("📡 Calentando GPS para precisión máxima...", "var(--accent-primary)");
+            if (gpsBadge) { gpsBadge.style.display = "flex"; gpsBadge.className = "gps-status media"; }
+            if (gpsText) gpsText.innerText = "Calentando GPS...";
+
+            try {
+                const mejorLectura = await obtenerUbicacionPrecisa({
+                    timeoutTotal: 12000,
+                    minLecturas: 4,
+                    maxLecturas: 10,
+                    umbralPrecision: geoConfig.precisionMinima || 35
+                });
+
+                if (!mejorLectura) {
+                    throw new Error("No se pudo obtener lectura GPS aceptable");
                 }
-            } else { completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon); }
+
+                // Guardar en estado global
+                gpsState.ubicacionActual = {
+                    lat: mejorLectura.lat,
+                    lng: mejorLectura.lng,
+                    accuracy: mejorLectura.accuracy,
+                    timestamp: Date.now()
+                };
+
+                procesarAsistencia(id, mejorLectura.lat, mejorLectura.lng, strEmocion, emoticon, mejorLectura.accuracy);
+
+            } catch (err) {
+                console.error("GPS Error:", err);
+                mostrarMensajeTemp("⚠️ Precisión GPS insuficiente. Intente afuera o reinicie GPS.", "var(--accent-danger)");
+                playErrorSound();
+                // Fallback: permitir asistencia pero marcar como sin validación de distancia precisa
+                // (solo si el admin permite; aquí lo registramos como lejano=false pero alertamos)
+                completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon);
+            } finally {
+                if (gpsBadge) gpsBadge.style.display = "none";
+            }
         }
 
-        function procesarAsistencia(id, latDisp, lngDisp, strEmocion, emoticon, accuracyVal = 0) {
+        // Función centralizada para procesar la asistencia con ubicación
+        function procesarAsistencia(id, latDisp, lngDisp, strEmocion, emoticon) {
             const dist = calcularDistancia(latDisp, lngDisp, geoConfig.lat, geoConfig.lng);
             const hISO = new Date().toLocaleDateString('sv-SE');
             const esLejano = dist > geoConfig.radio;
 
             if (esLejano) {
-                // Registro lejano guardando explícitamente precisión en metros
                 database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').push({
                     id, 
                     nombre: db.personas[id]?.nombre || "Desconocido", 
@@ -1194,9 +1293,9 @@
                     distancia: Math.round(dist), 
                     lat: latDisp, 
                     lng: lngDisp,
-                    precision: accuracyVal
+                    precision: gpsState.ubicacionActual?.accuracy || "No disponible"
                 });
-                mostrarMensajeTemp("⚠️ Fuera del rango. Intento a " + Math.round(dist) + " metros (Precisión GPS: ±" + accuracyVal.toFixed(1) + "m).", "var(--accent-danger)");
+                mostrarMensajeTemp("⚠️ Fuera del rango. Escaneo detectado (" + Math.round(dist) + "m) pero NO registrado.", "var(--accent-danger)");
                 playErrorSound();
                 if(scannerActivo) toggleScanner(); 
                 return;
@@ -1212,6 +1311,7 @@
             if (!tieneE) tipo = "ENTRADA"; else if (!tieneS) tipo = "SALIDA"; 
             else { mostrarMensajeTemp("Ya registró Entrada y Salida hoy.", "var(--accent-warning)"); if(scannerActivo) toggleScanner(); return; }
             
+            // CORREGIDO: Usar la ruta correcta para marcas
             database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo, lejano: esLejano, distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon });
             playSuccessSound();
 
@@ -1225,10 +1325,6 @@
         function mostrarMensajeTemp(msg, color) {
             const status = document.getElementById('scan-ai-status');
             if(status) { const old = status.innerText; status.innerText = msg; status.style.color = color; setTimeout(() => { status.innerText = old; status.style.color = "var(--accent-warning)"; }, 4500); }
-        }
-
-        function showToastMsg(msg, color) {
-            mostrarMensajeTemp(msg, color); // Reutilizamos función de alerta visual
         }
 
         // Funciones de escaneo facial
@@ -1263,16 +1359,16 @@
                 if(faceMatcher && !enCooldown) {
                     const match = faceMatcher.findBestMatch(detection.descriptor);
                     if(match.label !== 'unknown' && !match.label.includes('_p')) {
-                        let emotionStr = "Neutral", emoticon = "😐";
-                        if(detection.expressions) {
-                            const exp = detection.expressions; const maxE = Object.keys(exp).reduce((a, b) => exp[a] > exp[b] ? a : b);
-                            if(maxE === 'happy') { emoticon = "😄"; emotionStr = "Feliz"; } else if(maxE === 'sad') { emoticon = "😢"; emotionStr = "Triste"; }
-                            else if(maxE === 'angry') { emoticon = "😡"; emotionStr = "Enojado"; } else if(maxE === 'surprised') { emoticon = "😲"; emotionStr = "Sorprendido"; } else if(maxE === 'fearful') { emoticon = "😨"; emotionStr = "Asustado"; }
-                        }
-                        ctx.fillStyle = "rgba(0, 255, 136, 0.8)"; ctx.font = "16px Arial"; ctx.fillText(`${emoticon} ${db.personas[match.label]?.nombre || match.label}`, box.x, box.y - 10);
-                        enCooldown = true; registrarAsistenciaConGPS(match.label, emotionStr, emoticon); setTimeout(() => { enCooldown = false; }, 4000); 
+                    let emotionStr = "Neutral", emoticon = "😐";
+                    if(detection.expressions) {
+                    const exp = detection.expressions; const maxE = Object.keys(exp).reduce((a, b) => exp[a] > exp[b] ? a : b);
+                    if(maxE === 'happy') { emoticon = "😄"; emotionStr = "Feliz"; } else if(maxE === 'sad') { emoticon = "😢"; emotionStr = "Triste"; }
+                    else if(maxE === 'angry') { emoticon = "😡"; emotionStr = "Enojado"; } else if(maxE === 'surprised') { emoticon = "😲"; emotionStr = "Sorprendido"; } else if(maxE === 'fearful') { emoticon = "😨"; emotionStr = "Asustado"; }
+                    }
+                    ctx.fillStyle = "rgba(0, 255, 136, 0.8)"; ctx.font = "16px Arial"; ctx.fillText(`${emoticon} ${db.personas[match.label]?.nombre || match.label}`, box.x, box.y - 10);
+                    enCooldown = true; registrarAsistenciaConGPS(match.label, emotionStr, emoticon); setTimeout(() => { enCooldown = false; }, 4000); 
                     } else if(match.label !== 'unknown' && match.label.includes('_p')) {
-                        ctx.fillStyle = "rgba(255, 184, 0, 0.8)"; ctx.font = "14px Arial"; ctx.fillText("Rostro de encargado (No registra asistencia aquí)", box.x, box.y - 10);
+                    ctx.fillStyle = "rgba(255, 184, 0, 0.8)"; ctx.font = "14px Arial"; ctx.fillText("Rostro de encargado (No registra asistencia aquí)", box.x, box.y - 10);
                     } else { ctx.fillStyle = "rgba(255, 68, 68, 0.8)"; ctx.font = "16px Arial"; ctx.fillText("Desconocido", box.x, box.y - 10); }
                 }
             }
@@ -1311,24 +1407,24 @@
                     const match = faceMatcher.findBestMatch(detection.descriptor); const distance = match.distance; 
 
                     if(match.label !== 'unknown') {
-                        enCooldown = true; const exactitudSuficiente = distance < 0.35;
+                    enCooldown = true; const exactitudSuficiente = distance < 0.35;
 
-                        if (match.label.includes('_p1') || match.label.includes('_p2')) {
-                            const idEstudiante = match.label.split('_')[0]; const nombreEstudiante = db.personas[idEstudiante]?.nombre || "";
-                            playParentMelody();
+                    if (match.label.includes('_p1') || match.label.includes('_p2')) {
+                    const idEstudiante = match.label.split('_')[0]; const nombreEstudiante = db.personas[idEstudiante]?.nombre || "";
+                    playParentMelody();
 
-                            if (exactitudSuficiente) {
-                                ctx.fillStyle = "rgba(0, 255, 136, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`✅ Encargado Autorizado (>95%)`, box.x, box.y - 25); ctx.fillText(`Ingresando a: ${nombreEstudiante}`, box.x, box.y - 10);
-                                setTimeout(() => { toggleQueryScanner(); ejecutarConsultaIdDirecta(idEstudiante); }, 1500);
-                            } else {
-                                ctx.fillStyle = "rgba(255, 184, 0, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`⚠️ Encargado Identificado`, box.x, box.y - 25); ctx.fillText(`Digite la cédula del alumno por seguridad`, box.x, box.y - 10);
-                                setTimeout(() => { toggleQueryScanner(); let idPrompt = prompt("Rostro de encargado reconocido. Por seguridad, digite la cédula del estudiante:"); if(idPrompt && idPrompt.trim() === idEstudiante) { ejecutarConsultaIdDirecta(idEstudiante); } else { alert("Validación incorrecta."); } }, 1500);
-                            }
-                        } else {
-                            playSuccessSound(); ctx.fillStyle = "rgba(0, 217, 255, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`✅ Perfil: ${db.personas[match.label]?.nombre}`, box.x, box.y - 10);
-                            setTimeout(() => { toggleQueryScanner(); ejecutarConsultaIdDirecta(match.label); }, 1500);
-                        }
-                        setTimeout(() => { enCooldown = false; }, 4000);
+                    if (exactitudSuficiente) {
+                    ctx.fillStyle = "rgba(0, 255, 136, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`✅ Encargado Autorizado (>95%)`, box.x, box.y - 25); ctx.fillText(`Ingresando a: ${nombreEstudiante}`, box.x, box.y - 10);
+                    setTimeout(() => { toggleQueryScanner(); ejecutarConsultaIdDirecta(idEstudiante); }, 1500);
+                    } else {
+                    ctx.fillStyle = "rgba(255, 184, 0, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`⚠️ Encargado Identificado`, box.x, box.y - 25); ctx.fillText(`Digite la cédula del alumno por seguridad`, box.x, box.y - 10);
+                    setTimeout(() => { toggleQueryScanner(); let idPrompt = prompt("Rostro de encargado reconocido. Por seguridad, digite la cédula del estudiante:"); if(idPrompt && idPrompt.trim() === idEstudiante) { ejecutarConsultaIdDirecta(idEstudiante); } else { alert("Validación incorrecta."); } }, 1500);
+                    }
+                    } else {
+                    playSuccessSound(); ctx.fillStyle = "rgba(0, 217, 255, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`✅ Perfil: ${db.personas[match.label]?.nombre}`, box.x, box.y - 10);
+                    setTimeout(() => { toggleQueryScanner(); ejecutarConsultaIdDirecta(match.label); }, 1500);
+                    }
+                    setTimeout(() => { enCooldown = false; }, 4000);
                     } else { ctx.fillStyle = "rgba(255, 68, 68, 0.8)"; ctx.font = "16px Arial"; ctx.fillText("Rostro no reconocido", box.x, box.y - 10); }
                 }
             }
@@ -1341,9 +1437,9 @@
             clearTimeout(registroLoopId);
         }
 
-        // ===========================================================
+        // ====
         // CAPTURA ADMIN Y GESTIÓN
-        // ===========================================================
+        // ====
         async function abrirRegistroRostro(id, tipo = 'estudiante') {
             if(!iaCargada) await inicializarIA();
             idCapturaActual = id; tipoCapturaActual = tipo; const persona = db.personas[id];
@@ -1400,105 +1496,125 @@
                 const isP = pres.includes(id); const tieneRostroEst = p.descriptor && p.descriptor.length === 128;
                 let tipoUserHtml = `<span class="status-badge" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border-light);">${p.tipoUsuario || 'Estudiante'}</span>`;
 
-                const telefonoFormateado = p.telefono ? p.telefono.replace(/\D/g, '').replace(/(\d{4})(\d{4})/, '$1-$2') : '';
+                // Formatear número de teléfono para mostrarlo de forma consistente
+                const telefonoFormateado = p.telefono ? 
+                    p.telefono.replace(/\D/g, '').replace(/(\d{4})(\d{4})/, '$1-$2') : '';
 
                 t.insertAdjacentHTML('beforeend', `
                     <tr>
-                        <td><span class="status-badge ${isP ? 'status-in' : 'status-none'}">${isP ? '✓' : '✗'}</span></td>
-                        <td><b>${id}</b></td>
-                        <td>${tipoUserHtml}</td>
-                        <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.nombre || ''}" onchange="db.personas['${id}'].nombre=this.value"></td>
-                        <td><input style="border:none;background:transparent;color:var(--text-secondary);font-weight:bold;width:100%" value="${p.puesto || ''}" onchange="db.personas['${id}'].puesto=this.value"></td>
-                        <td>
-                            <input 
-                                style="border:none;background:transparent;color:var(--text-primary);width:100%" 
-                                value="${telefonoFormateado}" 
-                                onchange="db.personas['${id}'].telefono=this.value.replace(/\\D/g, '')"
-                                placeholder="8888-8888"
-                            >
-                        </td>
-                        <td><button class="btn ${tieneRostroEst ? 'btn-m' : 'btn-dark'}" style="padding:4px 8px; font-size:0.75rem;" onclick="abrirRegistroRostro('${id}', 'estudiante')">${tieneRostroEst ? '👤 Configurado' : '📸 Configurar'}</button></td>
-                        <td><div style="display:flex; flex-direction:column; gap:4px;"><button class="btn ${p.descriptorPadre1 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre1')">👨‍👦 Encargado 1: ${p.descriptorPadre1 ? '✓' : '✗'}</button><button class="btn ${p.descriptorPadre2 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre2')">👨‍👦 Encargado 2: ${p.descriptorPadre2 ? '✓' : '✗'}</button></div></td>
-                        <td class="no-print"><div style="display:flex; gap: 4px;"><button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono || ''}')" title="WhatsApp">💬</button><button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Ver Carnet">📇</button><button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { database.ref('escuelas_data/' + TENANT_ID + '/personas/' + '${id}').remove(); }" title="Eliminar">🗑️</button></div></td>
+                    <td><span class="status-badge ${isP ? 'status-in' : 'status-none'}">${isP ? '✓' : '✗'}</span></td>
+                    <td><b>${id}</b></td>
+                    <td>${tipoUserHtml}</td>
+                    <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.nombre || ''}" onchange="db.personas['${id}'].nombre=this.value"></td>
+                    <td><input style="border:none;background:transparent;color:var(--text-secondary);font-weight:bold;width:100%" value="${p.puesto || ''}" onchange="db.personas['${id}'].puesto=this.value"></td>
+                    <td>
+                    <input 
+                    style="border:none;background:transparent;color:var(--text-primary);width:100%" 
+                    value="${telefonoFormateado}" 
+                    onchange="db.personas['${id}'].telefono=this.value.replace(/\\D/g, '')"
+                    placeholder="8888-8888"
+                    >
+                    </td>
+                    <td><button class="btn ${tieneRostroEst ? 'btn-m' : 'btn-dark'}" style="padding:4px 8px; font-size:0.75rem;" onclick="abrirRegistroRostro('${id}', 'estudiante')">${tieneRostroEst ? '👤 Configurado' : '📸 Configurar'}</button></td>
+                    <td><div style="display:flex; flex-direction:column; gap:4px;"><button class="btn ${p.descriptorPadre1 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre1')">👨‍👦 Encargado 1: ${p.descriptorPadre1 ? '✓' : '✗'}</button><button class="btn ${p.descriptorPadre2 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre2')">👨‍👦 Encargado 2: ${p.descriptorPadre2 ? '✓' : '✗'}</button></div></td>
+                    <td class="no-print"><div style="display:flex; gap: 4px;"><button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono || ''}')" title="WhatsApp">💬</button><button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Ver Carnet">📇</button><button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { database.ref('escuelas_data/' + TENANT_ID + '/personas/' + '${id}').remove(); }" title="Eliminar">🗑️</button></div></td>
                     </tr>
                 `);
             });
         }
 
-        // Renderizado optimizado para Logs Lejanos con nueva función de borrado
         function renderGeolocalizacion() {
             const tbody = document.getElementById('tablaLogsLejanos'); tbody.innerHTML = "";
             if (logsLejanosGlobal.length === 0) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color: var(--text-muted);'>No hay reportes de escaneos lejanos.</td></tr>"; return; }
             logsLejanosGlobal.slice().reverse().forEach(log => {
-                const latStr = typeof log.lat === 'number' ? log.lat.toFixed(8) : log.lat;
-                const lngStr = typeof log.lng === 'number' ? log.lng.toFixed(8) : log.lng;
-                const precisionTxt = log.precision ? `(±${Number(log.precision).toFixed(1)}m de fallo GPS)` : '';
-                tbody.insertAdjacentHTML('beforeend', `<tr>
-                    <td>${log.hora}</td>
-                    <td><b>${log.id}</b></td>
-                    <td>${log.nombre}</td>
-                    <td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango <span style="font-size:0.75rem;color:var(--text-muted);display:block;">${precisionTxt}</span></td>
-                    <td style="font-family: monospace;">${latStr}, ${lngStr}</td>
-                    <td class="no-print"><div style="display:flex; gap: 5px;">
-                        <button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Mapa</button>
-                        <button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="eliminarLogLejano('${log.key}')">🗑️ Eliminar</button>
-                    </div></td>
-                </tr>`);
+                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
             });
         }
 
+        // Función para enviar WhatsApp con número formateado
         function enviarWA(tel) { 
-            if(!tel || tel==='') { alert("Sin número."); return; } 
-            const numeroLimpio = tel.replace(/\D/g,''); window.open(`https://wa.me/506${numeroLimpio}`, '_blank'); 
+            if(!tel || tel==='') { 
+                alert("Sin número."); 
+                return;
+            } 
+            // Limpiar y formatear el número
+            const numeroLimpio = tel.replace(/\D/g,'');
+            window.open(`https://wa.me/506${numeroLimpio}`, '_blank'); 
         }
 
         function editarNumeroJunta() { 
             let n = prompt("Número de contacto general:", NUMERO_OFICIAL_JUNTA); 
             if(n) { 
+                // Limpiar y validar el número
                 const numeroLimpio = n.replace(/\D/g, '');
                 if (numeroLimpio.length === 8) {
                     database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').set(numeroLimpio); 
-                    NUMERO_OFICIAL_JUNTA = numeroLimpio; alert("Número actualizado en su partición.");
-                } else { alert("Número inválido. Debe tener 8 dígitos."); }
+                    NUMERO_OFICIAL_JUNTA = numeroLimpio;
+                    alert("Número actualizado en su partición.");
+                } else {
+                    alert("Número inválido. Debe tener 8 dígitos.");
+                }
             } 
         }
         
+        // CORREGIDO: Usar la ruta correcta según las reglas
         function sincronizarConNube() { 
             database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas); 
-            alert("Datos guardados en la partición de la escuela."); lastSyncTime = new Date();
+            alert("Datos guardados en la partición de la escuela."); 
+            lastSyncTime = new Date();
         }
         
+        // Modificación en la función de guardar configuración geográfica
         function guardarConfigGeo() {
+            // Solo permitir modificar el radio, no las coordenadas (que se obtienen automáticamente)
             const radio = parseInt(document.getElementById('geoRadio').value);
             const mapsUrl = document.getElementById('geoMapsUrl').value.trim();
             
-            if (isNaN(radio) || radio <= 0) { alert("Radio inválido. Debe ser un número positivo en metros."); return; }
-            
-            let lat = geoConfig.lat; let lng = geoConfig.lng;
-            if (ubicacionActual) { lat = ubicacionActual.lat; lng = ubicacionActual.lng; } 
-            else if (document.getElementById('geoLat').value && document.getElementById('geoLng').value) {
-                lat = parseFloat(document.getElementById('geoLat').value); lng = parseFloat(document.getElementById('geoLng').value);
+            if (isNaN(radio) || radio <= 0) {
+                alert("Radio inválido. Debe ser un número positivo.");
+                return;
             }
-            if (isNaN(lat) || isNaN(lng)) { alert("Coordenadas inválidas. Por favor obtenga la ubicación actual."); return; }
             
-            geoConfig = { lat, lng, radio, mapsUrl };
+            // Usar las coordenadas actuales del sistema si están disponibles
+            let lat = geoConfig.lat;
+            let lng = geoConfig.lng;
+            
+            if (ubicacionActual) {
+                lat = ubicacionActual.lat;
+                lng = ubicacionActual.lng;
+            } else if (document.getElementById('geoLat').value && document.getElementById('geoLng').value) {
+                lat = parseFloat(document.getElementById('geoLat').value);
+                lng = parseFloat(document.getElementById('geoLng').value);
+            }
+            
+            if (isNaN(lat) || isNaN(lng)) {
+                alert("Coordenadas inválidas. Por favor obtenga la ubicación actual.");
+                return;
+            }
+
+            const precisionMinima = parseInt(document.getElementById('geoPrecisionMinima').value) || 35;
+            
+            geoConfig = { lat, lng, radio, mapsUrl, precisionMinima };
             database.ref('tenants/' + TENANT_ID + '/config/geocerca').set(geoConfig);
-            alert("Ubicación configurada en la partición de la escuela exitosamente.");
+            alert("Geocerca configurada en la partición de la escuela (precisión máx: " + precisionMinima + "m).");
         }
 
+        // Función para refrescar la geocerca
         function refrescarGeocerca() {
             database.ref('tenants/' + TENANT_ID + '/config/geocerca').once('value', (s) => {
                 if(s.val()) { 
                     geoConfig = s.val(); 
-                    document.getElementById('geoLat').value = parseFloat(geoConfig.lat).toFixed(8);
-                    document.getElementById('geoLng').value = parseFloat(geoConfig.lng).toFixed(8);
+                    document.getElementById('geoLat').value = geoConfig.lat;
+                    document.getElementById('geoLng').value = geoConfig.lng;
                     document.getElementById('geoRadio').value = geoConfig.radio;
                     document.getElementById('geoMapsUrl').value = geoConfig.mapsUrl || "";
-                    actualizarVistaPreviaMapa(); alert("Geocerca actualizada desde la base de datos.");
+                    actualizarVistaPreviaMapa();
+                    alert("Geocerca actualizada desde la base de datos.");
                 }
             });
         }
 
+        // CORREGIDO: Usar la ruta correcta para borrar todos los datos
         function mostrarConfirmacionBorrar() { 
             if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos DE ESTA ESCUELA?\n\nPresione OK para confirmar.')) { 
                 database.ref('escuelas_data/' + TENANT_ID + '/personas').remove(); 
@@ -1511,6 +1627,7 @@
         function justificarAusencia(id, nombre) {
             const hISO = document.getElementById('reportDate').value;
             if(confirm(`¿Desea justificar la ausencia de ${nombre}?`)) {
+                // CORREGIDO: Usar la ruta correcta para marcas
                 database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
                 alert('Ausencia justificada.');
             }
@@ -1519,6 +1636,7 @@
         function borrarHistorialDia() { 
             const hISO = document.getElementById('reportDate').value; 
             logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => 
+                // CORREGIDO: Usar la ruta correcta para borrar marcas
                 database.ref('escuelas_data/' + TENANT_ID + '/marcas/' + l.key).remove()
             ); 
             alert('Registros del día eliminados.'); 
@@ -1531,6 +1649,7 @@
             document.getElementById('parentStudentPuesto').innerText = (p.tipoUsuario || "Perfil") + " / " + (p.puesto || "N/A");
             document.getElementById('btnConsultaWA').onclick = () => { const mensaje = encodeURIComponent(`Hola, quisiera realizar una consulta sobre el usuario: ${p.nombre}`); window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${mensaje}`, '_blank'); };
             
+            // CORREGIDO: Usar la ruta correcta para consultar marcas
             database.ref('escuelas_data/' + TENANT_ID + '/marcas').orderByChild('id').equalTo(id).once('value', (s) => {
                 const list = document.getElementById('parentLogList'); list.innerHTML = "";
                 if(s.exists()){ s.forEach(c => { let l=c.val(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(${l.distanciaMetros}m)</span>` : ""; let statusColor = l.tipo === 'ENTRADA' ? '#00ff88' : (l.tipo === 'SALIDA' ? '#ff4444' : '#ffb800'); list.innerHTML = `<div style="padding:10px; border-bottom:1px solid #3a4560;"><span>${l.hora}</span> - <b style="color:${statusColor}">${l.tipo}</b>${alertTag}</div>` + list.innerHTML; }); }
@@ -1539,43 +1658,61 @@
             });
         }
 
-        // Subida de imagen robusta con manejo de errores de almacenamiento
+        // Resto de utilidades de UI intactas...
         function procesarSubidaFondo(event) { 
             const file = event.target.files[0]; 
-            if (!file) return; 
+            if (!file) return;
+
+            // Mostrar progreso
+            const btn = document.querySelector('button[onclick*="bgUploader"]');
+            if (btn) btn.innerText = '⏳ Subiendo...';
             
-            const storageRef = storage.ref();
-            const fondoRef = storageRef.child(`${TENANT_ID}/fondo.jpg`);
+            // Firebase Storage → ruta exclusiva del tenant
+            const fondoRef = storage.ref().child('tenants/' + TENANT_ID + '/branding/fondo');
             
             fondoRef.put(file).then((snapshot) => {
                 return snapshot.ref.getDownloadURL();
             }).then((downloadURL) => {
-                database.ref('tenants/' + TENANT_ID + '/config/customBg').set(downloadURL)
-                .then(() => {
-                    document.body.style.backgroundImage = `url(${downloadURL})`;
-                    localStorage.setItem('CUSTOM_BG', downloadURL);
-                    alert('✅ Fondo actualizado y guardado exitosamente.');
-                }).catch(e => alert("Error Guardando RTDB: " + e.message));
-            }).catch((error) => { alert('❌ Error al subir el fondo al storage: ' + error.message); });
+                // 1️⃣ Guardar URL en Firestore del tenant (aislado)
+                database.ref('tenants/' + TENANT_ID + '/config/customBg').set(downloadURL);
+                // 2️⃣ Aplicar inmediatamente
+                document.body.style.backgroundImage = `url(${downloadURL})`;
+                // 3️⃣ Caché local con clave exclusiva del tenant
+                localStorage.setItem('CUSTOM_BG_' + TENANT_ID, downloadURL);
+                if (btn) btn.innerText = '🖼️ FONDO';
+                alert('✅ Fondo guardado exclusivamente en la base de datos de esta escuela.');
+            }).catch((error) => {
+                if (btn) btn.innerText = '🖼️ FONDO';
+                alert('❌ Error al subir el fondo: ' + error.message);
+            });
         }
         
         function procesarSubidaLogo(event) { 
             const file = event.target.files[0]; 
-            if (!file) return; 
+            if (!file) return;
+
+            // Mostrar progreso
+            const btn = document.querySelector('button[onclick*="logoUploader"]');
+            if (btn) btn.innerText = '⏳ Subiendo...';
             
-            const storageRef = storage.ref();
-            const logoRef = storageRef.child(`${TENANT_ID}/logo.png`);
+            // Firebase Storage → ruta exclusiva del tenant
+            const logoRef = storage.ref().child('tenants/' + TENANT_ID + '/branding/logo');
             
             logoRef.put(file).then((snapshot) => {
                 return snapshot.ref.getDownloadURL();
             }).then((downloadURL) => {
-                database.ref('tenants/' + TENANT_ID + '/config/customLogo').set(downloadURL)
-                .then(() => {
-                    localStorage.setItem('CUSTOM_LOGO', downloadURL);
-                    cargarLogoPersonalizado();
-                    alert('✅ Logo actualizado y guardado exitosamente.');
-                }).catch(e => alert("Error Guardando RTDB: " + e.message));
-            }).catch((error) => { alert('❌ Error al subir el logo al storage: ' + error.message); });
+                // 1️⃣ Guardar URL en Firestore del tenant (aislado)
+                database.ref('tenants/' + TENANT_ID + '/config/customLogo').set(downloadURL);
+                // 2️⃣ Caché local con clave exclusiva del tenant
+                localStorage.setItem('CUSTOM_LOGO_' + TENANT_ID, downloadURL);
+                // 3️⃣ Actualizar navbar
+                cargarLogoPersonalizado();
+                if (btn) btn.innerText = '🎨 LOGO';
+                alert('✅ Logo guardado exclusivamente en la base de datos de esta escuela.');
+            }).catch((error) => {
+                if (btn) btn.innerText = '🎨 LOGO';
+                alert('❌ Error al subir el logo: ' + error.message);
+            });
         }
         
         function mostrarEstadisticas() { 
@@ -1593,70 +1730,128 @@
         }
         
         function setSystemTheme(theme) { 
-            if (theme === 'light') { document.body.classList.add('light-theme'); localStorage.setItem('theme', 'light'); } 
-            else { document.body.classList.remove('light-theme'); localStorage.setItem('theme', 'dark'); } 
+            if (theme === 'light') { 
+                document.body.classList.add('light-theme'); 
+                localStorage.setItem('theme', 'light'); 
+            } else { 
+                document.body.classList.remove('light-theme'); 
+                localStorage.setItem('theme', 'dark'); 
+            } 
         }
         
         function agregarMiembroManual() { 
             const id = prompt("Cédula/Código nuevo:"); 
             if(id) { 
-                db.personas[id] = { nombre: prompt("Nombre Completo:"), puesto: prompt("Sección:"), telefono: prompt("WhatsApp:"), tipoUsuario: 'Estudiante' }; 
+                db.personas[id] = { 
+                    nombre: prompt("Nombre Completo:"), 
+                    puesto: prompt("Sección:"), 
+                    telefono: prompt("WhatsApp:"), 
+                    tipoUsuario: 'Estudiante' 
+                }; 
                 renderAlumnos(); 
             } 
         }
         
+        // FUNCIÓN ACTUALIZADA PARA IMPORTAR CSV Y GUARDAR AUTOMÁTICAMENTE EN FIREBASE
         function importarCSV() { 
             const f = document.getElementById('csvFile').files[0]; 
-            if (!f) { alert("Por favor, seleccione un archivo CSV."); return; }
+            if (!f) {
+                alert("Por favor, seleccione un archivo CSV.");
+                return;
+            }
             
             const r = new FileReader(); 
             r.onload = (e) => { 
                 let importados = 0;
                 e.target.result.split('\n').forEach((l, i) => { 
                     if(i>0 && l.trim()){ 
-                        let c=l.split(','); 
-                        if(c[0]) { 
-                            db.personas[c[0].trim()] = { nombre: c[1]?.trim() || '', puesto: c[2]?.trim() || '', telefono: c[3]?.trim() || '', tipoUsuario: c[4]?.trim() || 'Estudiante' }; 
-                            importados++;
-                        } 
+                    let c=l.split(','); 
+                    if(c[0]) { 
+                    db.personas[c[0].trim()] = { 
+                    nombre: c[1]?.trim() || '', 
+                    puesto: c[2]?.trim() || '', 
+                    telefono: c[3]?.trim() || '', 
+                    tipoUsuario: c[4]?.trim() || 'Estudiante' 
+                    }; 
+                    importados++;
+                    } 
                     } 
                 }); 
-                database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas).then(() => { renderAlumnos(); alert(`Importados ${importados} registros y guardados en Firebase.`); }).catch((error) => { alert("Error al guardar en Firebase: " + error.message); });
+                
+                // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas)
+                    .then(() => {
+                    renderAlumnos(); 
+                    alert(`Importados ${importados} registros y guardados en Firebase.`); 
+                    })
+                    .catch((error) => {
+                    alert("Error al guardar en Firebase: " + error.message);
+                    });
             }; 
             r.readAsText(f); 
         }
         
         function exportarCSV() { 
             let csv = 'Código,Nombre,Sección,WhatsApp,Rol\n'; 
-            Object.entries(db.personas).forEach(([id, p]) => { csv += `${id},${p.nombre},${p.puesto || ''},${p.telefono || ''},${p.tipoUsuario || 'Estudiante'}\n`; }); 
-            const link = document.createElement('a'); link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); link.download = `Usuarios.csv`; link.click(); 
+            Object.entries(db.personas).forEach(([id, p]) => { 
+                csv += `${id},${p.nombre},${p.puesto || ''},${p.telefono || ''},${p.tipoUsuario || 'Estudiante'}\n`; 
+            }); 
+            const link = document.createElement('a'); 
+            link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); 
+            link.download = `Usuarios.csv`; 
+            link.click(); 
         }
         
         function exportarPDFMiembros() { 
-            const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text("Lista de Usuarios", 14, 20); 
-            const bodyData = []; Object.entries(db.personas).forEach(([id, p]) => { let rostrosStatus = p.descriptor ? 'Sí' : 'No'; bodyData.push([id, p.tipoUsuario, p.nombre, p.puesto, p.telefono, rostrosStatus]); }); 
-            doc.autoTable({ head: [['Código', 'Rol', 'Nombre', 'Sección', 'WhatsApp', 'IA']], body: bodyData, startY: 30, theme: 'grid' }); doc.save(`Usuarios.pdf`); 
+            const { jsPDF } = window.jspdf; 
+            const doc = new jsPDF(); 
+ 
+           doc.text("Lista de Usuarios", 14, 20); 
+            const bodyData = []; 
+            Object.entries(db.personas).forEach(([id, p]) => { 
+                let rostrosStatus = p.descriptor ? 'Sí' : 'No'; 
+                bodyData.push([id, p.tipoUsuario, p.nombre, p.puesto, p.telefono, rostrosStatus]); 
+            }); 
+            doc.autoTable({ 
+                head: [['Código', 'Rol', 'Nombre', 'Sección', 'WhatsApp', 'IA']], 
+                body: bodyData, 
+                startY: 30, 
+                theme: 'grid' 
+            }); 
+            doc.save(`Usuarios.pdf`); 
         }
         
         function duplicarMiembro() { 
             const id = prompt('Código a duplicar:'); 
-            if(id && db.personas[id]) { const newId = prompt('Nuevo código:'); if(newId) { db.personas[newId] = {...db.personas[id]}; renderAlumnos(); alert('Duplicado'); } } 
+            if(id && db.personas[id]) { 
+                const newId = prompt('Nuevo código:'); 
+                if(newId) { 
+                    db.personas[newId] = {...db.personas[id]}; 
+                    renderAlumnos(); 
+                    alert('Duplicado'); 
+                } 
+            } 
         }
         
         function enviarWA_Ausente(tel, nombre) { 
             if(!tel || tel==='') { alert("Sin número."); return; } 
-            const msj = encodeURIComponent(`Hola, le informamos que ${nombre} está ausente hoy.`); window.open(`https://wa.me/506${tel.replace(/\D/g,'')}?text=${msj}`, '_blank'); 
+            const msj = encodeURIComponent(`Hola, le informamos que ${nombre} está ausente hoy.`); 
+            window.open(`https://wa.me/506${tel.replace(/\D/g,'')}?text=${msj}`, '_blank'); 
         }
         
         function descargarCarnet(id) { 
-            const p = db.personas[id]; const win = window.open('','',`width=350,height=500`); 
+            const p = db.personas[id]; 
+            const win = window.open('','',`width=350,height=500`); 
             win.document.write(`<html><head><style>body{font-family:sans-serif;background:#0a0e27;color:#e8eef5;margin:0;padding:0;display:flex;align-items:center;justify-content:center;height:100vh;}.card{width:280px;height:420px;background:#1a1f3a;border-radius:12px;padding:20px;text-align:center}</style></head><body><div class="card"><h3>${p.nombre}</h3><div id="q"></div></div><script>new QRCode(document.getElementById("q"),{text:"${id}",width:130,height:130});setTimeout(()=>window.print(),800);<\/script></body></html>`); 
             win.document.close(); 
         }
         
         function imprimirTodosLosCarnets() { 
-            const win = window.open('',''); win.document.write(`<html><body>`); 
-            Object.entries(db.personas).forEach(([id,p]) => { win.document.write(`<div style="display:inline-block;border:1px solid #000;margin:10px;padding:10px;"><div id="qr-${id}"></div><br>${p.nombre}</div>`); }); 
+            const win = window.open('',''); 
+            win.document.write(`<html><body>`); 
+            Object.entries(db.personas).forEach(([id,p]) => { 
+                win.document.write(`<div style="display:inline-block;border:1px solid #000;margin:10px;padding:10px;"><div id="qr-${id}"></div><br>${p.nombre}</div>`); 
+            }); 
             win.document.write(`<script>${Object.keys(db.personas).map(id => `new QRCode(document.getElementById("qr-${id}"),{text:"${id}",width:100,height:100});`).join('\n')} setTimeout(()=>window.print(),1500);<\/script></body></html>`); 
             win.document.close(); 
         }
@@ -1668,12 +1863,25 @@
             document.getElementById('register-view').style.display = (id==='register-view')?'flex':'none'; 
             if(id!=='scan-view' && scannerActivo) toggleScanner(); 
             if(id!=='parent-view' && queryScannerActivo) toggleQueryScanner(); 
-            if(id!=='register-view' && regStream) { regStream.getTracks().forEach(t => t.stop()); regStream = null; document.getElementById('reg-cam-container').classList.remove('active', 'scanning'); } 
+            if(id!=='register-view' && regStream) { 
+                regStream.getTracks().forEach(t => t.stop()); 
+                regStream = null; 
+                document.getElementById('reg-cam-container').classList.remove('active', 'scanning'); 
+            } 
             resetIdleTimer(); 
         }
         
-        function cerrarMaster() { document.getElementById('master-panel').style.display = 'none'; detenerCamaras(); resetIdleTimer(); }
-        function cerrarVistaProtegida(id) { document.getElementById(id).style.display = 'none'; mostrarVista('home-view'); detenerCamaras(); }
+        function cerrarMaster() { 
+            document.getElementById('master-panel').style.display = 'none'; 
+            detenerCamaras(); 
+            resetIdleTimer(); 
+        }
+        
+        function cerrarVistaProtegida(id) { 
+            document.getElementById(id).style.display = 'none'; 
+            mostrarVista('home-view'); 
+            detenerCamaras(); 
+        }
         
         function cambiarTab(n) { 
             document.getElementById('sec-alumnos').style.display = (n===1)?'block':'none'; 
@@ -1685,29 +1893,47 @@
         }
         
         function filtrarRapido() { 
-            let f = document.getElementById('busqueda').value.toUpperCase(); let rows = document.getElementById("tablaAlumnos").getElementsByTagName("tr"); 
-            for (let i = 0; i < rows.length; i++) { rows[i].style.display = (rows[i].textContent.toUpperCase().indexOf(f) > -1) ? "" : "none"; } 
+            let f = document.getElementById('busqueda').value.toUpperCase(); 
+            let rows = document.getElementById("tablaAlumnos").getElementsByTagName("tr"); 
+            for (let i = 0; i < rows.length; i++) { 
+                rows[i].style.display = (rows[i].textContent.toUpperCase().indexOf(f) > -1) ? "" : "none"; 
+            } 
         }
         
-        function consultarPadre() { const id = document.getElementById('parentInput').value.trim(); ejecutarConsultaIdDirecta(id); }
-        function limpiarConsultaPadres() { document.getElementById('parentResult').style.display='none'; document.getElementById('parentInput').value=''; if(queryScannerActivo) toggleQueryScanner(); }
+        function consultarPadre() { 
+            const id = document.getElementById('parentInput').value.trim(); 
+            ejecutarConsultaIdDirecta(id); 
+        }
+        
+        function limpiarConsultaPadres() { 
+            document.getElementById('parentResult').style.display='none'; 
+            document.getElementById('parentInput').value=''; 
+            if(queryScannerActivo) toggleQueryScanner(); 
+        }
         
         function coincideFecha(horaLog, fechaInputISO) { 
-            if(!horaLog || !fechaInputISO) return false; let [y, m, d] = fechaInputISO.split('-'); m = parseInt(m).toString(); d = parseInt(d).toString(); 
+            if(!horaLog || !fechaInputISO) return false; 
+            let [y, m, d] = fechaInputISO.split('-'); 
+            m = parseInt(m).toString(); 
+            d = parseInt(d).toString(); 
             return horaLog.includes(`${m}/${d}/${y}`) || horaLog.includes(`${m.padStart(2,'0')}/${d}/${y}`) || horaLog.includes(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`); 
         }
         
         function filtrarVistaReporte(tipo) {
             const fechaBuscada = document.getElementById('reportDate').value; 
             if(!fechaBuscada) return alert("Seleccione una fecha");
-            const cuerpo = document.getElementById('cuerpoReporte'), head = document.getElementById('headReporte'), titulo = document.getElementById('tituloReporte'); 
-            cuerpo.innerHTML = ""; let logsDelDia = logsGlobal.filter(l => l.fechaISO ? l.fechaISO === fechaBuscada : coincideFecha(l.hora, fechaBuscada));
+            const cuerpo = document.getElementById('cuerpoReporte'), 
+                  head = document.getElementById('headReporte'), 
+                  titulo = document.getElementById('tituloReporte'); 
+            cuerpo.innerHTML = "";
+            let logsDelDia = logsGlobal.filter(l => l.fechaISO ? l.fechaISO === fechaBuscada : coincideFecha(l.hora, fechaBuscada));
 
             if (tipo === 'ENTRADA' || tipo === 'SALIDA') {
                 titulo.innerText = tipo === 'ENTRADA' ? `✅ Llegaron` : `🚪 Salieron`; 
                 head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
                 logsDelDia.filter(l => l.tipo === tipo).forEach(l => { 
-                    const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; 
+                    const p = db.personas[l.id] || {}; 
+                    let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; 
                     let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; 
                     let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; 
                     cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); 
@@ -1716,7 +1942,8 @@
                 titulo.innerText = `📋 Todos los Movimientos`; 
                 head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Tipo</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
                 logsDelDia.filter(l => l.tipo !== 'JUSTIFICADA').forEach(l => { 
-                    const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; 
+                    const p = db.personas[l.id] || {}; 
+                    let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; 
                     let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; 
                     let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; 
                     cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td><span class="status-badge ${l.tipo === 'ENTRADA' ? 'status-in' : 'status-none'}">${l.tipo}</span></td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); 
@@ -1728,91 +1955,155 @@
                 const justificados = [...new Set(logsDelDia.filter(l => l.tipo === 'JUSTIFICADA').map(l => l.id))];
                 Object.entries(db.personas).forEach(([id, p]) => { 
                     if(!presentes.includes(id)) { 
-                        const isJustificado = justificados.includes(id); 
-                        const estadoTag = isJustificado ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Justificado</span>` : `<span style="color:var(--accent-danger); font-weight:bold;">❌ Ausente</span>`; 
-                        cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${estadoTag}</td><td><b>${id}</b></td><td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || 'Sin teléfono'}</td><td class="no-print" style="display:flex; gap: 5px;">${!isJustificado ? `<button class="btn btn-m" style="padding: 4px 8px; font-size: 0.75rem;" onclick="justificarAusencia('${id}', '${p.nombre}')">✅ Justificar</button>` : ''}<button class="btn btn-s" style="padding: 4px 8px; font-size: 0.75rem;" onclick="enviarWA_Ausente('${p.telefono || ''}', '${p.nombre}')">💬 Msg</button></td></tr>`); 
+                    const isJustificado = justificados.includes(id); 
+                    const estadoTag = isJustificado ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Justificado</span>` : `<span style="color:var(--accent-danger); font-weight:bold;">❌ Ausente</span>`; 
+                    cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${estadoTag}</td><td><b>${id}</b></td><td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || 'Sin teléfono'}</td><td class="no-print" style="display:flex; gap: 5px;">${!isJustificado ? `<button class="btn btn-m" style="padding: 4px 8px; font-size: 0.75rem;" onclick="justificarAusencia('${id}', '${p.nombre}')">✅ Justificar</button>` : ''}<button class="btn btn-s" style="padding: 4px 8px; font-size: 0.75rem;" onclick="enviarWA_Ausente('${p.telefono || ''}', '${p.nombre}')">💬 Msg</button></td></tr>`); 
                     } 
                 });
             }
         }
 
         function exportarPDFReporte() { 
-            const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text(document.getElementById('tituloReporte').innerText, 14, 20); 
-            doc.autoTable({ html: '#tabla-logs-final', startY: 30, theme: 'grid' }); doc.save(`Reporte_Asistencia.pdf`); 
+            const { jsPDF } = window.jspdf; 
+            const doc = new jsPDF(); 
+            doc.text(document.getElementById('tituloReporte').innerText, 14, 20); 
+            doc.autoTable({ html: '#tabla-logs-final', startY: 30, theme: 'grid' }); 
+            doc.save(`Reporte_Asistencia.pdf`); 
         }
         
-        function mostrarAyuda(t) { alert("SISTEMA DE ASISTENCIA\n\n1. Asegúrate de estar dentro del rango.\n2. Presiona Iniciar Escáner.\n3. Mire a la cámara."); }
-
-        // ===========================================================
-        // MOTOR DE GEOFENCE Y PRECISIÓN GPS MEJORADA
-        // ===========================================================
-        function obtenerUbicacionActual() {
-            if (!navigator.geolocation) { alert("Geolocalización no soportada en este navegador"); return; }
-            const opciones = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
-            
-            document.getElementById('ubicacionTiempoReal').innerHTML = "⏳ Solicitando precisión de Hardware GPS...";
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    ubicacionActual = { lat: position.coords.latitude, lng: position.coords.longitude, accuracy: position.coords.accuracy, timestamp: new Date() };
-                    document.getElementById('geoLat').value = ubicacionActual.lat.toFixed(8);
-                    document.getElementById('geoLng').value = ubicacionActual.lng.toFixed(8);
-                    actualizarDisplayUbicacion();
-                    alert(`✅ Ubicación obtenida.\nPrecisión del sensor: ±${ubicacionActual.accuracy.toFixed(2)} metros.`);
-                },
-                (error) => { manejarErrorGeolocalizacion(error); },
-                opciones
-            );
+        function mostrarAyuda(t) { 
+            alert("SISTEMA DE ASISTENCIA\n\n1. Asegúrate de estar dentro del rango.\n2. Presiona Iniciar Escáner.\n3. Mire a la cámara."); 
         }
 
-        function iniciarSeguimientoUbicacion() {
-            if (watchId !== null) { navigator.geolocation.clearWatch(watchId); }
-            const opciones = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+        // ====
+        // FUNCIONES GPS DE ALTA PRECISIÓN — EDITS 1, 2, 3, 4 APLICADOS
+        // ====
 
-            watchId = navigator.geolocation.watchPosition(
+        // EDIT 2 — obtenerUbicacionActual() usa obtenerUbicacionPrecisa() + gpsState
+        function obtenerUbicacionActual() {
+            if (!navigator.geolocation) {
+                alert("Geolocalización no soportada en este navegador");
+                return;
+            }
+            mostrarMensajeTemp("📡 Obteniendo ubicación de alta precisión...", "var(--accent-primary)");
+
+            obtenerUbicacionPrecisa({
+                timeoutTotal: 12000,
+                minLecturas: 3,
+                umbralPrecision: geoConfig.precisionMinima || 35
+            }).then((pos) => {
+                if (!pos) {
+                    alert("No se pudo obtener GPS preciso. Salga al exterior e intente de nuevo.");
+                    return;
+                }
+                gpsState.ubicacionActual = {
+                    lat:       pos.lat,
+                    lng:       pos.lng,
+                    accuracy:  pos.accuracy,
+                    timestamp: Date.now()
+                };
+                document.getElementById('geoLat').value = pos.lat.toFixed(6);
+                document.getElementById('geoLng').value = pos.lng.toFixed(6);
+                actualizarDisplayUbicacion();
+                alert(`📍 Ubicación obtenida: ±${Math.round(pos.accuracy)} metros de precisión`);
+            });
+        }
+
+        // EDIT 3 — iniciarSeguimientoUbicacion() usa gpsState.*
+        function iniciarSeguimientoUbicacion() {
+            if (gpsState.watchId !== null) {
+                navigator.geolocation.clearWatch(gpsState.watchId);
+            }
+
+            const gpsBadge = document.getElementById('scan-gps-status');
+            const gpsText  = document.getElementById('scan-gps-text');
+            if (gpsBadge) { gpsBadge.style.display = 'flex'; gpsBadge.className = 'gps-status media'; }
+            if (gpsText)  gpsText.innerText = 'Seguimiento activo...';
+
+            gpsState.watchId = navigator.geolocation.watchPosition(
                 (position) => {
-                    const nuevaUbicacion = { lat: position.coords.latitude, lng: position.coords.longitude, accuracy: position.coords.accuracy, timestamp: new Date() };
-                    if (!ultimaUbicacion || calcularDistancia(ultimaUbicacion.lat, ultimaUbicacion.lng, nuevaUbicacion.lat, nuevaUbicacion.lng) > distanciaMinima) {
-                        ubicacionActual = nuevaUbicacion; ultimaUbicacion = nuevaUbicacion; actualizarDisplayUbicacion();
+                    const acc = position.coords.accuracy;
+                    const nuevaUbicacion = {
+                        lat:       position.coords.latitude,
+                        lng:       position.coords.longitude,
+                        accuracy:  acc,
+                        timestamp: Date.now()
+                    };
+
+                    // Actualizar badge de calidad GPS
+                    if (gpsBadge) {
+                        let clase = 'mala';
+                        if (acc <= 10)      clase = 'excelente';
+                        else if (acc <= 20) clase = 'buena';
+                        else if (acc <= 40) clase = 'media';
+                        gpsBadge.className = 'gps-status ' + clase;
+                    }
+                    if (gpsText) gpsText.innerText = `Seguimiento ±${Math.round(acc)}m`;
+
+                    // Solo actualizar si hay movimiento real significativo
+                    if (!gpsState.ultimaUbicacion ||
+                        calcularDistancia(
+                            gpsState.ultimaUbicacion.lat, gpsState.ultimaUbicacion.lng,
+                            nuevaUbicacion.lat, nuevaUbicacion.lng
+                        ) > DISTANCIA_MINIMA_REPORTE) {
+
+                        gpsState.ubicacionActual  = nuevaUbicacion;
+                        gpsState.ultimaUbicacion  = nuevaUbicacion;
+                        actualizarDisplayUbicacion();
                     }
                 },
                 (error) => { manejarErrorGeolocalizacion(error); },
-                opciones
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
             );
-            alert("Seguimiento de ubicación contínuo (Watch) iniciado.");
+
+            alert("Seguimiento de ubicación iniciado");
         }
 
+        // EDIT 4a — detenerSeguimientoUbicacion() usa gpsState.watchId
         function detenerSeguimientoUbicacion() {
-            if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId); watchId = null;
-                document.getElementById('ubicacionTiempoReal').innerHTML = "⏹️ Seguimiento detenido por el usuario.";
+            if (gpsState.watchId !== null) {
+                navigator.geolocation.clearWatch(gpsState.watchId);
+                gpsState.watchId = null;
+                const gpsBadge = document.getElementById('scan-gps-status');
+                if (gpsBadge) gpsBadge.style.display = 'none';
+                document.getElementById('ubicacionTiempoReal').innerHTML = "Seguimiento detenido";
+                alert("Seguimiento de ubicación detenido");
             }
         }
 
+        // EDIT 4b — actualizarDisplayUbicacion() usa gpsState.ubicacionActual
         function actualizarDisplayUbicacion() {
-            if (!ubicacionActual) return;
-            const html = `
-                <div style="margin: 10px 0; background: rgba(0, 217, 255, 0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
-                    <p style="font-family: monospace;"><strong>Latitud Exacta:</strong> ${ubicacionActual.lat.toFixed(8)}</p>
-                    <p style="font-family: monospace;"><strong>Longitud Exacta:</strong> ${ubicacionActual.lng.toFixed(8)}</p>
-                    <p style="color: var(--accent-warning); font-weight: bold; margin-top: 5px;"><strong>Precisión de Antena GPS:</strong> ±${ubicacionActual.accuracy.toFixed(2)} metros</p>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;"><strong>Última lectura:</strong> ${ubicacionActual.timestamp.toLocaleTimeString()}</p>
+            if (!gpsState.ubicacionActual) return;
+            const u = gpsState.ubicacionActual;
+            const hora = new Date(u.timestamp).toLocaleTimeString();
+            let calidadLabel = '🔴 Baja';
+            if (u.accuracy <= 10)      calidadLabel = '🟢 Excelente';
+            else if (u.accuracy <= 20) calidadLabel = '🔵 Buena';
+            else if (u.accuracy <= 40) calidadLabel = '🟡 Media';
+
+            document.getElementById('ubicacionTiempoReal').innerHTML = `
+                <div style="margin: 10px 0;">
+                    <p><strong>Latitud:</strong> ${u.lat.toFixed(6)}</p>
+                    <p><strong>Longitud:</strong> ${u.lng.toFixed(6)}</p>
+                    <p><strong>Precisión:</strong> ±${Math.round(u.accuracy)} metros — ${calidadLabel}</p>
+                    <p><strong>Última actualización:</strong> ${hora}</p>
                 </div>
             `;
-            document.getElementById('ubicacionTiempoReal').innerHTML = html;
         }
 
+        // Manejo de errores de geolocalización
         function manejarErrorGeolocalizacion(error) {
             let mensaje = "";
             switch(error.code) {
-                case error.PERMISSION_DENIED: mensaje = "Permiso de geolocalización denegado en el navegador."; break;
-                case error.POSITION_UNAVAILABLE: mensaje = "La señal GPS de hardware no está disponible."; break;
-                case error.TIMEOUT: mensaje = "Tiempo de espera agotado, mueva el dispositivo a una zona descubierta."; break;
-                case error.UNKNOWN_ERROR: mensaje = "Error crítico de hardware."; break;
+                case error.PERMISSION_DENIED:    mensaje = "Permiso de geolocalización denegado"; break;
+                case error.POSITION_UNAVAILABLE: mensaje = "Información de ubicación no disponible"; break;
+                case error.TIMEOUT:              mensaje = "Tiempo de espera agotado para obtener ubicación"; break;
+                default:                         mensaje = "Error desconocido en geolocalización"; break;
             }
-            alert("⚠️ Error de GPS: " + mensaje);
+            console.warn("GPS Error:", mensaje);
         }
 
+        // Función para actualizar la vista previa del mapa
         function actualizarVistaPreviaMapa() {
             const mapsUrl = document.getElementById('geoMapsUrl').value.trim();
             const mapPreview = document.getElementById('mapPreview');
@@ -1820,24 +2111,33 @@
             if (mapsUrl) {
                 const match = mapsUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
                 if (match) {
-                    const lat = match[1]; const lng = match[2];
+                    const lat = match[1], lng = match[2];
                     mapPreview.innerHTML = `<iframe src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1000!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1ses!2s!4v1234567890123!5m2!1ses!2s" allowfullscreen="" loading="lazy"></iframe>`;
-                } else { mapPreview.innerHTML = `<span>URL de Google Maps inválida o no contiene coordenadas (@lat,lng)</span>`; }
-            } else { mapPreview.innerHTML = `<span>Vista previa del mapa desactivada (Ingrese URL)</span>`; }
+                } else {
+                    mapPreview.innerHTML = `<span>URL de Google Maps inválida</span>`;
+                }
+            } else {
+                mapPreview.innerHTML = `<span>Vista previa del mapa</span>`;
+            }
         }
 
         document.getElementById('geoMapsUrl').addEventListener('input', actualizarVistaPreviaMapa);
 
+        // Limpiar seguimiento al cerrar (usa gpsState.watchId — CORREGIDO)
         window.addEventListener('beforeunload', function() {
-            if (watchId !== null) { navigator.geolocation.clearWatch(watchId); }
+            if (gpsState.watchId !== null) {
+                navigator.geolocation.clearWatch(gpsState.watchId);
+            }
         });
 
+        // Sincronización automática periódica
         function iniciarSincronizacionAutomatica() {
             setInterval(() => {
-                if (connectionStatus && document.getElementById('master-panel').style.display === 'block') { sincronizarConNube(); }
-            }, 30000); 
+                if (connectionStatus && document.getElementById('master-panel').style.display === 'block') {
+                    sincronizarConNube();
+                }
+            }, 30000);
         }
-
         iniciarSincronizacionAutomatica();
 
         mostrarVista('home-view'); 
