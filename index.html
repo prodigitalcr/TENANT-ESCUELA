@@ -1773,5 +1773,232 @@
         function justificarAusencia(id, nombre) {
             const hISO = document.getElementById('reportDate').value;
             if(confirm(`¿Desea justificar la ausencia de ${nombre}?`)) {
-                // CORREGIDO: Usar la ruta correcta para marcas
-                database.ref('escuelas_data/' + TENAN
+                database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
+                alert('Ausencia justificada.');
+            }
+        }
+        
+        function borrarHistorialDia() { 
+            const hISO = document.getElementById('reportDate').value;
+            if (!hISO) { alert("Seleccione una fecha primero."); return; }
+            const logsDelDia = logsGlobal.filter(l => (l.fechaISO === hISO) || coincideFecha(l.hora, hISO));
+            if (logsDelDia.length === 0) { alert("No hay registros para eliminar en esa fecha."); return; }
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').once('value', (snapshot) => {
+                const updates = {};
+                snapshot.forEach((child) => {
+                    const val = child.val();
+                    if ((val.fechaISO === hISO) || coincideFecha(val.hora, hISO)) {
+                        updates['escuelas_data/' + TENANT_ID + '/marcas/' + child.key] = null;
+                    }
+                });
+                const totalBorrar = Object.keys(updates).length;
+                if (totalBorrar === 0) { alert("No se encontraron registros para borrar."); return; }
+                database.ref().update(updates)
+                    .then(() => { alert('✅ ' + totalBorrar + ' registros del día eliminados correctamente.'); })
+                    .catch((err) => { alert('❌ Error al borrar: ' + err.message); });
+            });
+        }
+        
+        function ejecutarConsultaIdDirecta(id) {
+            if(!db.personas[id]) return alert("Usuario no encontrado.");
+            const p = db.personas[id];
+            document.getElementById('parentStudentName').innerText = p.nombre;
+            document.getElementById('parentStudentPuesto').innerText = (p.tipoUsuario || "Perfil") + " / " + (p.puesto || "N/A");
+            document.getElementById('btnConsultaWA').onclick = () => { const mensaje = encodeURIComponent(`Hola, quisiera realizar una consulta sobre el usuario: ${p.nombre}`); window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${mensaje}`, '_blank'); };
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').orderByChild('id').equalTo(id).once('value', (s) => {
+                const list = document.getElementById('parentLogList'); list.innerHTML = "";
+                if(s.exists()){ s.forEach(c => { let l=c.val(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(${l.distanciaMetros}m)</span>` : ""; let statusColor = l.tipo === 'ENTRADA' ? '#00ff88' : (l.tipo === 'SALIDA' ? '#ff4444' : '#ffb800'); list.innerHTML = `<div style="padding:10px; border-bottom:1px solid #3a4560;"><span>${l.hora}</span> - <b style="color:${statusColor}">${l.tipo}</b>${alertTag}</div>` + list.innerHTML; }); }
+                else { list.innerHTML = "<p style='color: var(--text-muted); text-align:center;'>Sin registros el día de hoy.</p>"; }
+                document.getElementById('parentResult').style.display = 'block';
+            });
+        }
+
+        function mostrarEstadisticas() { 
+            const total = Object.keys(db.personas).length; 
+            const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE') || coincideFecha(l.hora, new Date().toLocaleDateString('sv-SE')))).length; 
+            alert(`ESTADÍSTICAS DEL DÍA:\nTotal Registrados: ${total}\nPresentes (Entradas): ${presentes}\nAusentes: ${total - presentes}\nAsistencia: ${total>0?((presentes/total)*100).toFixed(1):0}%`); 
+        }
+        
+        function mostrarConfiguracion() { 
+            let configDiv = document.createElement('div'); 
+            configDiv.innerHTML = `<div><button class="btn btn-m" onclick="setTheme('dark')">Modo Oscuro</button> <button class="btn btn-s" onclick="setTheme('light')">Modo Claro</button></div>`; 
+            let win = window.open('', 'Configuración', 'width=400,height=300'); 
+            win.document.write(`<html><head><title>Configuración</title><style>body{padding:20px}.btn{padding:8px 12px;cursor:pointer}</style></head><body>${configDiv.innerHTML}<script>function setTheme(theme) { window.opener.setSystemTheme(theme); window.close(); }<\/script></body></html>`); 
+            win.document.close(); 
+        }
+        
+        function setSystemTheme(theme) { 
+            if (theme === 'light') { document.body.classList.add('light-theme'); localStorage.setItem('theme', 'light'); } 
+            else { document.body.classList.remove('light-theme'); localStorage.setItem('theme', 'dark'); } 
+        }
+        
+        function agregarMiembroManual() { 
+            const id = prompt("Cédula/Código nuevo:"); 
+            if(id) { db.personas[id] = { nombre: prompt("Nombre Completo:"), puesto: prompt("Sección:"), telefono: prompt("WhatsApp:"), tipoUsuario: 'Estudiante' }; renderAlumnos(); } 
+        }
+        
+        function importarCSV() { 
+            const f = document.getElementById('csvFile').files[0]; 
+            if (!f) { alert("Por favor, seleccione un archivo CSV."); return; }
+            const r = new FileReader(); 
+            r.onload = (e) => { 
+                let importados = 0;
+                e.target.result.split('\n').forEach((l, i) => { 
+                    if(i>0 && l.trim()){ let c=l.split(','); if(c[0]) { db.personas[c[0].trim()] = { nombre: c[1]?.trim() || '', puesto: c[2]?.trim() || '', telefono: c[3]?.trim() || '', tipoUsuario: c[4]?.trim() || 'Estudiante' }; importados++; } } 
+                }); 
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas)
+                    .then(() => { renderAlumnos(); alert(`Importados ${importados} registros y guardados en Firebase.`); })
+                    .catch((error) => { alert("Error al guardar en Firebase: " + error.message); });
+            }; 
+            r.readAsText(f); 
+        }
+        
+        function exportarCSV() { 
+            let csv = 'Código,Nombre,Sección,WhatsApp,Rol\n'; 
+            Object.entries(db.personas).forEach(([id, p]) => { csv += `${id},${p.nombre},${p.puesto || ''},${p.telefono || ''},${p.tipoUsuario || 'Estudiante'}\n`; }); 
+            const link = document.createElement('a'); link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); link.download = `Usuarios.csv`; link.click(); 
+        }
+        
+        function exportarPDFMiembros() { 
+            const { jsPDF } = window.jspdf; const doc = new jsPDF(); 
+            doc.text("Lista de Usuarios", 14, 20); 
+            const bodyData = []; 
+            Object.entries(db.personas).forEach(([id, p]) => { let rostrosStatus = p.descriptor ? 'Sí' : 'No'; bodyData.push([id, p.tipoUsuario, p.nombre, p.puesto, p.telefono, rostrosStatus]); }); 
+            doc.autoTable({ head: [['Código', 'Rol', 'Nombre', 'Sección', 'WhatsApp', 'IA']], body: bodyData, startY: 30, theme: 'grid' }); 
+            doc.save(`Usuarios.pdf`); 
+        }
+        
+        function duplicarMiembro() { 
+            const id = prompt('Código a duplicar:'); 
+            if(id && db.personas[id]) { const newId = prompt('Nuevo código:'); if(newId) { db.personas[newId] = {...db.personas[id]}; renderAlumnos(); alert('Duplicado'); } } 
+        }
+        
+        function enviarWA_Ausente(tel, nombre) { 
+            if(!tel || tel==='') { alert("Sin número."); return; } 
+            const msj = encodeURIComponent(`Hola, le informamos que ${nombre} está ausente hoy.`); 
+            window.open(`https://wa.me/506${tel.replace(/\D/g,'')}?text=${msj}`, '_blank'); 
+        }
+        
+        function descargarCarnet(id) { 
+            const p = db.personas[id]; 
+            const win = window.open('','',`width=350,height=500`); 
+            win.document.write(`<html><head><style>body{font-family:sans-serif;background:#0a0e27;color:#e8eef5;margin:0;padding:0;display:flex;align-items:center;justify-content:center;height:100vh;}.card{width:280px;height:420px;background:#1a1f3a;border-radius:12px;padding:20px;text-align:center}</style></head><body><div class="card"><h3>${p.nombre}</h3><div id="q"></div></div><script>new QRCode(document.getElementById("q"),{text:"${id}",width:130,height:130});setTimeout(()=>window.print(),800);<\/script></body></html>`); 
+            win.document.close(); 
+        }
+        
+        function imprimirTodosLosCarnets() { 
+            const win = window.open('',''); 
+            win.document.write(`<html><body>`); 
+            Object.entries(db.personas).forEach(([id,p]) => { win.document.write(`<div style="display:inline-block;border:1px solid #000;margin:10px;padding:10px;"><div id="qr-${id}"></div><br>${p.nombre}</div>`); }); 
+            win.document.write(`<script>${Object.keys(db.personas).map(id => `new QRCode(document.getElementById("qr-${id}"),{text:"${id}",width:100,height:100});`).join('\n')} setTimeout(()=>window.print(),1500);<\/script></body></html>`); 
+            win.document.close(); 
+        }
+        
+        function mostrarVista(id) { 
+            document.getElementById('home-view').style.display = (id==='home-view')?'flex':'none'; 
+            document.getElementById('scan-view').style.display = (id==='scan-view')?'flex':'none'; 
+            document.getElementById('parent-view').style.display = (id==='parent-view')?'flex':'none'; 
+            document.getElementById('register-view').style.display = (id==='register-view')?'flex':'none'; 
+            if(id!=='scan-view' && scannerActivo) toggleScanner(); 
+            if(id!=='parent-view' && queryScannerActivo) toggleQueryScanner(); 
+            if(id!=='register-view' && regStream) { regStream.getTracks().forEach(t => t.stop()); regStream = null; document.getElementById('reg-cam-container').classList.remove('active', 'scanning'); } 
+            resetIdleTimer(); 
+        }
+        
+        function cerrarMaster() { document.getElementById('master-panel').style.display = 'none'; detenerCamaras(); resetIdleTimer(); }
+        
+        function cerrarVistaProtegida(id) { document.getElementById(id).style.display = 'none'; mostrarVista('home-view'); detenerCamaras(); }
+        
+        function cambiarTab(n) { 
+            document.getElementById('sec-alumnos').style.display = (n===1)?'block':'none'; 
+            document.getElementById('sec-reporte').style.display = (n===2)?'block':'none'; 
+            document.getElementById('sec-geolocalizacion').style.display = (n===3)?'block':'none'; 
+            document.getElementById('tab1').className = (n===1)?'tab-btn active':'tab-btn'; 
+            document.getElementById('tab2').className = (n===2)?'tab-btn active':'tab-btn'; 
+            document.getElementById('tab3').className = (n===3)?'tab-btn active':'tab-btn'; 
+        }
+        
+        function filtrarRapido() { 
+            let f = document.getElementById('busqueda').value.toUpperCase(); 
+            let rows = document.getElementById("tablaAlumnos").getElementsByTagName("tr"); 
+            for (let i = 0; i < rows.length; i++) { rows[i].style.display = (rows[i].textContent.toUpperCase().indexOf(f) > -1) ? "" : "none"; } 
+        }
+        
+        function consultarPadre() { const id = document.getElementById('parentInput').value.trim(); ejecutarConsultaIdDirecta(id); }
+        
+        function limpiarConsultaPadres() { document.getElementById('parentResult').style.display='none'; document.getElementById('parentInput').value=''; if(queryScannerActivo) toggleQueryScanner(); }
+        
+        function coincideFecha(horaLog, fechaInputISO) { 
+            if(!horaLog || !fechaInputISO) return false; 
+            let [y, m, d] = fechaInputISO.split('-'); 
+            m = parseInt(m).toString(); d = parseInt(d).toString(); 
+            return horaLog.includes(`${m}/${d}/${y}`) || horaLog.includes(`${m.padStart(2,'0')}/${d}/${y}`) || horaLog.includes(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`); 
+        }
+        
+        function filtrarVistaReporte(tipo) {
+            const fechaBuscada = document.getElementById('reportDate').value; 
+            if(!fechaBuscada) return alert("Seleccione una fecha");
+            const cuerpo = document.getElementById('cuerpoReporte'), head = document.getElementById('headReporte'), titulo = document.getElementById('tituloReporte'); 
+            cuerpo.innerHTML = "";
+            let logsDelDia = logsGlobal.filter(l => l.fechaISO ? l.fechaISO === fechaBuscada : coincideFecha(l.hora, fechaBuscada));
+            if (tipo === 'ENTRADA' || tipo === 'SALIDA') {
+                titulo.innerText = tipo === 'ENTRADA' ? `✅ Llegaron` : `🚪 Salieron`; 
+                head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
+                logsDelDia.filter(l => l.tipo === tipo).forEach(l => { 
+                    const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; 
+                    let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; 
+                    let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; 
+                    cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); 
+                });
+            } else if (tipo === 'TODOS') {
+                titulo.innerText = `📋 Todos los Movimientos`; 
+                head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Tipo</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
+                logsDelDia.filter(l => l.tipo !== 'JUSTIFICADA').forEach(l => { 
+                    const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; 
+                    let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; 
+                    let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; 
+                    cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td><span class="status-badge ${l.tipo === 'ENTRADA' ? 'status-in' : 'status-none'}">${l.tipo}</span></td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); 
+                });
+            } else {
+                titulo.innerText = `❌ Ausentes / ⭐ Justificados`; 
+                head.innerHTML = `<tr><th>Estado</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>WhatsApp</th><th class="no-print">Acción</th></tr>`;
+                const presentes = [...new Set(logsDelDia.filter(l => l.tipo === 'ENTRADA').map(l => l.id))]; 
+                const justificados = [...new Set(logsDelDia.filter(l => l.tipo === 'JUSTIFICADA').map(l => l.id))];
+                Object.entries(db.personas).forEach(([id, p]) => { 
+                    if(!presentes.includes(id)) { 
+                        const isJustificado = justificados.includes(id); 
+                        const estadoTag = isJustificado ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Justificado</span>` : `<span style="color:var(--accent-danger); font-weight:bold;">❌ Ausente</span>`; 
+                        cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${estadoTag}</td><td><b>${id}</b></td><td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || 'Sin teléfono'}</td><td class="no-print" style="display:flex; gap: 5px;">${!isJustificado ? `<button class="btn btn-m" style="padding: 4px 8px; font-size: 0.75rem;" onclick="justificarAusencia('${id}', '${p.nombre}')">✅ Justificar</button>` : ''}<button class="btn btn-s" style="padding: 4px 8px; font-size: 0.75rem;" onclick="enviarWA_Ausente('${p.telefono || ''}', '${p.nombre}')">💬 Msg</button></td></tr>`); 
+                    } 
+                });
+            }
+        }
+
+        function exportarPDFReporte() { 
+            const { jsPDF } = window.jspdf; const doc = new jsPDF(); 
+            doc.text(document.getElementById('tituloReporte').innerText, 14, 20); 
+            doc.autoTable({ html: '#tabla-logs-final', startY: 30, theme: 'grid' }); 
+            doc.save(`Reporte_Asistencia.pdf`); 
+        }
+        
+        function mostrarAyuda(t) { alert("SISTEMA DE ASISTENCIA\n\n1. Asegúrate de estar dentro del rango.\n2. Presiona Iniciar Escáner.\n3. Mire a la cámara."); }
+
+        window.addEventListener('beforeunload', function() {
+            if (gpsState.watchId !== null) { navigator.geolocation.clearWatch(gpsState.watchId); }
+        });
+
+        function iniciarSincronizacionAutomatica() {
+            setInterval(() => {
+                if (connectionStatus && document.getElementById('master-panel').style.display === 'block') {
+                    sincronizarConNube(true);
+                }
+            }, 30000);
+        }
+        iniciarSincronizacionAutomatica();
+
+        mostrarVista('home-view'); 
+        resetIdleTimer();
+        actualizarEstadoConexion(navigator.onLine);
+    </script>
+</body>
+</html>
