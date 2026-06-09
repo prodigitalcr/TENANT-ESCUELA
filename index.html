@@ -643,67 +643,75 @@
 
         <!-- SECCIÓN GEOLOCALIZACIÓN -->
         <div id="sec-geolocalizacion" style="display:none;">
-            <div class="power-bar">
-                <h3 style="color: var(--accent-primary); margin-bottom: 10px;">📍 Configuración de Geocerca del Centro Educativo</h3>
-                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Establece las coordenadas del centro. <b>Si un escaneo supera el radio, se registrará el intento pero NO se marcará su asistencia real.</b></p>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <!-- ✅ NUEVA INTERFAZ GEOCERCA MINIMALISTA -->
+            <div class="power-bar" style="max-width:680px; margin:0 auto;">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+                    <span style="font-size:2rem;">📍</span>
                     <div>
-                    <label style="font-weight: bold; color: var(--text-primary);">Latitud Centro:</label>
-                    <input type="number" step="any" id="geoLat" value="9.9388" readonly>
-                    </div>
-                    <div>
-                    <label style="font-weight: bold; color: var(--text-primary);">Longitud Centro:</label>
-                    <input type="number" step="any" id="geoLng" value="-84.1200" readonly>
-                    </div>
-                    <div>
-                    <label style="font-weight: bold; color: var(--text-primary);">Radio Permitido (metros):</label>
-                    <input type="number" id="geoRadio" value="150">
-                    </div>
-                    <div>
-                    <label style="font-weight: bold; color: var(--text-primary);">Precisión GPS Máxima (m):</label>
-                    <input type="number" id="geoPrecisionMinima" value="35" class="precision-input" title="Lecturas GPS con accuracy mayor a este valor serán rechazadas. 20-40m recomendado.">
+                        <h3 style="margin:0; color:var(--accent-primary); font-size:1.1rem;">Ubicación de la Institución</h3>
+                        <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);">La asistencia solo se marcará dentro de <b>200 metros</b> del centro.</p>
                     </div>
                 </div>
-                
-                <div style="margin-top: 15px;">
-                    <label style="font-weight: bold; color: var(--text-primary);">URL de Google Maps:</label>
-                    <textarea id="geoMapsUrl" placeholder="Pegue aquí la URL de Google Maps del centro educativo" rows="2" style="resize: vertical;"></textarea>
+
+                <!-- URL Google Maps -->
+                <div style="margin-bottom:18px;">
+                    <label style="font-size:0.78rem; font-weight:700; color:var(--text-secondary); letter-spacing:0.06em; text-transform:uppercase;">URL de Google Maps</label>
+                    <div style="display:flex; gap:8px; margin-top:7px;">
+                        <input type="url" id="geoMapsUrl"
+                            placeholder="https://www.google.com/maps/@19.432,-99.133,17z"
+                            style="flex:1; font-size:0.88rem; padding:10px 12px; border-radius:8px; border:1.5px solid var(--border-color); background:var(--bg-secondary); color:var(--text-primary);">
+                        <button class="btn btn-i" style="white-space:nowrap; padding:10px 16px; border-radius:8px;" onclick="extraerCoordsDesdeURL()">
+                            🔍 Extraer
+                        </button>
+                    </div>
+                    <p style="margin:5px 0 0; font-size:0.73rem; color:var(--text-muted);">Abra Google Maps → busque la escuela → copie la URL completa del navegador → péguela aquí.</p>
                 </div>
-                
-                <div class="map-preview" id="mapPreview">
-                    <span>Vista previa del mapa</span>
+
+                <!-- Coordenadas extraídas (solo lectura) -->
+                <div id="geoCoordBox" style="display:none; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:14px 18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div>
+                            <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Coordenadas Extraídas</span>
+                            <p id="geoCoordDisplay" style="margin:5px 0 0; font-size:1rem; font-weight:700; color:var(--accent-primary); font-family:monospace;"></p>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Radio Permitido</span>
+                            <p style="margin:5px 0 0; font-size:1.2rem; font-weight:700; color:var(--accent-success);">200 m</p>
+                        </div>
+                    </div>
+                    <a id="geoVerMapa" href="#" target="_blank" style="display:inline-block; margin-top:10px; font-size:0.8rem; color:var(--accent-primary); text-decoration:none;">🗺️ Verificar en Google Maps →</a>
                 </div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button class="btn btn-i" onclick="obtenerUbicacionActual()">📡 Obtener Ubicación Actual</button>
-                    <button class="btn btn-s" onclick="guardarConfigGeo()">💾 Guardar Geocerca</button>
-                    <button class="btn btn-m" onclick="refrescarGeocerca()">🔄 Refrescar</button>
+
+                <!-- Inputs ocultos para lat/lng/radio/precision -->
+                <input type="hidden" id="geoLat" value="">
+                <input type="hidden" id="geoLng" value="">
+                <input type="hidden" id="geoRadio" value="200">
+                <input type="hidden" id="geoPrecisionMinima" value="35">
+
+                <!-- Estado guardado actual -->
+                <div id="geoEstadoGuardado" style="display:none; align-items:center; gap:10px; background:rgba(40,167,69,0.08); border:1px solid var(--accent-success,#28a745); border-radius:8px; padding:10px 14px; margin-bottom:16px;">
+                    <span style="font-size:1.2rem;">✅</span>
+                    <div>
+                        <span style="font-size:0.82rem; font-weight:600; color:var(--accent-success,#28a745);">Geocerca activa</span>
+                        <p id="geoEstadoInfo" style="margin:2px 0 0; font-size:0.78rem; color:var(--text-muted);"></p>
+                    </div>
                 </div>
+
+                <!-- Botón guardar -->
+                <button class="btn btn-s" onclick="guardarConfigGeo()" style="width:100%; padding:13px; font-size:1rem; border-radius:8px; margin-top:2px;">
+                    💾 Guardar Geocerca
+                </button>
             </div>
 
-            <!-- Sección para mostrar ubicación en tiempo real -->
-            <div class="power-bar" style="margin-top: 20px;">
-                <h3 style="color: var(--accent-primary); margin-bottom: 10px;">📡 Ubicación en Tiempo Real</h3>
-                <div id="ubicacionTiempoReal" style="font-size: 0.9rem; color: var(--text-secondary);">
-                    Esperando ubicación...
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button class="btn btn-m" onclick="iniciarSeguimientoUbicacion()">🔄 Seguimiento Continuo</button>
-                    <button class="btn btn-d" onclick="detenerSeguimientoUbicacion()">⏹ Detener Seguimiento</button>
-                </div>
-            </div>
-
-            <h2 style="color:var(--accent-primary); margin: 25px 0 10px 0;">🌍 Historial de Escaneos Lejanos Detectados (Rechazados)</h2>
+<h2 style="color:var(--accent-primary); margin: 25px 0 10px 0;">🌍 Historial de Escaneos Lejanos Detectados (Rechazados)</h2>
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
                     <tr>
                     <th>Fecha/Hora</th>
-                    <th>Código</th>
-                    <th>Nombre Alumno</th>
-                    <th>Distancia Calculada</th>
-                    <th>Coordenadas Dispositivo</th>
+                    <th>Persona</th>
+                    <th>Distancia</th>
+                    <th>GPS</th>
                     <th class="no-print">Acciones</th>
                     </tr>
                     </thead>
@@ -920,16 +928,28 @@
             }
         });
         
-        database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', (s) => { 
-            if(s.val()) { 
-                geoConfig = s.val(); 
-                document.getElementById('geoLat').value = geoConfig.lat;
-                document.getElementById('geoLng').value = geoConfig.lng;
-                document.getElementById('geoRadio').value = geoConfig.radio;
-                document.getElementById('geoPrecisionMinima').value = geoConfig.precisionMinima || 35;
-                document.getElementById('geoMapsUrl').value = geoConfig.mapsUrl || "";
-                actualizarVistaPreviaMapa();
-            } 
+        database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', (s) => {
+            const data = s.val();
+            if (data) {
+                geoConfig = data;
+                // Actualizar inputs ocultos
+                document.getElementById('geoLat').value = data.lat || '';
+                document.getElementById('geoLng').value = data.lng || '';
+                document.getElementById('geoMapsUrl').value = data.mapsUrl || '';
+                // Actualizar UI nueva minimalista
+                if (data.lat && data.lng) {
+                    const display = document.getElementById('geoCoordDisplay');
+                    if (display) display.textContent = parseFloat(data.lat).toFixed(6) + ', ' + parseFloat(data.lng).toFixed(6);
+                    const verLink = document.getElementById('geoVerMapa');
+                    if (verLink) verLink.href = 'https://www.google.com/maps/search/?api=1&query=' + data.lat + ',' + data.lng;
+                    const coordBox = document.getElementById('geoCoordBox');
+                    if (coordBox) coordBox.style.display = 'block';
+                    const estadoDiv  = document.getElementById('geoEstadoGuardado');
+                    const estadoInfo = document.getElementById('geoEstadoInfo');
+                    if (estadoDiv)  estadoDiv.style.display = 'flex';
+                    if (estadoInfo) estadoInfo.textContent = parseFloat(data.lat).toFixed(5) + ', ' + parseFloat(data.lng).toFixed(5) + ' · 200m';
+                }
+            }
         });
 
         // Cargar configuración de fondo y logo desde Firebase (aislado por tenant)
@@ -1287,7 +1307,7 @@
         function procesarAsistencia(id, latDisp, lngDisp, strEmocion, emoticon, accuracy) {
             const dist = calcularDistancia(latDisp, lngDisp, geoConfig.lat, geoConfig.lng);
             const hISO = new Date().toLocaleDateString('sv-SE');
-            const esLejano = dist > geoConfig.radio;
+            const esLejano = dist > 200; // Radio fijo: 200 metros
             const umbral = geoConfig.precisionMinima || 35;
 
             // Bloquear si la precisión GPS es inaceptable
@@ -1541,72 +1561,27 @@
 
 
         // ✅ FIX 5: eliminarPersonaCompleta() — borrado completo desde tabla lejanos
-        function eliminarPersonaCompleta(personaId, personaNombre) {
-            if (!confirm(
-                `⚠️ ATENCIÓN — Director\n\n` +
-                `¿Eliminar COMPLETAMENTE a "${personaNombre}" (${personaId})?\n\n` +
-                `Se borrará:\n` +
-                `• Perfil y datos biométricos\n` +
-                `• Todos sus registros de asistencia\n` +
-                `• Todos sus logs lejanos\n\n` +
-                `Esta acción NO se puede deshacer.`
-            )) return;
-
-            if (!confirm(`Confirme: ¿Está seguro de eliminar permanentemente a "${personaNombre}"?`)) return;
-
-            const updates = {};
-
-            // 1. Eliminar perfil
-            updates['escuelas_data/' + TENANT_ID + '/personas/' + personaId] = null;
-
-            // 2. Eliminar todas sus marcas de asistencia
-            logsGlobal.forEach(log => {
-                if (log.id === personaId && log.key) {
-                    updates['escuelas_data/' + TENANT_ID + '/marcas/' + log.key] = null;
-                }
-            });
-
-            // 3. Eliminar todos sus logs lejanos
-            logsLejanosGlobal.forEach(log => {
-                if (log.id === personaId && log.key) {
-                    updates['escuelas_data/' + TENANT_ID + '/logs_lejanos/' + log.key] = null;
-                }
-            });
-
-            const totalBorrar = Object.keys(updates).length;
-
-            database.ref().update(updates)
-                .then(() => {
-                    alert(`✅ Persona "${personaNombre}" eliminada completamente.\n` +
-                          `Se borraron ${totalBorrar} registros.`);
-                })
-                .catch((err) => {
-                    alert('❌ Error al eliminar: ' + err.message);
-                });
-        }
-
-        // ✅ FIX 4: renderGeolocalizacion() con botón Eliminar Persona
+                // eliminarPersonaCompleta eliminada — funcionalidad removida por diseño.
+        // renderGeolocalizacion() — tabla lejanos minimalista
         function renderGeolocalizacion() {
             const tbody = document.getElementById('tablaLogsLejanos'); tbody.innerHTML = "";
-            if (logsLejanosGlobal.length === 0) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color: var(--text-muted);'>No hay reportes de escaneos lejanos.</td></tr>"; return; }
+            if (logsLejanosGlobal.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:var(--text-muted); padding:20px;'>Sin registros lejanos detectados.</td></tr>";
+                return;
+            }
             logsLejanosGlobal.slice().reverse().forEach(log => {
-                const precisionInfo = log.precision ? ` <span style="color:var(--text-muted);font-size:0.75rem;">(GPS ±${log.precision}m)</span>` : '';
+                const precInfo = log.precision ? `±${log.precision}m` : '—';
                 tbody.insertAdjacentHTML('beforeend', `
                     <tr>
-                        <td>${log.hora}</td>
-                        <td><b>${log.id}</b></td>
-                        <td>${log.nombre}</td>
-                        <td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango${precisionInfo}</td>
-                        <td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td>
-                        <td class="no-print">
-                            <div style="display:flex; gap: 5px; flex-wrap:wrap;">
-                                <button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;"
-                                    onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Mapa</button>
-                                <button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;"
-                                    onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove()">🗑️ Solo Log</button>
-                                <button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem; background:#8b0000; border-color:#8b0000;"
-                                    onclick="eliminarPersonaCompleta('${log.id}', '${log.nombre}')">👤 Eliminar Persona</button>
-                            </div>
+                        <td style="white-space:nowrap;">${log.hora}</td>
+                        <td><b>${log.id}</b><br><span style="font-size:0.78rem;color:var(--text-muted);">${log.nombre}</span></td>
+                        <td style="color:var(--accent-danger); font-weight:700;">${log.distancia} m</td>
+                        <td style="font-size:0.8rem; color:var(--text-muted);">GPS ${precInfo}</td>
+                        <td class="no-print" style="white-space:nowrap;">
+                            <button class="btn btn-i" style="padding:4px 10px; font-size:0.75rem; margin-right:4px;"
+                                onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️</button>
+                            <button class="btn btn-d" style="padding:4px 10px; font-size:0.75rem;"
+                                onclick="if(confirm('¿Eliminar este registro?')) database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove()">🗑️</button>
                         </td>
                     </tr>`);
             });
@@ -1653,50 +1628,120 @@
         
         // Modificación en la función de guardar configuración geográfica
         function guardarConfigGeo() {
-            // Solo permitir modificar el radio, no las coordenadas (que se obtienen automáticamente)
-            const radio = parseInt(document.getElementById('geoRadio').value);
+            const lat  = parseFloat(document.getElementById('geoLat').value);
+            const lng  = parseFloat(document.getElementById('geoLng').value);
             const mapsUrl = document.getElementById('geoMapsUrl').value.trim();
-            
-            if (isNaN(radio) || radio <= 0) {
-                alert("Radio inválido. Debe ser un número positivo.");
+
+            if (!mapsUrl) {
+                alert("⚠️ Pegue una URL de Google Maps y presione 🔍 Extraer primero.");
                 return;
             }
-            
-            // Usar las coordenadas actuales del sistema si están disponibles
-            let lat = geoConfig.lat;
-            let lng = geoConfig.lng;
-            
-            if (gpsState.ubicacionActual) {
-                lat = gpsState.ubicacionActual.lat;
-                lng = gpsState.ubicacionActual.lng;
-            } else if (document.getElementById('geoLat').value && document.getElementById('geoLng').value) {
-                lat = parseFloat(document.getElementById('geoLat').value);
-                lng = parseFloat(document.getElementById('geoLng').value);
-            }
-            
             if (isNaN(lat) || isNaN(lng)) {
-                alert("Coordenadas inválidas. Por favor obtenga la ubicación actual.");
+                alert("⚠️ Primero extraiga las coordenadas presionando el botón 🔍 Extraer.");
                 return;
             }
 
-            const precisionMinima = parseInt(document.getElementById('geoPrecisionMinima').value) || 35;
-            
+            const radio          = 200;
+            const precisionMinima = 35;
             geoConfig = { lat, lng, radio, mapsUrl, precisionMinima };
-            database.ref('tenants/' + TENANT_ID + '/config/geocerca').set(geoConfig);
-            alert("Geocerca configurada en la partición de la escuela (precisión máx: " + precisionMinima + "m).");
+
+            database.ref('tenants/' + TENANT_ID + '/config/geocerca').set(geoConfig)
+                .then(() => {
+                    const estadoDiv  = document.getElementById('geoEstadoGuardado');
+                    const estadoInfo = document.getElementById('geoEstadoInfo');
+                    if (estadoDiv)  { estadoDiv.style.display = 'flex'; }
+                    if (estadoInfo) { estadoInfo.textContent = lat.toFixed(5) + ', ' + lng.toFixed(5) + ' · 200m'; }
+                    mostrarMensajeTemp("✅ Geocerca guardada. Radio: 200m", "var(--accent-success)");
+                })
+                .catch((err) => {
+                    alert("❌ Error al guardar geocerca: " + err.message);
+                });
+        }
+
+        // ✅ extraerCoordsDesdeURL() — parsea URL de Google Maps y extrae lat/lng
+        function extraerCoordsDesdeURL() {
+            const url = document.getElementById('geoMapsUrl').value.trim();
+            if (!url) { alert("Pegue primero una URL de Google Maps."); return; }
+
+            let lat = null, lng = null;
+
+            // Patrón 1: @lat,lng (más común — vista de mapa en navegador)
+            const m1 = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+            if (m1) { lat = parseFloat(m1[1]); lng = parseFloat(m1[2]); }
+
+            // Patrón 2: q=lat,lng
+            if (!lat) {
+                const m2 = url.match(/[?&]q=(-?\d+\.?\d*)[,%2C]+(-?\d+\.?\d*)/);
+                if (m2) { lat = parseFloat(m2[1]); lng = parseFloat(m2[2]); }
+            }
+
+            // Patrón 3: ll=lat,lng
+            if (!lat) {
+                const m3 = url.match(/ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+                if (m3) { lat = parseFloat(m3[1]); lng = parseFloat(m3[2]); }
+            }
+
+            // Patrón 4: /place/.../@lat,lng
+            if (!lat) {
+                const m4 = url.match(/place\/[^\/]+\/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+                if (m4) { lat = parseFloat(m4[1]); lng = parseFloat(m4[2]); }
+            }
+
+            // Patrón 5: query=lat,lng
+            if (!lat) {
+                const m5 = url.match(/query=(-?\d+\.?\d*)[,%2C]+(-?\d+\.?\d*)/);
+                if (m5) { lat = parseFloat(m5[1]); lng = parseFloat(m5[2]); }
+            }
+
+            if (!lat || isNaN(lat) || !lng || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+                alert("❌ No se pudieron extraer coordenadas.\n\nUse la URL completa del navegador (no links cortos maps.app.goo.gl).\n\nEjemplo:\nhttps://www.google.com/maps/@19.4326,-99.1332,17z");
+                return;
+            }
+
+            document.getElementById('geoLat').value = lat;
+            document.getElementById('geoLng').value = lng;
+
+            const display = document.getElementById('geoCoordDisplay');
+            if (display) display.textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
+
+            const verLink = document.getElementById('geoVerMapa');
+            if (verLink) { verLink.href = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lng; }
+
+            const coordBox = document.getElementById('geoCoordBox');
+            if (coordBox) coordBox.style.display = 'block';
+
+            mostrarMensajeTemp("✅ Coordenadas: " + lat.toFixed(5) + ", " + lng.toFixed(5), "var(--accent-success)");
         }
 
         // Función para refrescar la geocerca
         function refrescarGeocerca() {
             database.ref('tenants/' + TENANT_ID + '/config/geocerca').once('value', (s) => {
-                if(s.val()) { 
-                    geoConfig = s.val(); 
-                    document.getElementById('geoLat').value = geoConfig.lat;
-                    document.getElementById('geoLng').value = geoConfig.lng;
-                    document.getElementById('geoRadio').value = geoConfig.radio;
-                    document.getElementById('geoMapsUrl').value = geoConfig.mapsUrl || "";
-                    actualizarVistaPreviaMapa();
-                    alert("Geocerca actualizada desde la base de datos.");
+                const data = s.val();
+                if (data) {
+                    geoConfig = data;
+                    // Actualizar UI
+                    document.getElementById('geoLat').value = data.lat || '';
+                    document.getElementById('geoLng').value = data.lng || '';
+                    document.getElementById('geoMapsUrl').value = data.mapsUrl || '';
+
+                    if (data.lat && data.lng) {
+                        const display = document.getElementById('geoCoordDisplay');
+                        if (display) display.textContent = parseFloat(data.lat).toFixed(6) + ', ' + parseFloat(data.lng).toFixed(6);
+
+                        const verLink = document.getElementById('geoVerMapa');
+                        if (verLink) verLink.href = 'https://www.google.com/maps/search/?api=1&query=' + data.lat + ',' + data.lng;
+
+                        const coordBox = document.getElementById('geoCoordBox');
+                        if (coordBox) coordBox.style.display = 'block';
+
+                        const estadoDiv  = document.getElementById('geoEstadoGuardado');
+                        const estadoInfo = document.getElementById('geoEstadoInfo');
+                        if (estadoDiv)  estadoDiv.style.display = 'flex';
+                        if (estadoInfo) estadoInfo.textContent = parseFloat(data.lat).toFixed(5) + ', ' + parseFloat(data.lng).toFixed(5) + ' · 200m';
+                    }
+                    mostrarMensajeTemp("✅ Geocerca cargada desde Firebase.", "var(--accent-success)");
+                } else {
+                    mostrarMensajeTemp("⚠️ Sin geocerca configurada aún.", "var(--accent-warning)");
                 }
             });
         }
