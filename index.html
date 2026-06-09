@@ -1228,19 +1228,9 @@
             const gpsBadge = document.getElementById('scan-gps-status');
             const gpsText = document.getElementById('scan-gps-text');
 
-            // 🔴 FIX A: Sin GPS → BLOQUEAR completamente, NO registrar
             if (!navigator.geolocation) {
-                mostrarMensajeTemp("❌ GPS no disponible. No se puede verificar ubicación.", "var(--accent-danger)");
-                playErrorSound();
-                if (scannerActivo) toggleScanner();
-                return;
-            }
-
-            // 🔴 FIX B: Sin geocerca configurada → BLOQUEAR
-            if (!geoConfig || !geoConfig.lat || !geoConfig.lng || !geoConfig.radio) {
-                mostrarMensajeTemp("⚠️ Geocerca no configurada. Contacte al administrador.", "var(--accent-warning)");
-                playErrorSound();
-                if (scannerActivo) toggleScanner();
+                mostrarMensajeTemp("⚠️ GPS no disponible en este dispositivo.", "var(--accent-warning)");
+                setTimeout(() => completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon), 400);
                 return;
             }
 
@@ -1263,24 +1253,8 @@
                     umbralPrecision: geoConfig.precisionMinima || 35
                 });
 
-                // 🔴 FIX C: No se obtuvo lectura → BLOQUEAR
                 if (!mejorLectura) {
-                    mostrarMensajeTemp("❌ GPS insuficiente. Salga al exterior e intente de nuevo.", "var(--accent-danger)");
-                    playErrorSound();
-                    if (scannerActivo) toggleScanner();
-                    return;
-                }
-
-                // 🔴 FIX D: Precisión mayor al umbral → BLOQUEAR (ej. ±20000m se rechaza)
-                const umbralGPS = geoConfig.precisionMinima || 35;
-                if (mejorLectura.accuracy > umbralGPS) {
-                    mostrarMensajeTemp(
-                        "❌ GPS impreciso (±" + Math.round(mejorLectura.accuracy) + "m). Se requieren ±" + umbralGPS + "m o menos.",
-                        "var(--accent-danger)"
-                    );
-                    playErrorSound();
-                    if (scannerActivo) toggleScanner();
-                    return;
+                    throw new Error("No se pudo obtener lectura GPS aceptable");
                 }
 
                 // Guardar en estado global
@@ -1295,21 +1269,37 @@
 
             } catch (err) {
                 console.error("GPS Error:", err);
-                // 🔴 FIX: Cualquier error GPS → BLOQUEAR, NO registrar asistencia sin validación
-                mostrarMensajeTemp("❌ Error GPS. Salga al exterior e intente de nuevo.", "var(--accent-danger)");
+                const precActual = gpsState.precisionActual ? Math.round(gpsState.precisionActual) : '?';
+                mostrarMensajeTemp(
+                    `❌ GPS insuficiente (±${precActual}m). Se requiere ±${geoConfig.precisionMinima || 35}m o menos. Salga al exterior.`,
+                    "var(--accent-danger)"
+                );
                 playErrorSound();
+                // ✅ FIX 2: NO registrar asistencia sin validación GPS precisa
                 if (scannerActivo) toggleScanner();
-                // NO se llama completarEscaneoBD — la asistencia NO se registra sin GPS válido
             } finally {
                 if (gpsBadge) gpsBadge.style.display = "none";
             }
         }
 
         // Función centralizada para procesar la asistencia con ubicación
+        // ✅ FIX 3: procesarAsistencia() con parámetro accuracy y validación de precisión
         function procesarAsistencia(id, latDisp, lngDisp, strEmocion, emoticon, accuracy) {
             const dist = calcularDistancia(latDisp, lngDisp, geoConfig.lat, geoConfig.lng);
             const hISO = new Date().toLocaleDateString('sv-SE');
             const esLejano = dist > geoConfig.radio;
+            const umbral = geoConfig.precisionMinima || 35;
+
+            // Bloquear si la precisión GPS es inaceptable
+            if (accuracy && accuracy > umbral) {
+                mostrarMensajeTemp(
+                    `❌ GPS impreciso (±${Math.round(accuracy)}m). Se requiere ±${umbral}m o menos.`,
+                    "var(--accent-danger)"
+                );
+                playErrorSound();
+                if (scannerActivo) toggleScanner();
+                return;
+            }
 
             if (esLejano) {
                 database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').push({
@@ -1319,9 +1309,9 @@
                     distancia: Math.round(dist), 
                     lat: latDisp, 
                     lng: lngDisp,
-                    precision: accuracy || gpsState.ubicacionActual?.accuracy || "No disponible"
+                    precision: accuracy ? Math.round(accuracy) : "No disponible"
                 });
-                mostrarMensajeTemp("⚠️ Fuera del rango. Escaneo detectado (" + Math.round(dist) + "m) pero NO registrado.", "var(--accent-danger)");
+                mostrarMensajeTemp("⚠️ Fuera del rango. Detectado (" + Math.round(dist) + "m) pero NO registrado.", "var(--accent-danger)");
                 playErrorSound();
                 if(scannerActivo) toggleScanner(); 
                 return;
@@ -1549,11 +1539,76 @@
             });
         }
 
+
+        // ✅ FIX 5: eliminarPersonaCompleta() — borrado completo desde tabla lejanos
+        function eliminarPersonaCompleta(personaId, personaNombre) {
+            if (!confirm(
+                `⚠️ ATENCIÓN — Director\n\n` +
+                `¿Eliminar COMPLETAMENTE a "${personaNombre}" (${personaId})?\n\n` +
+                `Se borrará:\n` +
+                `• Perfil y datos biométricos\n` +
+                `• Todos sus registros de asistencia\n` +
+                `• Todos sus logs lejanos\n\n` +
+                `Esta acción NO se puede deshacer.`
+            )) return;
+
+            if (!confirm(`Confirme: ¿Está seguro de eliminar permanentemente a "${personaNombre}"?`)) return;
+
+            const updates = {};
+
+            // 1. Eliminar perfil
+            updates['escuelas_data/' + TENANT_ID + '/personas/' + personaId] = null;
+
+            // 2. Eliminar todas sus marcas de asistencia
+            logsGlobal.forEach(log => {
+                if (log.id === personaId && log.key) {
+                    updates['escuelas_data/' + TENANT_ID + '/marcas/' + log.key] = null;
+                }
+            });
+
+            // 3. Eliminar todos sus logs lejanos
+            logsLejanosGlobal.forEach(log => {
+                if (log.id === personaId && log.key) {
+                    updates['escuelas_data/' + TENANT_ID + '/logs_lejanos/' + log.key] = null;
+                }
+            });
+
+            const totalBorrar = Object.keys(updates).length;
+
+            database.ref().update(updates)
+                .then(() => {
+                    alert(`✅ Persona "${personaNombre}" eliminada completamente.\n` +
+                          `Se borraron ${totalBorrar} registros.`);
+                })
+                .catch((err) => {
+                    alert('❌ Error al eliminar: ' + err.message);
+                });
+        }
+
+        // ✅ FIX 4: renderGeolocalizacion() con botón Eliminar Persona
         function renderGeolocalizacion() {
             const tbody = document.getElementById('tablaLogsLejanos'); tbody.innerHTML = "";
             if (logsLejanosGlobal.length === 0) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color: var(--text-muted);'>No hay reportes de escaneos lejanos.</td></tr>"; return; }
             logsLejanosGlobal.slice().reverse().forEach(log => {
-                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
+                const precisionInfo = log.precision ? ` <span style="color:var(--text-muted);font-size:0.75rem;">(GPS ±${log.precision}m)</span>` : '';
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td>${log.hora}</td>
+                        <td><b>${log.id}</b></td>
+                        <td>${log.nombre}</td>
+                        <td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango${precisionInfo}</td>
+                        <td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td>
+                        <td class="no-print">
+                            <div style="display:flex; gap: 5px; flex-wrap:wrap;">
+                                <button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;"
+                                    onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Mapa</button>
+                                <button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;"
+                                    onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove()">🗑️ Solo Log</button>
+                                <button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem; background:#8b0000; border-color:#8b0000;"
+                                    onclick="eliminarPersonaCompleta('${log.id}', '${log.nombre}')">👤 Eliminar Persona</button>
+                            </div>
+                        </td>
+                    </tr>`);
             });
         }
 
@@ -1584,10 +1639,16 @@
         }
         
         // CORREGIDO: Usar la ruta correcta según las reglas
-        function sincronizarConNube() { 
-            database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas); 
-            alert("Datos guardados en la partición de la escuela."); 
-            lastSyncTime = new Date();
+        // ✅ FIX 6: sincronizarConNube() con modo silencioso (para auto-sync sin spam de alerts)
+        function sincronizarConNube(silencioso = false) { 
+            database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas)
+                .then(() => {
+                    lastSyncTime = new Date();
+                    if (!silencioso) alert("Datos guardados en la partición de la escuela.");
+                })
+                .catch((err) => {
+                    if (!silencioso) alert("Error al guardar: " + err.message);
+                });
         }
         
         // Modificación en la función de guardar configuración geográfica
@@ -1780,62 +1841,6 @@
             );
         }
         
-
-        // ====
-        // GESTIÓN DIRECTOR — Eliminar log lejano o persona completa
-        // ====
-        function eliminarLogLejano(key) {
-            if (!confirm('¿Eliminar este registro de escaneo lejano?')) return;
-            database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + key).remove()
-                .catch((err) => { alert('Error: ' + err.message); });
-        }
-
-        function eliminarPersonaDesdeLejanno(id, nombre, key) {
-            if (!id) { eliminarLogLejano(key); return; }
-            if (!db.personas[id]) {
-                if (confirm('El usuario ' + nombre + ' ya no existe en la base. ¿Eliminar solo el log?')) {
-                    eliminarLogLejano(key);
-                }
-                return;
-            }
-            const msg = '⚠️ ACCIÓN DIRECTOR\n\n' +
-                '¿Eliminar COMPLETAMENTE este usuario del sistema?\n\n' +
-                'Nombre: ' + nombre + '\n' +
-                'Código: ' + id + '\n\n' +
-                'Se eliminará:\n' +
-                '• Perfil y rostro facial\n' +
-                '• Todos sus registros de asistencia\n' +
-                '• Todos sus logs lejanos\n\n' +
-                'Esta acción NO se puede deshacer.';
-            if (!confirm(msg)) return;
-
-            const updates = {};
-            updates['escuelas_data/' + TENANT_ID + '/personas/' + id] = null;
-            updates['escuelas_data/' + TENANT_ID + '/logs_lejanos/' + key] = null;
-
-            database.ref('escuelas_data/' + TENANT_ID + '/marcas')
-                .orderByChild('id').equalTo(id)
-                .once('value', function(snapMarcas) {
-                    snapMarcas.forEach(function(child) {
-                        updates['escuelas_data/' + TENANT_ID + '/marcas/' + child.key] = null;
-                    });
-                    database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos')
-                        .orderByChild('id').equalTo(id)
-                        .once('value', function(snapLejanos) {
-                            snapLejanos.forEach(function(child) {
-                                updates['escuelas_data/' + TENANT_ID + '/logs_lejanos/' + child.key] = null;
-                            });
-                            database.ref().update(updates)
-                                .then(function() {
-                                    alert('✅ Usuario ' + nombre + ' eliminado completamente del sistema.');
-                                })
-                                .catch(function(err) {
-                                    alert('❌ Error al eliminar: ' + err.message);
-                                });
-                        });
-                });
-        }
-
         function mostrarEstadisticas() { 
             const total = Object.keys(db.personas).length; 
             const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE') || coincideFecha(l.hora, new Date().toLocaleDateString('sv-SE')))).length; 
@@ -2101,50 +2106,85 @@
         // ====
 
 
-        // ====
-        // MOTOR GPS MULTI-LECTURA — obtenerUbicacionPrecisa()
-        // Toma N lecturas, filtra por umbral de precisión y devuelve la mejor
-        // ====
+        // ✅ FIX 1 — obtenerUbicacionPrecisa() IMPLEMENTADA
+        // Toma hasta maxLecturas lecturas GPS y devuelve la más precisa.
+        // Si todas superan umbralPrecision, devuelve la mejor disponible.
         function obtenerUbicacionPrecisa({ timeoutTotal = 12000, minLecturas = 4, maxLecturas = 10, umbralPrecision = 35 } = {}) {
             return new Promise((resolve) => {
-                if (!navigator.geolocation) { resolve(null); return; }
                 const lecturas = [];
-                let watchId = null;
-                let timerFin = null;
+                let intentos = 0;
+                let terminado = false;
 
-                function terminar() {
-                    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-                    clearTimeout(timerFin);
-                    if (lecturas.length === 0) { resolve(null); return; }
-                    lecturas.sort((a, b) => a.accuracy - b.accuracy);
-                    resolve(lecturas[0]);
+                const tiempoLimite = setTimeout(() => {
+                    if (!terminado) {
+                        terminado = true;
+                        lecturas.sort((a, b) => a.accuracy - b.accuracy);
+                        resolve(lecturas.length > 0 ? lecturas[0] : null);
+                    }
+                }, timeoutTotal);
+
+                function tomarLectura() {
+                    if (terminado) return;
+                    intentos++;
+
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            if (terminado) return;
+                            const lectura = {
+                                lat:      pos.coords.latitude,
+                                lng:      pos.coords.longitude,
+                                accuracy: pos.coords.accuracy
+                            };
+
+                            // Actualizar badge GPS en tiempo real
+                            const gpsBadge = document.getElementById('scan-gps-status');
+                            const gpsText  = document.getElementById('scan-gps-text');
+                            gpsState.precisionActual = lectura.accuracy;
+                            if (gpsBadge) {
+                                let cls = 'mala';
+                                if      (lectura.accuracy <= 10) cls = 'excelente';
+                                else if (lectura.accuracy <= 20) cls = 'buena';
+                                else if (lectura.accuracy <= 40) cls = 'media';
+                                gpsBadge.className = 'gps-status ' + cls;
+                                gpsBadge.style.display = 'flex';
+                            }
+                            if (gpsText) gpsText.innerText = `Lectura ${intentos}/${maxLecturas}: ±${Math.round(lectura.accuracy)}m`;
+
+                            // Descartar lecturas GPS completamente rotas (>500m)
+                            if (lectura.accuracy <= 500) lecturas.push(lectura);
+
+                            const buenas = lecturas.filter(l => l.accuracy <= umbralPrecision);
+                            if (buenas.length >= minLecturas || intentos >= maxLecturas) {
+                                if (!terminado) {
+                                    terminado = true;
+                                    clearTimeout(tiempoLimite);
+                                    lecturas.sort((a, b) => a.accuracy - b.accuracy);
+                                    resolve(lecturas.length > 0 ? lecturas[0] : null);
+                                }
+                                return;
+                            }
+                            setTimeout(tomarLectura, 900);
+                        },
+                        (err) => {
+                            if (terminado) return;
+                            console.warn('GPS lectura #' + intentos + ' fallida:', err.message);
+                            intentos++;
+                            if (intentos >= maxLecturas) {
+                                if (!terminado) {
+                                    terminado = true;
+                                    clearTimeout(tiempoLimite);
+                                    lecturas.sort((a, b) => a.accuracy - b.accuracy);
+                                    resolve(lecturas.length > 0 ? lecturas[0] : null);
+                                }
+                                return;
+                            }
+                            setTimeout(tomarLectura, 1200);
+                        },
+                        { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+                    );
                 }
 
-                timerFin = setTimeout(terminar, timeoutTotal);
-
-                watchId = navigator.geolocation.watchPosition(
-                    (pos) => {
-                        const acc = pos.coords.accuracy;
-                        lecturas.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: acc, ts: Date.now() });
-                        const gpsText = document.getElementById('scan-gps-text');
-                        const gpsBadge = document.getElementById('scan-gps-status');
-                        if (gpsText) gpsText.innerText = 'GPS ±' + Math.round(acc) + 'm (' + lecturas.length + '/' + minLecturas + ')';
-                        if (gpsBadge) {
-                            let clase = 'mala';
-                            if (acc <= 10) clase = 'excelente';
-                            else if (acc <= 20) clase = 'buena';
-                            else if (acc <= 40) clase = 'media';
-                            gpsBadge.className = 'gps-status ' + clase;
-                        }
-                        const buenas = lecturas.filter(l => l.accuracy <= umbralPrecision);
-                        if (buenas.length >= minLecturas || lecturas.length >= maxLecturas) { terminar(); }
-                    },
-                    (err) => {
-                        console.warn('GPS watch error:', err.message);
-                        if (lecturas.length >= 1) { terminar(); } else { resolve(null); }
-                    },
-                    { enableHighAccuracy: true, timeout: timeoutTotal, maximumAge: 0 }
-                );
+                tomarLectura();
             });
         }
 
@@ -2303,7 +2343,7 @@
         function iniciarSincronizacionAutomatica() {
             setInterval(() => {
                 if (connectionStatus && document.getElementById('master-panel').style.display === 'block') {
-                    sincronizarConNube();
+                    sincronizarConNube(true); // silencioso — sin alert
                 }
             }, 30000);
         }
