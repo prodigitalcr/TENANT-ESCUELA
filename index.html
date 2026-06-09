@@ -294,6 +294,16 @@
                     <button class="btn btn-s" onclick="filtrarVistaReporte('ENTRADA')">✅ Llegaron</button>
                     <button class="btn btn-m" onclick="filtrarVistaReporte('SALIDA')">🚪 Salieron</button>
                     <button class="btn btn-d" onclick="filtrarVistaReporte('AUSENTES')">❌ Ausentes</button>
+    let authUser = null;
+    firebase.auth().onAuthStateChanged(user => {
+        authUser = user || null;
+        if (user) {
+            actualizarEstadoIA('Sesión activa: ' + (user.email || user.uid));
+        } else {
+            actualizarEstadoIA('IA No cargada');
+        }
+    });
+
                     <button class="btn btn-i" onclick="filtrarVistaReporte('TODOS')">📋 Todos</button>
                 </div>
                 <div style="display:flex;gap:5px;margin-top:10px;">
@@ -314,8 +324,8 @@
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
                     <span style="font-size:2rem;">📍</span>
                     <div>
-                        <h3 style="margin:0;color:var(--accent-primary);font-size:1.1rem;">Ubicación de la Institución</h3>
-                        <p style="margin:3px 0 0;font-size:.8rem;color:var(--text-muted);">La asistencia solo se marcará dentro de <b>200 metros</b> del centro.</p>
+                    <h3 style="margin:0;color:var(--accent-primary);font-size:1.1rem;">Ubicación de la Institución</h3>
+                    <p style="margin:3px 0 0;font-size:.8rem;color:var(--text-muted);">La asistencia solo se marcará dentro de <b>200 metros</b> del centro.</p>
                     </div>
                 </div>
                 <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);letter-spacing:.06em;text-transform:uppercase;">URL de Google Maps</label>
@@ -327,14 +337,14 @@
 
                 <div id="geoCoordBox" style="display:none;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;padding:14px 18px;margin-bottom:18px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-                        <div>
-                            <span style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;">Coordenadas Extraídas</span>
-                            <p id="geoCoordDisplay" style="margin:5px 0 0;font-size:1rem;font-weight:700;color:var(--accent-primary);font-family:monospace;"></p>
-                        </div>
-                        <div style="text-align:right;">
-                            <span style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;">Radio Permitido</span>
-                            <p style="margin:5px 0 0;font-size:1.2rem;font-weight:700;color:var(--accent-success);">200 m</p>
-                        </div>
+                    <div>
+                    <span style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;">Coordenadas Extraídas</span>
+                    <p id="geoCoordDisplay" style="margin:5px 0 0;font-size:1rem;font-weight:700;color:var(--accent-primary);font-family:monospace;"></p>
+                    </div>
+                    <div style="text-align:right;">
+                    <span style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;">Radio Permitido</span>
+                    <p style="margin:5px 0 0;font-size:1.2rem;font-weight:700;color:var(--accent-success);">200 m</p>
+                    </div>
                     </div>
                     <a id="geoVerMapa" href="#" target="_blank" style="display:inline-block;margin-top:10px;font-size:.8rem;color:var(--accent-primary);text-decoration:none;">🗺️ Verificar en Google Maps →</a>
                 </div>
@@ -347,8 +357,8 @@
                 <div id="geoEstadoGuardado" style="display:none;align-items:center;gap:10px;background:rgba(40,167,69,.08);border:1px solid var(--accent-success);border-radius:8px;padding:10px 14px;margin-bottom:16px;">
                     <span style="font-size:1.2rem;">✅</span>
                     <div>
-                        <span style="font-size:.82rem;font-weight:600;color:var(--accent-success);">Geocerca activa</span>
-                        <p id="geoEstadoInfo" style="margin:2px 0 0;font-size:.78rem;color:var(--text-muted);"></p>
+                    <span style="font-size:.82rem;font-weight:600;color:var(--accent-success);">Geocerca activa</span>
+                    <p id="geoEstadoInfo" style="margin:2px 0 0;font-size:.78rem;color:var(--text-muted);"></p>
                     </div>
                 </div>
 
@@ -396,9 +406,9 @@
     <div id="tenantBadge" class="tenant-badge">TENANT: cargando...</div>
 
     <script>
-    // ====================================================
+    // ====
     // FIREBASE CONFIG
-    // ====================================================
+    // ====
     let NUMERO_OFICIAL_JUNTA = "8888";
     const firebaseConfig = {
         apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
@@ -413,9 +423,9 @@
     const database = firebase.database();
     const storage  = firebase.storage();
 
-    // ====================================================
+    // ====
     // TENANT ID — desde URL ?id= o ?tenant= — fallback demo
-    // ====================================================
+    // ====
     const _urlP   = new URLSearchParams(window.location.search);
     let   _paramId = _urlP.get('id') || _urlP.get('tenant') || '';
     if (_paramId) _paramId = _paramId.replace(/\/$/, '');
@@ -427,9 +437,9 @@
         if (badge) badge.textContent = 'TENANT: ' + TENANT_ID;
     })();
 
-    // ====================================================
+    // ====
     // ESTADO GLOBAL
-    // ====================================================
+    // ====
     let db = { personas: {} };
     let logsGlobal = [], logsLejanosGlobal = [];
     let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 200, mapsUrl: '', precisionMinima: 35 };
@@ -450,9 +460,9 @@
 
     document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
 
-    // ====================================================
+    // ====
     // MONITOREO TENANT STATUS (bloqueado / mantenimiento)
-    // ====================================================
+    // ====
     database.ref('tenants/' + TENANT_ID).on('value', (snapshot) => {
         const tenantData = snapshot.val();
         if (!tenantData) return;
@@ -479,9 +489,9 @@
         }
     });
 
-    // ====================================================
+    // ====
     // LISTENERS FIREBASE AISLADOS POR TENANT
-    // ====================================================
+    // ====
     database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', s => { if(s.val()) NUMERO_OFICIAL_JUNTA = s.val(); });
 
     database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', s => {
@@ -501,8 +511,9 @@
             if (coordBox) coordBox.style.display = 'block';
             const estadoDiv  = document.getElementById('geoEstadoGuardado');
             const estadoInfo = document.getElementById('geoEstadoInfo');
+            const radioTxt = Number.isFinite(Number(data.radio)) ? Number(data.radio) : 200;
             if (estadoDiv)  estadoDiv.style.display = 'flex';
-            if (estadoInfo) estadoInfo.textContent = parseFloat(data.lat).toFixed(5) + ', ' + parseFloat(data.lng).toFixed(5) + ' · 200m';
+            if (estadoInfo) estadoInfo.textContent = parseFloat(data.lat).toFixed(5) + ', ' + parseFloat(data.lng).toFixed(5) + ' · ' + radioTxt + 'm';
         }
     });
 
@@ -550,9 +561,9 @@
         badge.className = online ? 'tenant-badge' : 'tenant-badge offline';
     }
 
-    // ====================================================
+    // ====
     // LOGIN / AUTENTICACIÓN
-    // ====================================================
+    // ====
     function abrirLogin(tipo) {
         contextoLogin = tipo;
         document.getElementById('loginPass').value = '';
@@ -578,9 +589,9 @@
             .catch(err => alert('Acceso Denegado.\n\n' + err.message));
     }
 
-    // ====================================================
+    // ====
     // VISTAS
-    // ====================================================
+    // ====
     function mostrarVista(id) {
         document.getElementById('home-view').style.display     = (id==='home-view')     ? 'flex' : 'none';
         document.getElementById('scan-view').style.display     = (id==='scan-view')     ? 'flex' : 'none';
@@ -606,9 +617,9 @@
         document.getElementById('tab3').className = (n===3)?'tab-btn active':'tab-btn';
     }
 
-    // ====================================================
+    // ====
     // IDLE / RELOJ
-    // ====================================================
+    // ====
     function resetIdleTimer() {
         clearTimeout(idleTimeout);
         if (!scannerActivo && !queryScannerActivo &&
@@ -627,16 +638,16 @@
     }
     updateIdleClock();
 
-    // ====================================================
+    // ====
     // SONIDOS
-    // ====================================================
+    // ====
     function playSuccessSound(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.setValueAtTime(880,c.currentTime);g.gain.setValueAtTime(.08,c.currentTime);o.start();o.stop(c.currentTime+.12);setTimeout(()=>{const o2=c.createOscillator();const g2=c.createGain();o2.connect(g2);g2.connect(c.destination);o2.type='sine';o2.frequency.setValueAtTime(1046.5,c.currentTime);g2.gain.setValueAtTime(.08,c.currentTime);o2.start();o2.stop(c.currentTime+.18);},120);}catch(e){}}
     function playParentMelody(){try{const c=new(window.AudioContext||window.webkitAudioContext)();[523.25,659.25,783.99,1046.5].forEach((f,i)=>{setTimeout(()=>{const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.type='triangle';o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(.07,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.3);o.start();o.stop(c.currentTime+.35);},i*100);});}catch(e){}}
     function playErrorSound(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sawtooth';o.frequency.setValueAtTime(180,c.currentTime);g.gain.setValueAtTime(.12,c.currentTime);g.gain.exponentialRampToValueAtValue(.001,c.currentTime+.4);o.start();o.stop(c.currentTime+.45);}catch(e){}}
 
-    // ====================================================
+    // ====
     // DISTANCIA / IA
-    // ====================================================
+    // ====
     function calcularDistancia(lat1,lon1,lat2,lon2){const R=6371000,dL=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180,a=Math.sin(dL/2)*Math.sin(dL/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 
     async function inicializarIA() {
@@ -661,9 +672,9 @@
         faceMatcher=ld.length>0?new faceapi.FaceMatcher(ld,0.5):null;
     }
 
-    // ====================================================
+    // ====
     // REGISTRO PÚBLICO (4 capturas)
-    // ====================================================
+    // ====
     function toggleStudentField(){const r=document.getElementById('regRole').value,s=document.getElementById('regStudentId');s.style.display=r==='Padre/Encargado'?'block':'none';if(r!=='Padre/Encargado')s.value='';}
 
     async function iniciarCamaraRegistro(){
@@ -722,9 +733,9 @@
         cerrarVistaProtegida('register-view');construirFaceMatcher();
     }
 
-    // ====================================================
+    // ====
     // GPS — obtenerUbicacionPrecisa (Promise)
-    // ====================================================
+    // ====
     function obtenerUbicacionPrecisa({timeoutTotal=12000,minLecturas=4,maxLecturas=10,umbralPrecision=35}={}){
         return new Promise((resolve)=>{
             const lecturas=[];let intentos=0,terminado=false;
@@ -733,17 +744,17 @@
                 if(terminado)return;intentos++;
                 navigator.geolocation.getCurrentPosition(
                     pos=>{
-                        if(terminado)return;
-                        const l={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy};
-                        gpsState.precisionActual=l.accuracy;
-                        const gpsBadge=document.getElementById('scan-gps-status');
-                        const gpsText=document.getElementById('scan-gps-text');
-                        if(gpsBadge){let cls='mala';if(l.accuracy<=10)cls='excelente';else if(l.accuracy<=20)cls='buena';else if(l.accuracy<=40)cls='media';gpsBadge.className='gps-status '+cls;gpsBadge.style.display='flex';}
-                        if(gpsText)gpsText.innerText='Lectura '+intentos+'/'+maxLecturas+': ±'+Math.round(l.accuracy)+'m';
-                        if(l.accuracy<=500)lecturas.push(l);
-                        const buenas=lecturas.filter(x=>x.accuracy<=umbralPrecision);
-                        if(buenas.length>=minLecturas||intentos>=maxLecturas){if(!terminado){terminado=true;clearTimeout(tl);lecturas.sort((a,b)=>a.accuracy-b.accuracy);resolve(lecturas.length>0?lecturas[0]:null);}return;}
-                        setTimeout(tomarLectura,900);
+                    if(terminado)return;
+                    const l={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy};
+                    gpsState.precisionActual=l.accuracy;
+                    const gpsBadge=document.getElementById('scan-gps-status');
+                    const gpsText=document.getElementById('scan-gps-text');
+                    if(gpsBadge){let cls='mala';if(l.accuracy<=10)cls='excelente';else if(l.accuracy<=20)cls='buena';else if(l.accuracy<=40)cls='media';gpsBadge.className='gps-status '+cls;gpsBadge.style.display='flex';}
+                    if(gpsText)gpsText.innerText='Lectura '+intentos+'/'+maxLecturas+': ±'+Math.round(l.accuracy)+'m';
+                    if(l.accuracy<=500)lecturas.push(l);
+                    const buenas=lecturas.filter(x=>x.accuracy<=umbralPrecision);
+                    if(buenas.length>=minLecturas||intentos>=maxLecturas){if(!terminado){terminado=true;clearTimeout(tl);lecturas.sort((a,b)=>a.accuracy-b.accuracy);resolve(lecturas.length>0?lecturas[0]:null);}return;}
+                    setTimeout(tomarLectura,900);
                     },
                     err=>{if(terminado)return;intentos++;if(intentos>=maxLecturas){if(!terminado){terminado=true;clearTimeout(tl);lecturas.sort((a,b)=>a.accuracy-b.accuracy);resolve(lecturas.length>0?lecturas[0]:null);}return;}setTimeout(tomarLectura,1200);},
                     {enableHighAccuracy:true,timeout:7000,maximumAge:0}
@@ -753,9 +764,9 @@
         });
     }
 
-    // ====================================================
+    // ====
     // ASISTENCIA CON GPS
-    // ====================================================
+    // ====
     async function registrarAsistenciaConGPS(id,strEmocion='Neutral',emoticon='😐'){
         if(!navigator.geolocation){completarEscaneoBD(id,new Date().toLocaleDateString('sv-SE'),false,0,strEmocion,emoticon);return;}
         if(gpsState.ubicacionActual&&(Date.now()-gpsState.ubicacionActual.timestamp<25000)){procesarAsistencia(id,gpsState.ubicacionActual.lat,gpsState.ubicacionActual.lng,strEmocion,emoticon,gpsState.ubicacionActual.accuracy);return;}
@@ -804,9 +815,9 @@
 
     function mostrarMensajeTemp(msg,color){const el=document.getElementById('scan-ai-status');if(el){const old=el.innerText;el.innerText=msg;el.style.color=color;setTimeout(()=>{el.innerText=old;el.style.color='var(--accent-warning)';},4500);}}
 
-    // ====================================================
+    // ====
     // ESCÁNER
-    // ====================================================
+    // ====
     async function toggleScanner(){
         const cont=document.getElementById('scan-video-container'),btn=document.getElementById('btnCamaraMain');
         if(!scannerActivo){
@@ -864,9 +875,9 @@
                 if(match.label!=='unknown'){
                     enCooldown=true;
                     if(match.label.includes('_p')){
-                        const idEst=match.label.split('_')[0];playParentMelody();
-                        if(match.distance<0.35){ctx.fillStyle='rgba(0,255,136,.9)';ctx.font='14px Arial';ctx.fillText('✅ Encargado Autorizado',box.x,box.y-10);setTimeout(()=>{toggleQueryScanner();ejecutarConsultaIdDirecta(idEst);},1500);}
-                        else{ctx.fillStyle='rgba(255,184,0,.9)';ctx.font='14px Arial';ctx.fillText('⚠️ Digite cédula del alumno',box.x,box.y-10);setTimeout(()=>{toggleQueryScanner();const id2=prompt('Digite la cédula del estudiante:');if(id2&&id2.trim()===idEst)ejecutarConsultaIdDirecta(idEst);else alert('Validación incorrecta.');},1500);}
+                    const idEst=match.label.split('_')[0];playParentMelody();
+                    if(match.distance<0.35){ctx.fillStyle='rgba(0,255,136,.9)';ctx.font='14px Arial';ctx.fillText('✅ Encargado Autorizado',box.x,box.y-10);setTimeout(()=>{toggleQueryScanner();ejecutarConsultaIdDirecta(idEst);},1500);}
+                    else{ctx.fillStyle='rgba(255,184,0,.9)';ctx.font='14px Arial';ctx.fillText('⚠️ Digite cédula del alumno',box.x,box.y-10);setTimeout(()=>{toggleQueryScanner();const id2=prompt('Digite la cédula del estudiante:');if(id2&&id2.trim()===idEst)ejecutarConsultaIdDirecta(idEst);else alert('Validación incorrecta.');},1500);}
                     }else{playSuccessSound();ctx.fillStyle='rgba(0,217,255,.9)';ctx.font='14px Arial';ctx.fillText('✅ '+db.personas[match.label]?.nombre,box.x,box.y-10);setTimeout(()=>{toggleQueryScanner();ejecutarConsultaIdDirecta(match.label);},1500);}
                     setTimeout(()=>enCooldown=false,4000);
                 }else{ctx.fillStyle='rgba(255,68,68,.8)';ctx.font='16px Arial';ctx.fillText('Rostro no reconocido',box.x,box.y-10);}
@@ -877,9 +888,9 @@
 
     function detenerCamaras(){if(streamActual){streamActual.getTracks().forEach(t=>t.stop());streamActual=null;}if(regStream){regStream.getTracks().forEach(t=>t.stop());regStream=null;}clearTimeout(registroLoopId);}
 
-    // ====================================================
+    // ====
     // ADMIN — ROSTROS
-    // ====================================================
+    // ====
     async function abrirRegistroRostro(id,tipo='estudiante'){
         if(!iaCargada)await inicializarIA();
         idCapturaActual=id;tipoCapturaActual=tipo;const p=db.personas[id];
@@ -913,9 +924,9 @@
     }
     function cerrarFaceModal(){document.getElementById('face-modal').style.display='none';detenerCamaras();idCapturaActual=null;descriptorDetectado=null;resetIdleTimer();}
 
-    // ====================================================
+    // ====
     // RENDER TABLA MIEMBROS
-    // ====================================================
+    // ====
     function renderAlumnos(){
         const t=document.getElementById('tablaAlumnos');t.innerHTML='';
         const hISO=new Date().toLocaleDateString('sv-SE');
@@ -962,9 +973,9 @@
         });
     }
 
-    // ====================================================
+    // ====
     // UTILIDADES ADMIN
-    // ====================================================
+    // ====
     function enviarWA(tel){if(!tel){alert('Sin número.');return;}window.open('https://wa.me/506'+tel.replace(/\D/g,''),'_blank');}
     function editarNumeroJunta(){const n=prompt('Número de contacto:',NUMERO_OFICIAL_JUNTA);if(n){const nl=n.replace(/\D/g,'');if(nl.length===8){database.ref('tenants/'+TENANT_ID+'/config/numeroOficial').set(nl);NUMERO_OFICIAL_JUNTA=nl;alert('Número actualizado.');}else alert('Debe tener 8 dígitos.');}}
 
@@ -974,24 +985,56 @@
             .catch(err=>{if(!silencioso)alert('Error: '+err.message);});
     }
 
-    // ====================================================
+    // ====
     // GEOCERCA — GUARDAR
-    // ====================================================
-    function guardarConfigGeo(){
-        const lat=parseFloat(document.getElementById('geoLat').value);
-        const lng=parseFloat(document.getElementById('geoLng').value);
-        const mapsUrl=document.getElementById('geoMapsUrl').value.trim();
-        if(!mapsUrl){alert('⚠️ Pegue una URL de Google Maps y presione 🔍 Extraer primero.');return;}
-        if(isNaN(lat)||isNaN(lng)){alert('⚠️ Primero extraiga las coordenadas presionando 🔍 Extraer.');return;}
-        const data={lat,lng,radio:200,mapsUrl,precisionMinima:35};
-        geoConfig=data;
-        database.ref('tenants/'+TENANT_ID+'/config/geocerca').set(data)
-            .then(()=>{
-                const d=document.getElementById('geoEstadoGuardado'),i=document.getElementById('geoEstadoInfo');
-                if(d)d.style.display='flex';if(i)i.textContent=lat.toFixed(5)+', '+lng.toFixed(5)+' · 200m';
-                alert('✅ Geocerca guardada. Radio: 200m');
-            })
-            .catch(err=>alert('❌ Error: '+err.message+' Código: '+err.code));
+    // ====
+    async function guardarConfigGeo(){
+        const current = firebase.auth().currentUser || authUser;
+        if (!current) {
+            alert('⚠️ Debe iniciar sesión con una cuenta autorizada antes de guardar la geocerca.');
+            return;
+        }
+
+        const lat = Number.parseFloat(document.getElementById('geoLat').value);
+        const lng = Number.parseFloat(document.getElementById('geoLng').value);
+        const mapsUrl = document.getElementById('geoMapsUrl').value.trim();
+        const radio = 200;
+        const precisionMinima = 35;
+
+        if (!mapsUrl) {
+            alert('⚠️ Pegue una URL de Google Maps y presione 🔍 Extraer primero.');
+            return;
+        }
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            alert('⚠️ Primero extraiga las coordenadas presionando 🔍 Extraer.');
+            return;
+        }
+
+        const data = {
+            lat: Number(lat.toFixed(6)),
+            lng: Number(lng.toFixed(6)),
+            radio,
+            mapsUrl,
+            precisionMinima
+        };
+
+        geoConfig = data;
+        try {
+            await database.ref('tenants/' + TENANT_ID + '/config/geocerca').set(data);
+            const d = document.getElementById('geoEstadoGuardado');
+            const i = document.getElementById('geoEstadoInfo');
+            if (d) d.style.display = 'flex';
+            if (i) i.textContent = data.lat.toFixed(5) + ', ' + data.lng.toFixed(5) + ' · ' + data.radio + 'm';
+            alert('✅ Geocerca guardada. Radio: ' + data.radio + 'm');
+        } catch (err) {
+            const code = (err && err.code) ? String(err.code) : 'unknown';
+            const msg = code.toLowerCase().includes('permission')
+                ? '❌ Permiso denegado. Verifique que su UID esté en super_admins o coincida con tenants/' + TENANT_ID + '/config/director/uid.'
+                : code.toLowerCase().includes('validation')
+                    ? '❌ Error de validación. Revise que lat/lng sean numéricos, radio sea 200, mapsUrl tenga más de 10 caracteres y precisionMinima sea numérico.'
+                    : '❌ Error: ' + (err && err.message ? err.message : 'No se pudo guardar') + ' Código: ' + code;
+            alert(msg);
+        }
     }
 
     function extraerCoordsDesdeURL(){
@@ -1017,9 +1060,9 @@
         alert('✅ Coordenadas extraídas: '+lat.toFixed(5)+', '+lng.toFixed(5));
     }
 
-    // ====================================================
+    // ====
     // SUBIDA FONDO Y LOGO (Firebase Storage aislado)
-    // ====================================================
+    // ====
     function procesarSubidaFondo(event){
         const file=event.target.files[0];if(!file)return;
         const btn=document.querySelector('button[onclick*="bgUploader"]');
@@ -1045,9 +1088,9 @@
         );
     }
 
-    // ====================================================
+    // ====
     // REPORTES
-    // ====================================================
+    // ====
     function filtrarRapido(){let f=document.getElementById('busqueda').value.toUpperCase();let rows=document.getElementById('tablaAlumnos').getElementsByTagName('tr');for(let i=0;i<rows.length;i++)rows[i].style.display=rows[i].textContent.toUpperCase().includes(f)?'':'none';}
 
     function coincideFecha(horaLog,fechaInputISO){if(!horaLog||!fechaInputISO)return false;let[y,m,d]=fechaInputISO.split('-');m=parseInt(m).toString();d=parseInt(d).toString();return horaLog.includes(m+'/'+d+'/'+y)||horaLog.includes(m.padStart(2,'0')+'/'+d+'/'+y)||horaLog.includes(y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0'));}
@@ -1110,9 +1153,9 @@
     function consultarPadre(){ejecutarConsultaIdDirecta(document.getElementById('parentInput').value.trim());}
     function limpiarConsultaPadres(){document.getElementById('parentResult').style.display='none';document.getElementById('parentInput').value='';if(queryScannerActivo)toggleQueryScanner();}
 
-    // ====================================================
+    // ====
     // EXPORTAR / IMPORTAR
-    // ====================================================
+    // ====
     function exportarCSV(){let csv='Código,Nombre,Sección,WhatsApp,Rol\n';Object.entries(db.personas).forEach(([id,p])=>{csv+=id+','+p.nombre+','+(p.puesto||'')+','+(p.telefono||'')+','+(p.tipoUsuario||'Estudiante')+'\n';});const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Usuarios.csv';a.click();}
     function exportarPDFMiembros(){const{jsPDF}=window.jspdf;const doc=new jsPDF();doc.text('Lista de Usuarios',14,20);const bd=[];Object.entries(db.personas).forEach(([id,p])=>{bd.push([id,p.tipoUsuario,p.nombre,p.puesto,p.telefono,p.descriptor?'Sí':'No']);});doc.autoTable({head:[['Código','Rol','Nombre','Sección','WhatsApp','IA']],body:bd,startY:30,theme:'grid'});doc.save('Usuarios.pdf');}
     function exportarPDFReporte(){const{jsPDF}=window.jspdf;const doc=new jsPDF();doc.text(document.getElementById('tituloReporte').innerText,14,20);doc.autoTable({html:'#tabla-logs-final',startY:30,theme:'grid'});doc.save('Reporte.pdf');}
@@ -1133,9 +1176,9 @@
 
     window.addEventListener('beforeunload',()=>{if(gpsState.watchId!==null)navigator.geolocation.clearWatch(gpsState.watchId);});
 
-    // ====================================================
+    // ====
     // INIT
-    // ====================================================
+    // ====
     mostrarVista('home-view');
     resetIdleTimer();
     actualizarTenantBadge(navigator.onLine);
