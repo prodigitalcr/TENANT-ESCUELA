@@ -1228,9 +1228,19 @@
             const gpsBadge = document.getElementById('scan-gps-status');
             const gpsText = document.getElementById('scan-gps-text');
 
+            // 🔴 FIX Bug 2: Si no hay GPS, BLOQUEAR completamente — NO registrar sin validación
             if (!navigator.geolocation) {
-                mostrarMensajeTemp("⚠️ GPS no disponible en este dispositivo.", "var(--accent-warning)");
-                setTimeout(() => completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon), 400);
+                mostrarMensajeTemp("❌ GPS no disponible. No se puede verificar ubicación.", "var(--accent-danger)");
+                playErrorSound();
+                if (scannerActivo) toggleScanner();
+                return;
+            }
+
+            // 🔴 FIX Bug 3: Verificar que la geocerca esté configurada con coordenadas válidas
+            if (!geoConfig.lat || !geoConfig.lng || !geoConfig.radio) {
+                mostrarMensajeTemp("⚠️ Geocerca no configurada. Contacte al administrador.", "var(--accent-warning)");
+                playErrorSound();
+                if (scannerActivo) toggleScanner();
                 return;
             }
 
@@ -1269,11 +1279,11 @@
 
             } catch (err) {
                 console.error("GPS Error:", err);
-                mostrarMensajeTemp("⚠️ Precisión GPS insuficiente. Intente afuera o reinicie GPS.", "var(--accent-danger)");
+                // 🔴 FIX Bug 1: Cuando GPS falla, BLOQUEAR — NO registrar asistencia sin validación
+                mostrarMensajeTemp("❌ GPS insuficiente. Salga al exterior e intente de nuevo.", "var(--accent-danger)");
                 playErrorSound();
-                // Fallback: permitir asistencia pero marcar como sin validación de distancia precisa
-                // (solo si el admin permite; aquí lo registramos como lejano=false pero alertamos)
-                completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon);
+                if (scannerActivo) toggleScanner();
+                // ← NO llama a completarEscaneoBD — la asistencia NO se registra
             } finally {
                 if (gpsBadge) gpsBadge.style.display = "none";
             }
@@ -2019,6 +2029,57 @@
         // ====
 
         // EDIT 2 — obtenerUbicacionActual() usa obtenerUbicacionPrecisa() + gpsState
+        // EDIT 1 — obtenerUbicacionPrecisa(): motor GPS de alta precisión
+        function obtenerUbicacionPrecisa({ timeoutTotal = 12000, minLecturas = 4, maxLecturas = 10, umbralPrecision = 35 } = {}) {
+            return new Promise((resolve) => {
+                const lecturas = [];
+                let watchId = null;
+                let timeoutId = null;
+                let finalizado = false;
+
+                function finalizar() {
+                    if (finalizado) return;
+                    finalizado = true;
+                    clearTimeout(timeoutId);
+                    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+
+                    if (lecturas.length === 0) { resolve(null); return; }
+
+                    // Elegir la lectura con mejor (menor) accuracy
+                    const mejor = lecturas.reduce((a, b) => a.accuracy < b.accuracy ? a : b);
+                    resolve(mejor);
+                }
+
+                timeoutId = setTimeout(finalizar, timeoutTotal);
+
+                watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const acc = pos.coords.accuracy;
+                        lecturas.push({
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                            accuracy: acc
+                        });
+
+                        // Si alcanzamos la precisión deseada y el mínimo de lecturas → terminar
+                        if (acc <= umbralPrecision && lecturas.length >= minLecturas) {
+                            finalizar();
+                        }
+                        // Si llegamos al máximo de lecturas → terminar con lo que tenemos
+                        if (lecturas.length >= maxLecturas) {
+                            finalizar();
+                        }
+                    },
+                    (err) => {
+                        console.warn("GPS watch error:", err.message);
+                        if (lecturas.length >= minLecturas) finalizar();
+                        else resolve(null);
+                    },
+                    { enableHighAccuracy: true, timeout: timeoutTotal, maximumAge: 0 }
+                );
+            });
+        }
+
         function obtenerUbicacionActual() {
             if (!navigator.geolocation) {
                 alert("Geolocalización no soportada en este navegador");
