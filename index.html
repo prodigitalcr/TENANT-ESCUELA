@@ -4,145 +4,357 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0e27">
-    <title>Asistencia IA - Multi-Tenant</title>
+    <meta name="description" content="Sistema de asistencia con IA - Escuela La Carpio">
+    <title>Asistencia Facial - Multi-Tenant</title>
+    
+    <!-- Firebase (Usando versión 8 por compatibilidad con el código base) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    
+    <!-- Face-API.js (Reconocimiento Facial) -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    
+    <!-- QR Code (Para generación de carnés) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
+        /* -----------------------------------------------------------
+           VARIABLES Y TEMA MINIMALISTA NEGRO / CLARO
+           ----------------------------------------------------------- */
         :root {
-            --bg-dark:#0a0e27;--bg-darker:#050810;--bg-card:#1a1f3a;--bg-hover:#242d4a;
-            --text-primary:#e8eef5;--text-secondary:#a8b2c1;--text-muted:#7a8299;
-            --accent-primary:#00d9ff;--accent-secondary:#00b8d4;--accent-success:#00ff88;
-            --accent-warning:#ffb800;--accent-danger:#ff4444;
-            --border-subtle:#2a3250;--border-light:#3a4560;
-            --shadow-sm:0 2px 8px rgba(0,0,0,.3);--shadow-md:0 8px 24px rgba(0,0,0,.4);
-            --shadow-lg:0 16px 48px rgba(0,0,0,.5);--shadow-glow:0 0 20px rgba(0,217,255,.15);
-            --radius-sm:6px;--radius-md:10px;--radius-lg:16px;
-            --transition-fast:.2s cubic-bezier(.4,0,.2,1);--transition-normal:.35s cubic-bezier(.4,0,.2,1);
+            --bg-dark: #0a0e27;
+            --bg-darker: #050810;
+            --bg-card: #1a1f3a;
+            --bg-hover: #242d4a;
+            --text-primary: #e8eef5;
+            --text-secondary: #a8b2c1;
+            --text-muted: #7a8299;
+            
+            --accent-primary: #00d9ff;
+            --accent-secondary: #00b8d4;
+            --accent-success: #00ff88;
+            --accent-warning: #ffb800;
+            --accent-danger: #ff4444;
+            
+            --border-subtle: #2a3250;
+            --border-light: #3a4560;
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 20px rgba(0, 217, 255, 0.15);
+            
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            
+            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        body.light-theme{--bg-dark:#f0f4f8;--bg-darker:#e2e8f0;--bg-card:#fff;--bg-hover:#f1f5f9;--text-primary:#1e293b;--text-secondary:#475569;--text-muted:#64748b;--border-subtle:#cbd5e1;--border-light:#94a3b8;--shadow-glow:0 0 20px rgba(0,184,212,.15);}
-        @keyframes fade-in{from{opacity:0}to{opacity:1}}
-        @keyframes slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes glow-pulse{0%,100%{box-shadow:0 0 10px rgba(0,217,255,.2),var(--shadow-md)}50%{box-shadow:0 0 30px rgba(0,217,255,.4),var(--shadow-lg)}}
-        @keyframes success-pop{0%{transform:scale(.8);opacity:0}50%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
-        @keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}
-        @keyframes gps-pulso{0%{transform:scale(.8);opacity:.5;box-shadow:0 0 0 0 rgba(0,255,136,.7)}70%{transform:scale(1);opacity:1;box-shadow:0 0 0 8px rgba(0,255,136,0)}100%{transform:scale(.8);opacity:.5;box-shadow:0 0 0 0 rgba(0,255,136,0)}}
-        *{margin:0;padding:0;box-sizing:border-box}
-        html,body{height:100%;width:100%}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;font-size:15px;line-height:1.6;color:var(--text-primary);background:linear-gradient(135deg,var(--bg-dark) 0%,var(--bg-darker) 100%);background-size:cover;background-position:center;background-attachment:fixed;display:flex;flex-direction:column;height:100vh;overflow:hidden;animation:fade-in .6s ease-out;transition:background var(--transition-normal),color var(--transition-fast);}
-        .navbar{background:rgba(10,14,39,.95);border-bottom:1px solid var(--border-subtle);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(10px);z-index:100;gap:16px;box-shadow:var(--shadow-md);}
-        body.light-theme .navbar{background:rgba(240,244,248,.95);}
-        .navbar-title{font-weight:600;font-size:1.1rem;letter-spacing:1px;color:var(--accent-primary);text-transform:uppercase;flex:1;display:flex;align-items:center;gap:10px;}
-        .navbar-title img{max-height:45px;border-radius:8px;object-fit:contain;}
-        .navbar-actions{display:flex;gap:8px;flex-wrap:wrap;}
-        #scan-view,#parent-view,#register-view,#home-view{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px;overflow-y:auto;animation:fade-in .4s ease-out;}
-        #scan-view,#parent-view,#register-view{display:none;}
-        #home-view{background:transparent;justify-content:center;}
-        .home-clock{font-size:5.5rem;font-weight:800;color:rgba(255,255,255,.95);text-shadow:0 8px 30px rgba(0,0,0,.7);margin-bottom:10px;letter-spacing:2px;text-align:center;}
-        .home-subtitle{font-size:1.2rem;color:rgba(255,255,255,.9);text-shadow:0 4px 15px rgba(0,0,0,.6);text-align:center;background:rgba(0,0,0,.5);padding:12px 28px;border-radius:30px;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);}
-        .card{background:var(--bg-card);border:1px solid var(--border-subtle);padding:32px;border-radius:var(--radius-lg);width:100%;max-width:480px;box-shadow:var(--shadow-lg);animation:slide-up .5s ease-out;transition:all var(--transition-normal);position:relative;overflow:hidden;margin:auto;margin-bottom:20px;flex-shrink:0;}
-        .card:hover{border-color:var(--border-light);box-shadow:var(--shadow-lg),var(--shadow-glow);transform:translateY(-2px);}
-        .card h2{font-size:1.3rem;font-weight:600;margin-bottom:24px;color:var(--accent-primary);letter-spacing:.5px;}
-        input[type="text"],input[type="email"],input[type="date"],input[type="password"],input[type="number"],input[type="url"],select,textarea{width:100%;padding:12px 16px;font-size:.95rem;background:var(--bg-hover);border:1px solid var(--border-subtle);border-radius:var(--radius-md);color:var(--text-primary);outline:none;transition:all var(--transition-fast);margin-bottom:15px;box-sizing:border-box;}
-        input:focus,select:focus,textarea:focus{border-color:var(--accent-primary);background:rgba(0,217,255,.05);}
-        .btn{padding:11px 20px;border:1px solid transparent;border-radius:var(--radius-md);cursor:pointer;font-weight:600;color:var(--text-primary);display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:.85rem;transition:all var(--transition-fast);text-transform:uppercase;letter-spacing:.5px;}
-        .btn:disabled{opacity:.5;cursor:not-allowed;}
-        .btn-m{background:var(--accent-primary);color:var(--bg-dark);border-color:var(--accent-primary);}
-        .btn-m:hover:not(:disabled){background:var(--accent-secondary);box-shadow:0 0 20px rgba(0,217,255,.3);transform:translateY(-2px);}
-        .btn-s{background:var(--accent-success);color:var(--bg-dark);border-color:var(--accent-success);}
-        .btn-s:hover:not(:disabled){box-shadow:0 0 20px rgba(0,255,136,.3);transform:translateY(-2px);}
-        .btn-d{background:var(--accent-danger);color:white;border-color:var(--accent-danger);}
-        .btn-d:hover:not(:disabled){box-shadow:0 0 20px rgba(255,68,68,.3);transform:translateY(-2px);}
-        .btn-i{background:var(--accent-secondary);color:white;border-color:var(--accent-secondary);}
-        .btn-i:hover:not(:disabled){box-shadow:0 0 20px rgba(0,184,212,.3);transform:translateY(-2px);}
-        .btn-w{background:var(--accent-warning);color:var(--bg-dark);border-color:var(--accent-warning);}
-        .btn-w:hover:not(:disabled){box-shadow:0 0 20px rgba(255,184,0,.3);transform:translateY(-2px);}
-        .btn-dark{background:transparent;border:1px solid var(--border-light);color:var(--text-primary);}
-        .btn-full{width:100%;margin-top:10px;margin-bottom:10px;}
-        .btn-group{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
-        .btn-group .btn{flex:1;min-width:110px;}
-        .video-container{position:relative;width:100%;height:320px;border-radius:var(--radius-lg);overflow:hidden;background:#000;border:2px solid var(--border-subtle);display:none;box-shadow:var(--shadow-lg);transition:all .3s;}
-        .video-container.active{display:block;border-color:var(--accent-primary);animation:glow-pulse 2s infinite;}
-        video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
-        canvas{position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1);}
-        .scan-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(to bottom,transparent 45%,rgba(0,217,255,.4) 50%,transparent 55%);background-size:100% 200%;animation:scanline 2.5s linear infinite;pointer-events:none;opacity:0;transition:opacity .3s;}
-        .video-container.scanning .scan-overlay{opacity:1;}
-        .ai-status{font-size:.85rem;color:var(--accent-warning);text-align:center;margin-top:10px;font-weight:bold;}
-        #resBox{margin-top:15px;display:none;padding:20px;border-radius:var(--radius-md);border:1px solid var(--border-light);background:var(--bg-hover);animation:success-pop .4s ease-out;text-align:center;}
-        #resBox h2{margin:0 0 5px 0;font-size:1.2rem;color:var(--accent-success);}
-        #resBox h3{margin:0;font-size:1rem;color:var(--text-secondary);}
-        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:2000;display:none;padding:24px;overflow-y:auto;flex-direction:column;align-items:center;justify-content:flex-start;backdrop-filter:blur(5px);}
-        #master-panel{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,14,39,.95);z-index:1000;padding:24px;box-sizing:border-box;overflow-y:auto;border:1px solid var(--border-subtle);backdrop-filter:blur(10px);}
-        body.light-theme #master-panel{background:rgba(240,244,248,.95);}
-        .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:16px;border-bottom:1px solid var(--border-subtle);padding-bottom:20px;}
-        .panel-header h1{color:var(--accent-primary);margin:0;font-size:1.5rem;flex:1;}
-        .panel-header-actions{display:flex;gap:8px;flex-wrap:wrap;}
-        .tabs-container{display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid var(--border-subtle);}
-        .tab-btn{padding:12px 20px;cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;color:var(--text-secondary);font-weight:600;text-transform:uppercase;}
-        .tab-btn.active{color:var(--accent-primary);border-bottom-color:var(--accent-primary);}
-        .power-bar{background:var(--bg-hover);padding:16px;border-radius:var(--radius-md);display:flex;flex-direction:column;gap:12px;margin-bottom:20px;border:1px solid var(--border-subtle);}
-        .power-bar-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-        table{width:100%;border-collapse:collapse;margin-top:12px;background:transparent;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-subtle);}
-        thead{background:var(--bg-hover);border-bottom:1px solid var(--border-light);}
-        th{padding:14px 16px;text-align:left;font-size:.8rem;font-weight:700;color:var(--accent-primary);text-transform:uppercase;}
-        td{border-bottom:1px solid var(--border-subtle);padding:12px 16px;color:var(--text-primary);}
-        tbody tr:hover{background:var(--bg-hover);border-left:3px solid var(--accent-primary);}
-        .status-badge{padding:4px 8px;border-radius:var(--radius-sm);font-size:.7rem;font-weight:700;text-transform:uppercase;}
-        .status-in{background:rgba(0,255,136,.15);color:var(--accent-success);border:1px solid rgba(0,255,136,.3);}
-        .status-none{background:rgba(255,68,68,.15);color:var(--accent-danger);border:1px solid rgba(255,68,68,.3);}
-        ::-webkit-scrollbar{width:8px;height:8px;}
-        ::-webkit-scrollbar-track{background:var(--bg-card);}
-        ::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px;}
-        .credits-footer{margin-top:15px;text-align:center;font-size:.75rem;color:var(--text-muted);letter-spacing:.5px;font-weight:500;}
-        @media print{.no-print{display:none !important}body{background:white;color:black}}
-        #blockedOverlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;}
-        #blockedOverlay.hidden{display:none;}
-        #blockedOverlay .card{max-width:380px;text-align:center;background:#fff;color:#111;padding:30px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.4);}
-        .map-preview{width:100%;height:200px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);margin-top:10px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
-        .map-preview iframe{width:100%;height:100%;border:none;border-radius:var(--radius-md);}
-        .tenant-badge{position:fixed;bottom:20px;right:20px;padding:8px 14px;border-radius:var(--radius-md);font-size:.78rem;font-weight:700;z-index:1000;background:var(--bg-card);color:var(--accent-primary);border:1px solid var(--accent-primary);box-shadow:var(--shadow-md);}
-        .tenant-badge.offline{border-color:var(--accent-danger);color:var(--accent-danger);}
-        .gps-status{font-size:.8rem;font-weight:600;text-align:center;margin-top:8px;padding:6px 10px;border-radius:var(--radius-md);background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:inline-flex;align-items:center;gap:6px;color:var(--text-secondary);min-height:28px;line-height:1;transition:all .3s ease;width:100%;max-width:340px;box-sizing:border-box;justify-content:center;}
-        .gps-status.excelente{color:var(--accent-success);border:1px solid rgba(0,255,136,.3);}
-        .gps-status.buena{color:#00d9ff;border:1px solid rgba(0,217,255,.3);}
-        .gps-status.media{color:var(--accent-warning);border:1px solid rgba(255,184,0,.3);}
-        .gps-status.mala{color:var(--accent-danger);border:1px solid rgba(255,68,68,.3);}
-        .gps-status span.pulso{display:inline-block;width:8px;height:8px;border-radius:50%;animation:gps-pulso 1.2s infinite;}
+
+        /* Tema Claro */
+        body.light-theme {
+            --bg-dark: #f0f4f8;
+            --bg-darker: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-subtle: #cbd5e1;
+            --border-light: #94a3b8;
+            --shadow-glow: 0 0 20px rgba(0, 184, 212, 0.15);
+        }
+
+        /* -----------------------------------------------------------
+           ANIMACIONES
+           ----------------------------------------------------------- */
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 217, 255, 0.2), var(--shadow-md); }
+            50% { box-shadow: 0 0 30px rgba(0, 217, 255, 0.4), var(--shadow-lg); }
+        }
+        @keyframes success-pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        /* -----------------------------------------------------------
+           RESET Y BASE
+           ----------------------------------------------------------- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; width: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            animation: fade-in 0.6s ease-out;
+            transition: background var(--transition-normal), color var(--transition-fast);
+        }
+
+        /* -----------------------------------------------------------
+           NAVBAR MINIMALISTA
+           ----------------------------------------------------------- */
+        .navbar {
+            background: rgba(10, 14, 39, 0.95);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            gap: 16px;
+            box-shadow: var(--shadow-md);
+            transition: opacity 0.5s ease;
+        }
+        body.light-theme .navbar {
+            background: rgba(240, 244, 248, 0.95);
+        }
+        .navbar-title { 
+            font-weight: 600; font-size: 1.1rem; letter-spacing: 1px; color: var(--accent-primary); 
+            text-transform: uppercase; flex: 1; display: flex; align-items: center; gap: 10px;
+        }
+        .navbar-title img { max-height: 45px; border-radius: 8px; object-fit: contain; }
+        .navbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* -----------------------------------------------------------
+           VISTAS PRINCIPALES (SCROLL MOBILE)
+           ----------------------------------------------------------- */
+        #scan-view, #parent-view, #register-view, #home-view {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            padding: 24px; overflow-y: auto; animation: fade-in 0.4s ease-out;
+        }
+        #scan-view, #parent-view, #register-view { display: none; }
+
+        /* VISTA HOME (IDLE) */
+        #home-view { background: transparent; justify-content: center; }
+        .home-clock {
+            font-size: 5.5rem; font-weight: 800; color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 8px 30px rgba(0, 0, 0, 0.7); margin-bottom: 10px;
+            letter-spacing: 2px; text-align: center;
+        }
+        .home-subtitle {
+            font-size: 1.2rem; color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.6); text-align: center;
+            background: rgba(0, 0, 0, 0.5); padding: 12px 28px; border-radius: 30px;
+            backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* -----------------------------------------------------------
+           TARJETAS MINIMALISTAS (SCROLL)
+           ----------------------------------------------------------- */
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 32px;
+            border-radius: var(--radius-lg); width: 100%; max-width: 480px; box-shadow: var(--shadow-lg);
+            animation: slide-up 0.5s ease-out; transition: all var(--transition-normal); position: relative; 
+            overflow: hidden; margin: auto;
+            margin-bottom: 20px; flex-shrink: 0;
+        }
+        .card:hover { border-color: var(--border-light); box-shadow: var(--shadow-lg), var(--shadow-glow); transform: translateY(-2px); }
+        .card h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 24px; color: var(--accent-primary); letter-spacing: 0.5px; }
+
+        /* -----------------------------------------------------------
+           INPUTS Y BOTONES
+           ----------------------------------------------------------- */
+        input[type="text"], input[type="email"], input[type="date"], input[type="password"], input[type="number"], select {
+            width: 100%; padding: 12px 16px; font-size: 0.95rem; background: var(--bg-hover);
+            border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-primary);
+            outline: none; transition: all var(--transition-fast); margin-bottom: 15px; box-sizing: border-box;
+        }
+        input:focus, select:focus { border-color: var(--accent-primary); background: rgba(0, 217, 255, 0.05); }
+
+        .btn {
+            padding: 11px 20px; border: 1px solid transparent; border-radius: var(--radius-md);
+            cursor: pointer; font-weight: 600; color: var(--text-primary); display: inline-flex;
+            align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem;
+            transition: all var(--transition-fast); text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-m { background: var(--accent-primary); color: var(--bg-dark); border-color: var(--accent-primary); }
+        .btn-m:hover:not(:disabled) { background: var(--accent-secondary); box-shadow: 0 0 20px rgba(0, 217, 255, 0.3); transform: translateY(-2px); }
+        .btn-s { background: var(--accent-success); color: var(--bg-dark); border-color: var(--accent-success); }
+        .btn-s:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); transform: translateY(-2px); }
+        .btn-d { background: var(--accent-danger); color: white; border-color: var(--accent-danger); }
+        .btn-d:hover:not(:disabled) { box-shadow: 0 0 20px rgba(255, 68, 68, 0.3); transform: translateY(-2px); }
+        .btn-i { background: var(--accent-secondary); color: white; border-color: var(--accent-secondary); }
+        .btn-i:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0, 184, 212, 0.3); transform: translateY(-2px); }
+        .btn-w { background: var(--accent-warning); color: var(--bg-dark); border-color: var(--accent-warning); }
+        .btn-w:hover:not(:disabled) { box-shadow: 0 0 20px rgba(255, 184, 0, 0.3); transform: translateY(-2px); }
+        .btn-dark { background: transparent; border: 1px solid var(--border-light); color: var(--text-primary); }
+        .btn-full { width: 100%; margin-top: 10px; margin-bottom: 10px; }
+
+        .btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+        .btn-group .btn { flex: 1; min-width: 110px; }
+
+        /* -----------------------------------------------------------
+           CÁMARA FACIAL E IA
+           ----------------------------------------------------------- */
+        .video-container {
+            position: relative; width: 100%; height: 320px; border-radius: var(--radius-lg);
+            overflow: hidden; background: #000; border: 2px solid var(--border-subtle);
+            display: none; box-shadow: var(--shadow-lg); transition: all 0.3s;
+        }
+        .video-container.active { display: block; border-color: var(--accent-primary); animation: glow-pulse 2s infinite; }
+        
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+        
+        .scan-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 45%, rgba(0, 217, 255, 0.4) 50%, transparent 55%);
+            background-size: 100% 200%; animation: scanline 2.5s linear infinite; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+        }
+        .video-container.scanning .scan-overlay { opacity: 1; }
+
+        .ai-status {
+            font-size: 0.85rem; color: var(--accent-warning); text-align: center; margin-top: 10px; font-weight: bold;
+        }
+
+        /* -----------------------------------------------------------
+           RESULTADOS Y MODALES (SCROLL)
+           ----------------------------------------------------------- */
+        #resBox {
+            margin-top: 15px; display: none; padding: 20px; border-radius: var(--radius-md);
+            border: 1px solid var(--border-light); background: var(--bg-hover);
+            animation: success-pop 0.4s ease-out; text-align: center;
+        }
+        #resBox h2 { margin: 0 0 5px 0; font-size: 1.2rem; color: var(--accent-success); }
+        #resBox h3 { margin: 0; font-size: 1rem; color: var(--text-secondary); }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            z-index: 2000; display: none; padding: 24px; overflow-y: auto;
+            flex-direction: column; align-items: center; justify-content: flex-start;
+            backdrop-filter: blur(5px);
+        }
+
+        /* -----------------------------------------------------------
+           PANEL MAESTRO Y TABLAS
+           ----------------------------------------------------------- */
+        #master-panel {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 14, 39, 0.95); z-index: 1000; padding: 24px; box-sizing: border-box;
+            overflow-y: auto; border: 1px solid var(--border-subtle); backdrop-filter: blur(10px);
+        }
+        body.light-theme #master-panel {
+            background: rgba(240, 244, 248, 0.95);
+        }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 20px; }
+        .panel-header h1 { color: var(--accent-primary); margin: 0; font-size: 1.5rem; flex: 1; }
+        
+        .panel-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        
+        .tabs-container { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border-subtle); }
+        .tab-btn { padding: 12px 20px; cursor: pointer; border: none; background: transparent; border-bottom: 2px solid transparent; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+        .tab-btn.active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); }
+        
+        .power-bar { background: var(--bg-hover); padding: 16px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; border: 1px solid var(--border-subtle); }
+        .power-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; background: transparent; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); }
+        thead { background: var(--bg-hover); border-bottom: 1px solid var(--border-light); }
+        th { padding: 14px 16px; text-align: left; font-size: 0.8rem; font-weight: 700; color: var(--accent-primary); text-transform: uppercase; }
+        td { border-bottom: 1px solid var(--border-subtle); padding: 12px 16px; color: var(--text-primary); }
+        tbody tr:hover { background: var(--bg-hover); border-left: 3px solid var(--accent-primary); }
+
+        .status-badge { padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .status-in { background: rgba(0, 255, 136, 0.15); color: var(--accent-success); border: 1px solid rgba(0, 255, 136, 0.3); }
+        .status-none { background: rgba(255, 68, 68, 0.15); color: var(--accent-danger); border: 1px solid rgba(255, 68, 68, 0.3); }
+        
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-card); }
+        ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+
+        /* CRÉDITOS */
+        .credits-footer {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        @media print { .no-print { display: none !important; } body { background: white; color: black; } }
+
+        /* BLOQUEO AUTOMÁTICO */
+        #blockedOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #blockedOverlay.hidden { display: none; }
+        #blockedOverlay .card {
+            max-width: 380px;
+            text-align: center;
+            background: #ffffff;
+            color: #111111;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
     </style>
 </head>
 <body>
+
+    <!-- INPUTS OCULTOS PARA FONDOS Y LOGOS -->
     <input type="file" id="bgUploader" accept="image/*" style="display:none;" onchange="procesarSubidaFondo(event)">
-    <input type="file" id="logoUploader" accept="image/png,image/jpeg" style="display:none;" onchange="procesarSubidaLogo(event)">
+    <input type="file" id="logoUploader" accept="image/png, image/jpeg" style="display:none;" onchange="procesarSubidaLogo(event)">
 
     <!-- NAVBAR -->
     <div class="navbar no-print" id="main-navbar">
         <div class="navbar-title" id="nav-logo-container">🤖 Asistencia IA</div>
         <div class="navbar-actions">
-            <button class="btn btn-s" onclick="mostrarVista('register-view')">📝 Registrarse</button>
-            <button class="btn btn-w" onclick="mostrarVista('parent-view')">👁️ Consulta</button>
-            <button class="btn btn-i" onclick="abrirLogin('escaner')">📷 Escáner Facial</button>
-            <button class="btn btn-m" onclick="abrirLogin('admin')">🔒 Admin</button>
+            <button class="btn btn-s" onclick="mostrarVista('register-view')" title="Registro General">📝 Registrarse</button>
+            <button class="btn btn-w" onclick="mostrarVista('parent-view')" title="Consulta para padres">👨‍👩‍👧 Padres/Consulta</button>
+            <button class="btn btn-i" onclick="abrirLogin('escaner')" title="Acceso al escáner">📷 Escáner Facial</button>
+            <button class="btn btn-m" onclick="abrirLogin('admin')" title="Panel administrativo">🔓 Admin</button>
         </div>
     </div>
 
-    <!-- HOME -->
+    <!-- VISTA INACTIVA (HOME/LOGIN LIMPIO) -->
     <div id="home-view" onclick="mostrarVista('parent-view')">
         <div class="home-clock" id="home-clock-time">--:--</div>
         <div class="home-subtitle">👆 Toque la pantalla o navegue en el menú superior para empezar</div>
     </div>
 
-    <!-- LOGIN MODAL -->
+    <!-- MODAL DE INICIO DE SESIÓN CON FIREBASE AUTH -->
     <div id="login-modal" class="modal-overlay">
-        <div class="card" style="max-width:400px;text-align:center;">
+        <div class="card" style="max-width: 400px; text-align: center;">
             <h2 id="login-title">🔒 Control de Acceso</h2>
-            <p style="color:var(--text-secondary);font-size:.9rem;margin-bottom:20px;">Ingrese sus credenciales autorizadas.</p>
+            <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom: 20px;">
+                Ingrese sus credenciales autorizadas.
+            </p>
             <input type="email" id="loginEmail" placeholder="Correo electrónico" required>
             <input type="password" id="loginPass" placeholder="Contraseña" required>
+            
             <div class="btn-group">
                 <button class="btn btn-m" style="flex:2;" onclick="procesarLogin()">Ingresar al Sistema</button>
                 <button class="btn btn-d" style="flex:1;" onclick="cerrarLogin()">Cancelar</button>
@@ -150,15 +362,19 @@
         </div>
     </div>
 
-    <!-- REGISTRO -->
+    <!-- VISTA DE REGISTRO MULTI-PERFIL -->
     <div id="register-view">
-        <div class="card" style="max-width:650px;width:100%;">
-            <h2 style="text-align:center;">📝 Registro Oficial de Usuarios</h2>
-            <p style="text-align:center;color:var(--text-secondary);margin-bottom:20px;font-size:.9rem;">Se capturarán 4 ángulos de su rostro para máxima precisión.</p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;">
+        <div class="card" style="max-width: 650px; width: 100%;">
+            <h2 style="text-align: center;">📝 Registro Oficial de Usuarios</h2>
+            <p style="text-align:center; color:var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+                Todos los usuarios de la plataforma deben registrarse aquí. Se capturarán 4 ángulos de su rostro para máxima precisión.
+            </p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
                 <input type="text" id="regId" placeholder="Cédula / Identificación" required>
                 <input type="text" id="regName" placeholder="Nombre Completo" required>
             </div>
+            
             <select id="regRole" onchange="toggleStudentField()">
                 <option value="">-- Seleccione su Perfil --</option>
                 <option value="Estudiante">Estudiante</option>
@@ -169,73 +385,90 @@
                 <option value="Junta">Miembro de la Junta</option>
                 <option value="Visitante">Visitante</option>
             </select>
-            <input type="text" id="regStudentId" placeholder="Cédula de su hijo/a (Obligatorio para enlazar)" style="display:none;border-color:var(--accent-warning);">
+
+            <input type="text" id="regStudentId" placeholder="Cédula de su hijo/a (Obligatorio para enlazar)" style="display:none; border-color: var(--accent-warning);">
             <input type="text" id="regSection" placeholder="Sección / Puesto / Motivo de visita">
             <input type="text" id="regPhone" placeholder="Número de WhatsApp">
-            <div id="reg-cam-container" class="video-container" style="margin-top:15px;">
+
+            <div id="reg-cam-container" class="video-container" style="margin-top: 15px;">
                 <video id="reg-video-pub" autoplay muted playsinline></video>
                 <canvas id="reg-canvas-pub"></canvas>
             </div>
-            <div id="reg-instructions" style="text-align:center;margin-top:15px;color:var(--accent-warning);font-weight:bold;font-size:1.1rem;">Llene sus datos y presione "1️⃣ Iniciar Cámara".</div>
-            <div class="btn-group" style="margin-top:20px;">
+
+            <div id="reg-instructions" style="text-align:center; margin-top: 15px; color: var(--accent-warning); font-weight: bold; font-size: 1.1rem;">
+                Llene sus datos personales y presione "1️⃣ Iniciar Cámara".
+            </div>
+
+            <div class="btn-group" style="margin-top: 20px;">
                 <button id="btnStartRegCam" class="btn btn-i" onclick="iniciarCamaraRegistro()">1️⃣ Iniciar Cámara</button>
-                <button id="btnCaptureProfile" class="btn btn-m" onclick="capturarPerfilRegistro()" disabled>📸 Capturar (0/4)</button>
-                <button id="btnSaveRegistry" class="btn btn-s" onclick="guardarRegistroCompleto()" disabled>💾 Guardar</button>
+                <button id="btnCaptureProfile" class="btn btn-m" onclick="capturarPerfilRegistro()" disabled>📸 Capturar Perfil (0/4)</button>
+                <button id="btnSaveRegistry" class="btn btn-s" onclick="guardarRegistroCompleto()" disabled>💾 Guardar Registro</button>
                 <button class="btn btn-d" onclick="cerrarVistaProtegida('register-view')">❌ Cancelar</button>
             </div>
         </div>
         <div class="credits-footer">prodigital-72284602 • Derechos Reservados</div>
     </div>
 
-    <!-- ESCÁNER -->
+    <!-- VISTA DE ESCANEO FACIAL -->
     <div id="scan-view">
-        <div class="card" style="max-width:550px;">
-            <h2 style="text-align:center;">🤖 Asistencia de Estudiantes</h2>
+        <div class="card" style="max-width: 550px;">
+            <h2 style="text-align: center;">🤖 Asistencia de Estudiantes</h2>
+            
             <div id="scan-video-container" class="video-container">
                 <video id="scan-video" autoplay muted playsinline></video>
                 <canvas id="scan-canvas"></canvas>
                 <div class="scan-overlay"></div>
             </div>
+            
             <p id="scan-ai-status" class="ai-status">Esperando activación...</p>
-            <div id="scan-gps-status" class="gps-status mala" style="margin:8px auto;display:none;">
-                <span class="pulso" style="background:var(--accent-danger);"></span>
-                <span id="scan-gps-text">GPS sin calentar</span>
-            </div>
+
             <button id="btnCamaraMain" class="btn btn-i btn-full" onclick="toggleScanner()">🟢 Iniciar Escáner</button>
+
+            <!-- Resultado de escaneo exitoso -->
             <div id="resBox">
                 <h2 id="resNombre"></h2>
                 <h3 id="resMov"></h3>
             </div>
+
             <div class="btn-group">
-                <button class="btn btn-w" onclick="mostrarAyuda()">❓ Ayuda</button>
+                <button class="btn btn-w" onclick="mostrarAyuda('escaneo')">❓ Ayuda</button>
                 <button class="btn btn-d" onclick="cerrarVistaProtegida('scan-view')">Cerrar</button>
             </div>
         </div>
         <div class="credits-footer">prodigital-72284602 • Derechos Reservados</div>
     </div>
 
-    <!-- CONSULTA PADRES -->
+    <!-- VISTA DE CONSULTA PADRES Y ESTUDIANTES -->
     <div id="parent-view">
-        <div class="card" style="max-width:520px;">
+        <div class="card" style="max-width: 520px;">
             <h2>👁️ Consulta de Asistencia por Rostro / ID</h2>
+            
             <div id="query-video-container" class="video-container">
                 <video id="query-video" autoplay muted playsinline></video>
                 <canvas id="query-canvas"></canvas>
                 <div class="scan-overlay"></div>
             </div>
-            <p id="query-ai-status" class="ai-status" style="margin-bottom:12px;">Reconocimiento facial para padres y estudiantes.</p>
+            <p id="query-ai-status" class="ai-status" style="margin-bottom: 12px;">La cámara de consulta permite reconocerte a ti o a tus padres automáticamente.</p>
+            
             <button id="btnCamaraQuery" class="btn btn-m btn-full" onclick="toggleQueryScanner()">📷 Iniciar Consulta Facial</button>
-            <div style="text-align:center;margin:15px 0;color:var(--text-muted);font-size:.85rem;">- O CONSULTA MANUAL POR CÉDULA -</div>
-            <input type="text" id="parentInput" placeholder="Cédula o código..." style="text-align:center;">
+            
+            <div style="text-align: center; margin: 15px 0; color: var(--text-muted); font-size: 0.85rem;">
+                - O CONSULTA MANUAL POR CÉDULA -
+            </div>
+
+            <input type="text" id="parentInput" placeholder="Cédula o código del estudiante..." style="text-align:center;">
             <button class="btn btn-s btn-full" onclick="consultarPadre()">Buscar por ID</button>
-            <div id="parentResult" style="display:none;margin-top:20px;">
-                <div style="background:var(--bg-hover);padding:16px;border-radius:10px;border:1px solid var(--border-subtle);margin-bottom:15px;">
-                    <h3 id="parentStudentName" style="color:var(--accent-primary);margin-bottom:5px;"></h3>
+            
+            <!-- Resultados de consulta -->
+            <div id="parentResult" style="display:none; margin-top:20px;">
+                <div style="background: var(--bg-hover); padding:16px; border-radius:10px; border:1px solid var(--border-subtle); margin-bottom:15px;">
+                    <h3 id="parentStudentName" style="color:var(--accent-primary); margin-bottom:5px;"></h3>
                     <p id="parentStudentPuesto" style="color:var(--text-secondary);"></p>
                     <button id="btnConsultaWA" class="btn btn-w btn-full">💬 Consultar por WhatsApp</button>
                 </div>
-                <div id="parentLogList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border-subtle);border-radius:10px;padding:10px;"></div>
+                <div id="parentLogList" style="max-height: 200px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:10px; padding:10px;"></div>
             </div>
+            
             <button class="btn btn-dark btn-full" onclick="limpiarConsultaPadres()">🔄 Nueva Consulta</button>
         </div>
         <div class="credits-footer">prodigital-72284602 • Derechos Reservados</div>
@@ -254,13 +487,14 @@
                 <button class="btn btn-d" onclick="cerrarMaster()">❌ SALIR</button>
             </div>
         </div>
+
         <div class="tabs-container">
             <button id="tab1" class="tab-btn active" onclick="cambiarTab(1)">👥 Miembros</button>
             <button id="tab2" class="tab-btn" onclick="cambiarTab(2)">📊 Reportes</button>
-            <button id="tab3" class="tab-btn" onclick="cambiarTab(3)">🌍 Geolocalización</button>
+            <button id="tab3" class="tab-btn" onclick="cambiarTab(3)">🌍 Geolocalización e Historial Lejano</button>
         </div>
 
-        <!-- MIEMBROS -->
+        <!-- SECCIÓN MIEMBROS -->
         <div id="sec-alumnos">
             <div class="power-bar no-print">
                 <div class="power-bar-actions">
@@ -269,123 +503,115 @@
                     <button class="btn btn-s" onclick="imprimirTodosLosCarnets()">📇 CARNÉS</button>
                     <button class="btn btn-dark" onclick="document.getElementById('csvFile').click()">📤 IMPORTAR</button>
                     <button class="btn btn-w" onclick="exportarCSV()">📥 EXPORTAR CSV</button>
-                    <button class="btn btn-d" onclick="exportarPDFMiembros()">📕 EXPORTAR PDF</button>
+                    <button class="btn btn-d" style="border-color: var(--accent-danger);" onclick="exportarPDFMiembros()">📕 EXPORTAR PDF</button>
                     <button class="btn btn-i" onclick="duplicarMiembro()">👥 DUPLICAR</button>
                     <input type="file" id="csvFile" accept=".csv" style="display:none;" onchange="importarCSV()">
-                    <span id="admin-ai-status" class="ai-status" style="margin-left:15px;">IA No cargada</span>
+                    <span id="admin-ai-status" class="ai-status" style="margin-left: 15px;">IA No cargada</span>
                 </div>
-                <button class="btn btn-d btn-full" style="margin-top:10px;" onclick="mostrarConfirmacionBorrar()">🧨 BORRAR TODA LA BASE DE DATOS DE ESTA ESCUELA</button>
+                <button class="btn btn-d btn-full" style="margin-top: 10px;" onclick="mostrarConfirmacionBorrar()">🧨 BORRAR TODA LA BASE DE DATOS DE ESTA ESCUELA</button>
             </div>
+            
             <input type="text" id="busqueda" placeholder="🔍 Buscar..." onkeyup="filtrarRapido()">
+            
             <table id="tabla-miembros-pdf">
-                <thead><tr><th>Estado</th><th>Código</th><th>Rol</th><th>Nombre</th><th>Sección</th><th>WhatsApp</th><th>Rostro</th><th>Encargados</th><th class="no-print">Acciones</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Estado</th>
+                        <th>Código</th>
+                        <th>Rol</th>
+                        <th>Nombre</th>
+                        <th>Sección/Motivo</th>
+                        <th>WhatsApp</th>
+                        <th>Rostro Principal</th>
+                        <th>Rostros Encargados</th>
+                        <th class="no-print">Acciones</th>
+                    </tr>
+                </thead>
                 <tbody id="tablaAlumnos"></tbody>
             </table>
         </div>
 
-        <!-- REPORTES -->
+        <!-- SECCIÓN REPORTE -->
         <div id="sec-reporte" style="display:none;">
             <div class="power-bar no-print">
-                <div style="display:flex;gap:10px;align-items:center;">
-                    <label style="color:var(--text-secondary);font-weight:bold;">Fecha:</label>
-                    <input type="date" id="reportDate" style="margin:0;max-width:150px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <label style="color: var(--text-secondary); font-weight:bold;">Fecha:</label>
+                    <input type="date" id="reportDate" style="margin:0; max-width:150px;">
                 </div>
-                <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;">
+                <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:10px;">
                     <button class="btn btn-s" onclick="filtrarVistaReporte('ENTRADA')">✅ Llegaron</button>
                     <button class="btn btn-m" onclick="filtrarVistaReporte('SALIDA')">🚪 Salieron</button>
                     <button class="btn btn-d" onclick="filtrarVistaReporte('AUSENTES')">❌ Ausentes</button>
-    let authUser = null;
-    firebase.auth().onAuthStateChanged(user => {
-        authUser = user || null;
-        if (user) {
-            actualizarEstadoIA('Sesión activa: ' + (user.email || user.uid));
-        } else {
-            actualizarEstadoIA('IA No cargada');
-        }
-    });
-
-                    <button class="btn btn-i" onclick="filtrarVistaReporte('TODOS')">📋 Todos</button>
+                    <button class="btn btn-i" onclick="filtrarVistaReporte('TODOS')">📋 Todos los Movimientos</button>
                 </div>
-                <div style="display:flex;gap:5px;margin-top:10px;">
+                <div style="display:flex; gap:5px; margin-top:10px;">
                     <button class="btn btn-w" onclick="exportarPDFReporte()">📕 PDF REPORTE</button>
-                    <button class="btn btn-dark" onclick="confirmarBorrarDia()">🗑️ Borrar Día</button>
+                    <button class="btn btn-dark" onclick="if(confirm('¿Borrar historial del día?')) borrarHistorialDia();">🗑️ Borrar Día</button>
                 </div>
             </div>
-            <h2 id="tituloReporte" style="color:var(--accent-primary);text-align:center;margin:20px 0;">Seleccione un filtro</h2>
+            <h2 id="tituloReporte" style="color:var(--accent-primary); text-align:center; margin:20px 0;">Seleccione un filtro</h2>
             <table id="tabla-logs-final">
                 <thead id="headReporte"></thead>
                 <tbody id="cuerpoReporte"></tbody>
             </table>
         </div>
 
-        <!-- GEOLOCALIZACIÓN -->
+        <!-- SECCIÓN GEOLOCALIZACIÓN -->
         <div id="sec-geolocalizacion" style="display:none;">
-            <div class="power-bar" style="max-width:680px;margin:0 auto;">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-                    <span style="font-size:2rem;">📍</span>
+            <div class="power-bar">
+                <h3 style="color: var(--accent-primary); margin-bottom: 10px;">📍 Configuración de Geocerca del Centro Educativo</h3>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Establece las coordenadas del centro. <b>Si un escaneo supera el radio, se registrará el intento pero NO se marcará su asistencia real.</b></p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                     <div>
-                    <h3 style="margin:0;color:var(--accent-primary);font-size:1.1rem;">Ubicación de la Institución</h3>
-                    <p style="margin:3px 0 0;font-size:.8rem;color:var(--text-muted);">La asistencia solo se marcará dentro de <b>200 metros</b> del centro.</p>
+                        <label style="font-weight: bold; color: var(--text-primary);">Latitud Centro:</label>
+                        <input type="number" step="any" id="geoLat" value="9.9388">
                     </div>
-                </div>
-                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);letter-spacing:.06em;text-transform:uppercase;">URL de Google Maps</label>
-                <div style="display:flex;gap:8px;margin-top:7px;">
-                    <input type="url" id="geoMapsUrl" placeholder="https://www.google.com/maps/@19.432,-99.133,17z" style="flex:1;margin-bottom:0;">
-                    <button class="btn btn-i" style="white-space:nowrap;" onclick="extraerCoordsDesdeURL()">🔍 Extraer</button>
-                </div>
-                <p style="margin:5px 0 10px;font-size:.73rem;color:var(--text-muted);">Abra Google Maps → busque la escuela → copie la URL completa → péguela aquí.</p>
-
-                <div id="geoCoordBox" style="display:none;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;padding:14px 18px;margin-bottom:18px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
                     <div>
-                    <span style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;">Coordenadas Extraídas</span>
-                    <p id="geoCoordDisplay" style="margin:5px 0 0;font-size:1rem;font-weight:700;color:var(--accent-primary);font-family:monospace;"></p>
+                        <label style="font-weight: bold; color: var(--text-primary);">Longitud Centro:</label>
+                        <input type="number" step="any" id="geoLng" value="-84.1200">
                     </div>
-                    <div style="text-align:right;">
-                    <span style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;">Radio Permitido</span>
-                    <p style="margin:5px 0 0;font-size:1.2rem;font-weight:700;color:var(--accent-success);">200 m</p>
-                    </div>
-                    </div>
-                    <a id="geoVerMapa" href="#" target="_blank" style="display:inline-block;margin-top:10px;font-size:.8rem;color:var(--accent-primary);text-decoration:none;">🗺️ Verificar en Google Maps →</a>
-                </div>
-
-                <div id="geoMapPreview" class="map-preview" style="display:none;"><span>Vista previa del mapa</span></div>
-
-                <input type="hidden" id="geoLat" value="">
-                <input type="hidden" id="geoLng" value="">
-
-                <div id="geoEstadoGuardado" style="display:none;align-items:center;gap:10px;background:rgba(40,167,69,.08);border:1px solid var(--accent-success);border-radius:8px;padding:10px 14px;margin-bottom:16px;">
-                    <span style="font-size:1.2rem;">✅</span>
                     <div>
-                    <span style="font-size:.82rem;font-weight:600;color:var(--accent-success);">Geocerca activa</span>
-                    <p id="geoEstadoInfo" style="margin:2px 0 0;font-size:.78rem;color:var(--text-muted);"></p>
+                        <label style="font-weight: bold; color: var(--text-primary);">Radio Permitido (metros):</label>
+                        <input type="number" id="geoRadio" value="150">
                     </div>
                 </div>
-
-                <button class="btn btn-s" onclick="guardarConfigGeo()" style="width:100%;padding:13px;font-size:1rem;border-radius:8px;margin-top:2px;">💾 Guardar Geocerca</button>
+                <button class="btn btn-s" style="margin-top: 15px;" onclick="guardarConfigGeo()">💾 Guardar Geocerca</button>
             </div>
 
-            <h2 style="color:var(--accent-primary);margin:25px 0 10px 0;">🌍 Escaneos Lejanos Detectados (Rechazados)</h2>
-            <div style="overflow-x:auto;">
+            <h2 style="color:var(--accent-primary); margin: 25px 0 10px 0;">🌍 Historial de Escaneos Lejanos Detectados (Rechazados)</h2>
+            <div style="overflow-x: auto;">
                 <table>
-                    <thead><tr><th>Fecha/Hora</th><th>Persona</th><th>Distancia</th><th>Precisión GPS</th><th class="no-print">Acciones</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Código</th>
+                            <th>Nombre Alumno</th>
+                            <th>Distancia Calculada</th>
+                            <th>Coordenadas Dispositivo</th>
+                            <th class="no-print">Acciones</th>
+                        </tr>
+                    </thead>
                     <tbody id="tablaLogsLejanos"></tbody>
                 </table>
             </div>
         </div>
-        <div class="credits-footer" style="padding:20px 0;">prodigital-72284602 • Derechos Reservados</div>
+        <div class="credits-footer" style="padding: 20px 0;">prodigital-72284602 • Derechos Reservados</div>
     </div>
 
-    <!-- MODAL CAPTURA ROSTRO ADMIN -->
+    <!-- MODAL DE CAPTURA DE ROSTRO (ADMIN) -->
     <div id="face-modal" class="modal-overlay">
-        <div class="card" style="text-align:center;max-width:500px;">
+        <div class="card" style="text-align:center; max-width: 500px;">
             <h2 id="modalFaceTitle">📸 Registrar Rostro</h2>
-            <p style="color:var(--text-secondary);margin-bottom:15px;">Persona: <b id="modal-student-name" style="color:var(--text-primary);"></b></p>
+            <p style="color:var(--text-secondary); margin-bottom: 15px;">Estudiante: <b id="modal-student-name" style="color:var(--text-primary);"></b></p>
+            
             <div id="reg-video-container" class="video-container active">
                 <video id="reg-video" autoplay muted playsinline></video>
                 <canvas id="reg-canvas"></canvas>
             </div>
-            <p id="reg-status" style="margin-top:15px;font-weight:bold;color:var(--accent-warning);">Buscando rostro...</p>
+            
+            <p id="reg-status" style="margin-top: 15px; font-weight: bold; color: var(--accent-warning);">Buscando rostro...</p>
+
             <div class="btn-group">
                 <button id="btnCaptureFace" class="btn btn-s" disabled onclick="capturarYGuardarRostro()">💾 Guardar Rostro</button>
                 <button class="btn btn-d" onclick="cerrarFaceModal()">Cancelar</button>
@@ -393,795 +619,802 @@
         </div>
     </div>
 
-    <!-- OVERLAY BLOQUEADO -->
+    <!-- OVERLAY DE ACCESO BLOQUEADO -->
     <div id="blockedOverlay" class="hidden">
         <div class="card">
-            <h2 style="color:#ff4444;font-size:2rem;margin-bottom:1rem;">⚠️ Acceso Bloqueado</h2>
-            <p style="font-size:1rem;color:#333;">La suscripción está temporalmente inactiva. Contacte al administrador del SaaS.</p>
+            <h2 style="color:#ff4444; font-size:2rem; margin-bottom:1rem;">⚠️ Acceso Bloqueado</h2>
+            <p style="font-size:1rem; color:#333;">
+                La suscripción o el estado de esta escuela está temporalmente inactivo.<br>
+                Por favor, contacte al administrador del SaaS para restablecer el acceso.
+            </p>
             <button class="btn btn-m" style="margin-top:1rem;" onclick="location.reload()">Reintentar</button>
         </div>
     </div>
 
-    <!-- BADGE TENANT -->
-    <div id="tenantBadge" class="tenant-badge">TENANT: cargando...</div>
-
     <script>
-    // ====
-    // FIREBASE CONFIG
-    // ====
-    let NUMERO_OFICIAL_JUNTA = "8888";
-    const firebaseConfig = {
-        apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
-        authDomain: "tenant-escuela.firebaseapp.com",
-        databaseURL: "https://tenant-escuela-default-rtdb.firebaseio.com",
-        projectId: "tenant-escuela",
-        storageBucket: "tenant-escuela.firebasestorage.app",
-        messagingSenderId: "456023877565",
-        appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4"
-    };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    const storage  = firebase.storage();
-
-    // ====
-    // TENANT ID — desde URL ?id= o ?tenant= — fallback demo
-    // ====
-    const _urlP   = new URLSearchParams(window.location.search);
-    let   _paramId = _urlP.get('id') || _urlP.get('tenant') || '';
-    if (_paramId) _paramId = _paramId.replace(/\/$/, '');
-    const TENANT_ID = _paramId || 'escuela-la-carpio';
-
-    // Mostrar TENANT en badge de inmediato
-    (function() {
-        const badge = document.getElementById('tenantBadge');
-        if (badge) badge.textContent = 'TENANT: ' + TENANT_ID;
-    })();
-
-    // ====
-    // ESTADO GLOBAL
-    // ====
-    let db = { personas: {} };
-    let logsGlobal = [], logsLejanosGlobal = [];
-    let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 200, mapsUrl: '', precisionMinima: 35 };
-    let gpsState = {
-        watchId: null, ubicacionActual: null, ultimaUbicacion: null,
-        bufferLecturas: [], estaCalentando: false, calentamientoCompletado: false,
-        calentarTimeoutId: null, precisionActual: null, lecturasRechazadas: 0
-    };
-    const DISTANCIA_MINIMA_REPORTE = 2;
-    let connectionStatus = true;
-    let iaCargada = false, faceMatcher = null, scannerActivo = false, queryScannerActivo = false;
-    let enCooldown = false, streamActual = null, idCapturaActual = null;
-    let tipoCapturaActual = 'estudiante', descriptorDetectado = null, registroLoopId = null;
-    let regDescriptors = [], regPhase = 0, regStream = null;
-    let contextoLogin = '';
-    let idleTimeout;
-    const IDLE_TIME = 45000;
-
-    document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
-
-    // ====
-    // MONITOREO TENANT STATUS (bloqueado / mantenimiento)
-    // ====
-    database.ref('tenants/' + TENANT_ID).on('value', (snapshot) => {
-        const tenantData = snapshot.val();
-        if (!tenantData) return;
-        const estadoSaaS = tenantData.status || tenantData.estado || 'activo';
-        const config = tenantData.config || {};
-        if (estadoSaaS === 'bloqueado' || estadoSaaS === 'suspendido' || estadoSaaS === 'moroso' || config.bloqueado === true) {
-            document.body.innerHTML = config.htmlMora || `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;"><h1 style="color:#ff4444;font-size:2.8rem;margin-bottom:15px;">⚠️ Acceso Suspendido</h1><p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;">${TENANT_ID} — Contacte al administrador de SaaS.</p></div>`;
-        } else if (estadoSaaS === 'mantenimiento') {
-            document.body.innerHTML = config.htmlMantenimiento || `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;"><h1 style="color:#ffb800;font-size:2.8rem;margin-bottom:15px;">🔧 Mantenimiento</h1><p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;">${TENANT_ID} — Intente más tarde.</p></div>`;
-        }
-    });
-
-    // Bloqueo por tenantDB
-    database.ref('tenantDB/' + TENANT_ID).on('value', snap => {
-        const data = snap.val();
-        if (!data) return;
-        const overlay = document.getElementById('blockedOverlay');
-        const isBlocked = data.bloqueado === true || data.estado === 'bloqueado';
-        if (isBlocked) {
-            if (data.htmlMora) { document.body.innerHTML = data.htmlMora; }
-            else if (overlay)  { overlay.classList.remove('hidden'); }
-        } else {
-            if (overlay) overlay.classList.add('hidden');
-        }
-    });
-
-    // ====
-    // LISTENERS FIREBASE AISLADOS POR TENANT
-    // ====
-    database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', s => { if(s.val()) NUMERO_OFICIAL_JUNTA = s.val(); });
-
-    database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', s => {
-        const data = s.val();
-        if (!data) return;
-        geoConfig = data;
-        const el = document.getElementById('geoMapsUrl');
-        if (el) el.value = data.mapsUrl || '';
-        document.getElementById('geoLat').value = data.lat || '';
-        document.getElementById('geoLng').value = data.lng || '';
-        if (data.lat && data.lng) {
-            const display = document.getElementById('geoCoordDisplay');
-            if (display) display.textContent = parseFloat(data.lat).toFixed(6) + ', ' + parseFloat(data.lng).toFixed(6);
-            const verLink = document.getElementById('geoVerMapa');
-            if (verLink) verLink.href = 'https://www.google.com/maps/search/?api=1&query=' + data.lat + ',' + data.lng;
-            const coordBox = document.getElementById('geoCoordBox');
-            if (coordBox) coordBox.style.display = 'block';
-            const estadoDiv  = document.getElementById('geoEstadoGuardado');
-            const estadoInfo = document.getElementById('geoEstadoInfo');
-            const radioTxt = Number.isFinite(Number(data.radio)) ? Number(data.radio) : 200;
-            if (estadoDiv)  estadoDiv.style.display = 'flex';
-            if (estadoInfo) estadoInfo.textContent = parseFloat(data.lat).toFixed(5) + ', ' + parseFloat(data.lng).toFixed(5) + ' · ' + radioTxt + 'm';
-        }
-    });
-
-    database.ref('tenants/' + TENANT_ID + '/config/customBg').on('value', s => {
-        const bgUrl = s.val();
-        if (bgUrl) {
-            document.body.style.backgroundImage = 'url(' + bgUrl + ')';
-            localStorage.setItem('CUSTOM_BG_' + TENANT_ID, bgUrl);
-        }
-    });
-
-    database.ref('tenants/' + TENANT_ID + '/config/customLogo').on('value', s => {
-        const logoUrl = s.val();
-        if (logoUrl) {
-            localStorage.setItem('CUSTOM_LOGO_' + TENANT_ID, logoUrl);
-            cargarLogoPersonalizado();
-        }
-    });
-
-    // Caché local (aislada por tenant)
-    if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
-    const _cachedBg = localStorage.getItem('CUSTOM_BG_' + TENANT_ID);
-    if (_cachedBg) document.body.style.backgroundImage = 'url(' + _cachedBg + ')';
-
-    function cargarLogoPersonalizado() {
-        const logoUrl = localStorage.getItem('CUSTOM_LOGO_' + TENANT_ID);
-        const nav = document.getElementById('nav-logo-container');
-        nav.innerHTML = logoUrl ? '<img src="' + logoUrl + '" alt="Logo">' : '🤖 Asistencia IA';
-    }
-    cargarLogoPersonalizado();
-
-    // Datos de la escuela
-    database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', s => { db.personas = s.val() || {}; renderAlumnos(); construirFaceMatcher(); });
-    database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', s => { logsGlobal = []; s.forEach(c => { let v=c.val(); v.key=c.key; logsGlobal.push(v); }); renderAlumnos(); });
-    database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').on('value', s => { logsLejanosGlobal = []; s.forEach(c => { let v=c.val(); v.key=c.key; logsLejanosGlobal.push(v); }); renderGeolocalizacion(); });
-
-    window.addEventListener('online',  () => { actualizarTenantBadge(true);  sincronizarConNube(true); });
-    window.addEventListener('offline', () => { actualizarTenantBadge(false); });
-
-    function actualizarTenantBadge(online) {
-        connectionStatus = online;
-        const badge = document.getElementById('tenantBadge');
-        if (!badge) return;
-        badge.textContent = (online ? '✓ ' : '✗ ') + TENANT_ID;
-        badge.className = online ? 'tenant-badge' : 'tenant-badge offline';
-    }
-
-    // ====
-    // LOGIN / AUTENTICACIÓN
-    // ====
-    function abrirLogin(tipo) {
-        contextoLogin = tipo;
-        document.getElementById('loginPass').value = '';
-        document.getElementById('login-title').innerHTML = tipo === 'admin' ? '🔓 Panel de Administrador' : '📷 Escáner de Asistencia';
-        document.getElementById('login-modal').style.display = 'flex';
-    }
-    function cerrarLogin() { document.getElementById('login-modal').style.display = 'none'; }
-    function procesarLogin() {
-        const email = document.getElementById('loginEmail').value.trim();
-        const pass  = document.getElementById('loginPass').value;
-        if (!email || !pass) { alert('Por favor, ingrese correo y contraseña.'); return; }
-        firebase.auth().signInWithEmailAndPassword(email, pass)
-            .then(() => {
-                cerrarLogin();
-                if (contextoLogin === 'admin') {
-                    document.getElementById('master-panel').style.display = 'block';
-                    inicializarIA();
-                    resetIdleTimer();
-                } else if (contextoLogin === 'escaner') {
-                    mostrarVista('scan-view');
-                }
-            })
-            .catch(err => alert('Acceso Denegado.\n\n' + err.message));
-    }
-
-    // ====
-    // VISTAS
-    // ====
-    function mostrarVista(id) {
-        document.getElementById('home-view').style.display     = (id==='home-view')     ? 'flex' : 'none';
-        document.getElementById('scan-view').style.display     = (id==='scan-view')     ? 'flex' : 'none';
-        document.getElementById('parent-view').style.display   = (id==='parent-view')   ? 'flex' : 'none';
-        document.getElementById('register-view').style.display = (id==='register-view') ? 'flex' : 'none';
-        if (id !== 'scan-view'   && scannerActivo)      toggleScanner();
-        if (id !== 'parent-view' && queryScannerActivo) toggleQueryScanner();
-        if (id !== 'register-view' && regStream) {
-            regStream.getTracks().forEach(t => t.stop());
-            regStream = null;
-            document.getElementById('reg-cam-container').classList.remove('active','scanning');
-        }
-        resetIdleTimer();
-    }
-    function cerrarMaster()               { document.getElementById('master-panel').style.display='none'; detenerCamaras(); resetIdleTimer(); }
-    function cerrarVistaProtegida(id)     { document.getElementById(id).style.display='none'; mostrarVista('home-view'); detenerCamaras(); }
-    function cambiarTab(n) {
-        document.getElementById('sec-alumnos').style.display          = (n===1)?'block':'none';
-        document.getElementById('sec-reporte').style.display          = (n===2)?'block':'none';
-        document.getElementById('sec-geolocalizacion').style.display  = (n===3)?'block':'none';
-        document.getElementById('tab1').className = (n===1)?'tab-btn active':'tab-btn';
-        document.getElementById('tab2').className = (n===2)?'tab-btn active':'tab-btn';
-        document.getElementById('tab3').className = (n===3)?'tab-btn active':'tab-btn';
-    }
-
-    // ====
-    // IDLE / RELOJ
-    // ====
-    function resetIdleTimer() {
-        clearTimeout(idleTimeout);
-        if (!scannerActivo && !queryScannerActivo &&
-            document.getElementById('master-panel').style.display !== 'block' &&
-            document.getElementById('face-modal').style.display   !== 'flex'  &&
-            document.getElementById('login-modal').style.display  !== 'flex') {
-            idleTimeout = setTimeout(() => mostrarVista('home-view'), IDLE_TIME);
-        }
-    }
-    ['mousemove','touchstart','click','keydown','scroll'].forEach(e => document.addEventListener(e, resetIdleTimer));
-    function updateIdleClock() {
-        const now = new Date(); let h=now.getHours(), m=now.getMinutes(); const ampm=h>=12?'PM':'AM';
-        h=h%12||12; m=m<10?'0'+m:m;
-        const el=document.getElementById('home-clock-time'); if(el) el.innerText=h+':'+m+' '+ampm;
-        setTimeout(updateIdleClock,5000);
-    }
-    updateIdleClock();
-
-    // ====
-    // SONIDOS
-    // ====
-    function playSuccessSound(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.setValueAtTime(880,c.currentTime);g.gain.setValueAtTime(.08,c.currentTime);o.start();o.stop(c.currentTime+.12);setTimeout(()=>{const o2=c.createOscillator();const g2=c.createGain();o2.connect(g2);g2.connect(c.destination);o2.type='sine';o2.frequency.setValueAtTime(1046.5,c.currentTime);g2.gain.setValueAtTime(.08,c.currentTime);o2.start();o2.stop(c.currentTime+.18);},120);}catch(e){}}
-    function playParentMelody(){try{const c=new(window.AudioContext||window.webkitAudioContext)();[523.25,659.25,783.99,1046.5].forEach((f,i)=>{setTimeout(()=>{const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.type='triangle';o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(.07,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.3);o.start();o.stop(c.currentTime+.35);},i*100);});}catch(e){}}
-    function playErrorSound(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sawtooth';o.frequency.setValueAtTime(180,c.currentTime);g.gain.setValueAtTime(.12,c.currentTime);g.gain.exponentialRampToValueAtValue(.001,c.currentTime+.4);o.start();o.stop(c.currentTime+.45);}catch(e){}}
-
-    // ====
-    // DISTANCIA / IA
-    // ====
-    function calcularDistancia(lat1,lon1,lat2,lon2){const R=6371000,dL=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180,a=Math.sin(dL/2)*Math.sin(dL/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
-
-    async function inicializarIA() {
-        if(iaCargada) return;
-        actualizarEstadoIA('Descargando modelos biométricos (10MB)... Espera.');
-        const MODEL_URL='https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-        try {
-            await Promise.all([faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)]);
-            iaCargada=true; actualizarEstadoIA('✅ IA Lista'); construirFaceMatcher();
-        } catch(err){ actualizarEstadoIA('❌ Error cargando IA. Revisa tu conexión.'); }
-    }
-    function actualizarEstadoIA(msg){['scan-ai-status','query-ai-status','admin-ai-status'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerText=msg;});}
-    function construirFaceMatcher(){
-        if(!iaCargada) return;
-        const ld=[];
-        for(const id in db.personas){
-            const p=db.personas[id];
-            if(p.descriptor&&p.descriptor.length===128) ld.push(new faceapi.LabeledFaceDescriptors(id,[new Float32Array(p.descriptor)]));
-            if(p.descriptorPadre1&&p.descriptorPadre1.length===128) ld.push(new faceapi.LabeledFaceDescriptors(id+'_p1',[new Float32Array(p.descriptorPadre1)]));
-            if(p.descriptorPadre2&&p.descriptorPadre2.length===128) ld.push(new faceapi.LabeledFaceDescriptors(id+'_p2',[new Float32Array(p.descriptorPadre2)]));
-        }
-        faceMatcher=ld.length>0?new faceapi.FaceMatcher(ld,0.5):null;
-    }
-
-    // ====
-    // REGISTRO PÚBLICO (4 capturas)
-    // ====
-    function toggleStudentField(){const r=document.getElementById('regRole').value,s=document.getElementById('regStudentId');s.style.display=r==='Padre/Encargado'?'block':'none';if(r!=='Padre/Encargado')s.value='';}
-
-    async function iniciarCamaraRegistro(){
-        const id=document.getElementById('regId').value.trim(),nombre=document.getElementById('regName').value.trim(),rol=document.getElementById('regRole').value;
-        if(!id||!nombre||!rol){alert('Complete Identificación, Nombre y Perfil.');return;}
-        if(!iaCargada){document.getElementById('reg-instructions').innerText='Descargando IA...';await inicializarIA();}
-        regDescriptors=[];regPhase=1;
-        document.getElementById('btnCaptureProfile').innerText='📸 Capturar Frente (0/4)';
-        document.getElementById('btnCaptureProfile').disabled=false;
-        document.getElementById('reg-instructions').innerText='Paso 1: Mire a la cámara y presione Capturar.';
-        document.getElementById('reg-instructions').style.color='var(--accent-primary)';
-        try{regStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});const v=document.getElementById('reg-video-pub');v.srcObject=regStream;document.getElementById('reg-cam-container').classList.add('active','scanning');v.addEventListener('play',loopRegPub);}catch(e){alert('Error al acceder a la cámara.');}
-    }
-    async function loopRegPub(){
-        const v=document.getElementById('reg-video-pub'),c=document.getElementById('reg-canvas-pub');
-        if(!regStream||v.paused||v.ended)return;
-        const ds={width:v.clientWidth,height:v.clientHeight};faceapi.matchDimensions(c,ds);
-        const det=await faceapi.detectSingleFace(v).withFaceLandmarks().withFaceDescriptor();
-        const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
-        if(det){const r=faceapi.resizeResults(det,ds);faceapi.draw.drawDetections(c,r);faceapi.draw.drawFaceLandmarks(c,r);window.currentRegDescriptor=Array.from(det.descriptor);}else{window.currentRegDescriptor=null;}
-        setTimeout(loopRegPub,150);
-    }
-    function capturarPerfilRegistro(){
-        if(!window.currentRegDescriptor){alert('Rostro no detectado.');playErrorSound();return;}
-        playSuccessSound();regDescriptors.push(window.currentRegDescriptor);regPhase++;
-        const btn=document.getElementById('btnCaptureProfile'),instr=document.getElementById('reg-instructions');
-        if(regPhase===2){btn.innerText='📸 Capturar Izquierda (1/4)';instr.innerText='Paso 2: Gire a la IZQUIERDA.';}
-        else if(regPhase===3){btn.innerText='📸 Capturar Derecha (2/4)';instr.innerText='Paso 3: Gire a la DERECHA.';}
-        else if(regPhase===4){btn.innerText='📸 Capturar Sonrisa/Arriba (3/4)';instr.innerText='Paso 4: Sonría o mire hacia ARRIBA.';}
-        else if(regPhase===5){
-            btn.innerText='✅ Capturas Completas (4/4)';btn.disabled=true;btn.classList.replace('btn-m','btn-s');
-            instr.innerText='¡Excelente! Guarde su Registro.';instr.style.color='var(--accent-success)';
-            document.getElementById('btnSaveRegistry').disabled=false;
-            if(regStream){regStream.getTracks().forEach(t=>t.stop());regStream=null;}
-            document.getElementById('reg-cam-container').classList.remove('active','scanning');
-        }
-    }
-    function guardarRegistroCompleto(){
-        const id=document.getElementById('regId').value.trim(),nombre=document.getElementById('regName').value.trim(),rol=document.getElementById('regRole').value;
-        const section=document.getElementById('regSection').value.trim(),phone=document.getElementById('regPhone').value.trim(),studentId=document.getElementById('regStudentId').value.trim();
-        let avg=new Float32Array(128);
-        for(let i=0;i<128;i++){let s=0;for(let j=0;j<4;j++)s+=regDescriptors[j][i];avg[i]=s/4;}
-        const desc=Array.from(avg);
-        database.ref('escuelas_data/'+TENANT_ID+'/personas/'+id).update({nombre,puesto:section,telefono:phone,tipoUsuario:rol,descriptor:desc});
-        if(rol==='Padre/Encargado'&&studentId&&db.personas[studentId]){
-            const stu=db.personas[studentId];
-            if(!stu.descriptorPadre1)database.ref('escuelas_data/'+TENANT_ID+'/personas/'+studentId+'/descriptorPadre1').set(desc);
-            else database.ref('escuelas_data/'+TENANT_ID+'/personas/'+studentId+'/descriptorPadre2').set(desc);
-            alert('✅ Registro exitoso y enlazado con estudiante '+studentId+'.');
-        }else{alert('✅ Registro almacenado.');}
-        ['regId','regName','regSection','regPhone','regStudentId'].forEach(i=>document.getElementById(i).value='');
-        document.getElementById('regRole').value='';document.getElementById('regStudentId').style.display='none';
-        document.getElementById('btnSaveRegistry').disabled=true;document.getElementById('btnCaptureProfile').classList.replace('btn-s','btn-m');
-        document.getElementById('reg-instructions').innerText='Llene sus datos y presione "1️⃣ Iniciar Cámara".';
-        document.getElementById('reg-instructions').style.color='var(--accent-warning)';
-        cerrarVistaProtegida('register-view');construirFaceMatcher();
-    }
-
-    // ====
-    // GPS — obtenerUbicacionPrecisa (Promise)
-    // ====
-    function obtenerUbicacionPrecisa({timeoutTotal=12000,minLecturas=4,maxLecturas=10,umbralPrecision=35}={}){
-        return new Promise((resolve)=>{
-            const lecturas=[];let intentos=0,terminado=false;
-            const tl=setTimeout(()=>{if(!terminado){terminado=true;lecturas.sort((a,b)=>a.accuracy-b.accuracy);resolve(lecturas.length>0?lecturas[0]:null);}},timeoutTotal);
-            function tomarLectura(){
-                if(terminado)return;intentos++;
-                navigator.geolocation.getCurrentPosition(
-                    pos=>{
-                    if(terminado)return;
-                    const l={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy};
-                    gpsState.precisionActual=l.accuracy;
-                    const gpsBadge=document.getElementById('scan-gps-status');
-                    const gpsText=document.getElementById('scan-gps-text');
-                    if(gpsBadge){let cls='mala';if(l.accuracy<=10)cls='excelente';else if(l.accuracy<=20)cls='buena';else if(l.accuracy<=40)cls='media';gpsBadge.className='gps-status '+cls;gpsBadge.style.display='flex';}
-                    if(gpsText)gpsText.innerText='Lectura '+intentos+'/'+maxLecturas+': ±'+Math.round(l.accuracy)+'m';
-                    if(l.accuracy<=500)lecturas.push(l);
-                    const buenas=lecturas.filter(x=>x.accuracy<=umbralPrecision);
-                    if(buenas.length>=minLecturas||intentos>=maxLecturas){if(!terminado){terminado=true;clearTimeout(tl);lecturas.sort((a,b)=>a.accuracy-b.accuracy);resolve(lecturas.length>0?lecturas[0]:null);}return;}
-                    setTimeout(tomarLectura,900);
-                    },
-                    err=>{if(terminado)return;intentos++;if(intentos>=maxLecturas){if(!terminado){terminado=true;clearTimeout(tl);lecturas.sort((a,b)=>a.accuracy-b.accuracy);resolve(lecturas.length>0?lecturas[0]:null);}return;}setTimeout(tomarLectura,1200);},
-                    {enableHighAccuracy:true,timeout:7000,maximumAge:0}
-                );
-            }
-            tomarLectura();
-        });
-    }
-
-    // ====
-    // ASISTENCIA CON GPS
-    // ====
-    async function registrarAsistenciaConGPS(id,strEmocion='Neutral',emoticon='😐'){
-        if(!navigator.geolocation){completarEscaneoBD(id,new Date().toLocaleDateString('sv-SE'),false,0,strEmocion,emoticon);return;}
-        if(gpsState.ubicacionActual&&(Date.now()-gpsState.ubicacionActual.timestamp<25000)){procesarAsistencia(id,gpsState.ubicacionActual.lat,gpsState.ubicacionActual.lng,strEmocion,emoticon,gpsState.ubicacionActual.accuracy);return;}
-        mostrarMensajeTemp('📡 Calentando GPS para precisión máxima...','var(--accent-primary)');
-        const gpsBadge=document.getElementById('scan-gps-status');
-        if(gpsBadge){gpsBadge.style.display='flex';gpsBadge.className='gps-status media';}
-        try{
-            const mejor=await obtenerUbicacionPrecisa({timeoutTotal:12000,minLecturas:4,maxLecturas:10,umbralPrecision:geoConfig.precisionMinima||35});
-            if(!mejor)throw new Error('No GPS');
-            gpsState.ubicacionActual={lat:mejor.lat,lng:mejor.lng,accuracy:mejor.accuracy,timestamp:Date.now()};
-            procesarAsistencia(id,mejor.lat,mejor.lng,strEmocion,emoticon,mejor.accuracy);
-        }catch(err){
-            const prec=gpsState.precisionActual?Math.round(gpsState.precisionActual):'?';
-            mostrarMensajeTemp('❌ GPS insuficiente (±'+prec+'m). Se requiere ±'+(geoConfig.precisionMinima||35)+'m. Salga al exterior.','var(--accent-danger)');
-            playErrorSound();if(scannerActivo)toggleScanner();
-        }finally{if(gpsBadge)gpsBadge.style.display='none';}
-    }
-
-    function procesarAsistencia(id,latDisp,lngDisp,strEmocion,emoticon,accuracy){
-        const dist=calcularDistancia(latDisp,lngDisp,geoConfig.lat,geoConfig.lng);
-        const hISO=new Date().toLocaleDateString('sv-SE');
-        const umbral=geoConfig.precisionMinima||35;
-        if(accuracy&&accuracy>umbral){mostrarMensajeTemp('❌ GPS impreciso (±'+Math.round(accuracy)+'m). Se requiere ±'+umbral+'m.','var(--accent-danger)');playErrorSound();if(scannerActivo)toggleScanner();return;}
-        const esLejano=dist>200;
-        if(esLejano){
-            database.ref('escuelas_data/'+TENANT_ID+'/logs_lejanos').push({id,nombre:db.personas[id]?.nombre||'Desconocido',hora:new Date().toLocaleString(),distancia:Math.round(dist),lat:latDisp,lng:lngDisp,precision:accuracy?Math.round(accuracy):'N/A'});
-            mostrarMensajeTemp('⚠️ Fuera del rango. Detectado ('+Math.round(dist)+'m) pero NO registrado.','var(--accent-danger)');
-            playErrorSound();if(scannerActivo)toggleScanner();return;
-        }
-        completarEscaneoBD(id,hISO,esLejano,dist,strEmocion,emoticon);
-    }
-
-    function completarEscaneoBD(id,hISO,esLejano,dist,strEmocion,emoticon){
-        const marcas=logsGlobal.filter(l=>(l.fechaISO?l.fechaISO===hISO:coincideFecha(l.hora,hISO))&&l.id===id&&l.tipo!=='JUSTIFICADA');
-        const tieneE=marcas.some(l=>l.tipo==='ENTRADA'),tieneS=marcas.some(l=>l.tipo==='SALIDA');
-        let tipo='';
-        if(!tieneE)tipo='ENTRADA';else if(!tieneS)tipo='SALIDA';
-        else{mostrarMensajeTemp('Ya registró Entrada y Salida hoy.','var(--accent-warning)');if(scannerActivo)toggleScanner();return;}
-        database.ref('escuelas_data/'+TENANT_ID+'/marcas').push({id,nombre:db.personas[id].nombre,hora:new Date().toLocaleString(),fechaISO:hISO,tipo,lejano:esLejano,distanciaMetros:esLejano?Math.round(dist):0,emocion:strEmocion,emoticon});
-        playSuccessSound();
-        const res=document.getElementById('resBox');res.style.display='block';res.style.background=tipo==='ENTRADA'?'rgba(0,255,136,.1)':'rgba(255,68,68,.1)';
-        document.getElementById('resNombre').innerHTML='✅ '+db.personas[id].nombre;
-        document.getElementById('resMov').innerHTML=(tipo==='ENTRADA'?'Entrada':'Salida')+' Registrada <span style="font-size:1.5rem;">'+emoticon+'</span>';
-        if(scannerActivo)toggleScanner();setTimeout(()=>res.style.display='none',5000);
-    }
-
-    function mostrarMensajeTemp(msg,color){const el=document.getElementById('scan-ai-status');if(el){const old=el.innerText;el.innerText=msg;el.style.color=color;setTimeout(()=>{el.innerText=old;el.style.color='var(--accent-warning)';},4500);}}
-
-    // ====
-    // ESCÁNER
-    // ====
-    async function toggleScanner(){
-        const cont=document.getElementById('scan-video-container'),btn=document.getElementById('btnCamaraMain');
-        if(!scannerActivo){
-            if(!iaCargada){btn.innerText='⏳ Cargando IA...';await inicializarIA();}
-            if(!faceMatcher){alert('No hay rostros registrados aún.');return;}
-            try{streamActual=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});const v=document.getElementById('scan-video');v.srcObject=streamActual;cont.classList.add('active','scanning');btn.innerText='🛑 Detener Escáner';btn.classList.replace('btn-i','btn-d');scannerActivo=true;v.addEventListener('play',loopReconocimiento);actualizarEstadoIA('👁️ Escáner Activo.');resetIdleTimer();}
-            catch(err){alert('Error al acceder a la cámara.');}
-        }else{detenerCamaras();cont.classList.remove('active','scanning');btn.innerText='🟢 Iniciar Escáner';btn.classList.replace('btn-d','btn-i');scannerActivo=false;actualizarEstadoIA('IA en espera.');resetIdleTimer();}
-    }
-    async function loopReconocimiento(){
-        if(!scannerActivo)return;
-        const v=document.getElementById('scan-video'),c=document.getElementById('scan-canvas');
-        if(v.paused||v.ended)return setTimeout(loopReconocimiento,100);
-        const ds={width:v.clientWidth,height:v.clientHeight};faceapi.matchDimensions(c,ds);
-        const det=await faceapi.detectSingleFace(v).withFaceLandmarks().withFaceExpressions().withFaceDescriptor();
-        const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
-        if(det){
-            const r=faceapi.resizeResults(det,ds),box=r.detection.box;
-            ctx.strokeStyle='rgba(0,217,255,.7)';ctx.lineWidth=2;ctx.strokeRect(box.x,box.y,box.width,box.height);
-            if(faceMatcher&&!enCooldown){
-                const match=faceMatcher.findBestMatch(det.descriptor);
-                if(match.label!=='unknown'&&!match.label.includes('_p')){
-                    let es='Neutral',em='😐';
-                    if(det.expressions){const exp=det.expressions,max=Object.keys(exp).reduce((a,b)=>exp[a]>exp[b]?a:b);if(max==='happy'){em='😄';es='Feliz';}else if(max==='sad'){em='😢';es='Triste';}else if(max==='angry'){em='😡';es='Enojado';}else if(max==='surprised'){em='😲';es='Sorprendido';}}
-                    ctx.fillStyle='rgba(0,255,136,.8)';ctx.font='16px Arial';ctx.fillText(em+' '+(db.personas[match.label]?.nombre||match.label),box.x,box.y-10);
-                    enCooldown=true;registrarAsistenciaConGPS(match.label,es,em);setTimeout(()=>enCooldown=false,4000);
-                }else if(match.label.includes('_p')){ctx.fillStyle='rgba(255,184,0,.8)';ctx.font='14px Arial';ctx.fillText('Encargado (no registra aquí)',box.x,box.y-10);}
-                else{ctx.fillStyle='rgba(255,68,68,.8)';ctx.font='16px Arial';ctx.fillText('Desconocido',box.x,box.y-10);}
-            }
-        }
-        setTimeout(loopReconocimiento,150);
-    }
-
-    async function toggleQueryScanner(){
-        const cont=document.getElementById('query-video-container'),btn=document.getElementById('btnCamaraQuery');
-        if(!queryScannerActivo){
-            if(!iaCargada){btn.innerText='⏳ Cargando IA...';await inicializarIA();}
-            if(!faceMatcher){alert('No hay rostros registrados.');return;}
-            try{streamActual=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});const v=document.getElementById('query-video');v.srcObject=streamActual;cont.classList.add('active','scanning');btn.innerText='🛑 Detener Consulta';btn.classList.replace('btn-m','btn-d');queryScannerActivo=true;v.addEventListener('play',loopConsultaFacial);actualizarEstadoIA('👁️ Analizando...');resetIdleTimer();}
-            catch(err){alert('Error al acceder a la cámara.');}
-        }else{detenerCamaras();cont.classList.remove('active','scanning');btn.innerText='📷 Iniciar Consulta Facial';btn.classList.replace('btn-d','btn-m');queryScannerActivo=false;resetIdleTimer();}
-    }
-    async function loopConsultaFacial(){
-        if(!queryScannerActivo)return;
-        const v=document.getElementById('query-video'),c=document.getElementById('query-canvas');
-        if(v.paused||v.ended)return setTimeout(loopConsultaFacial,100);
-        const ds={width:v.clientWidth,height:v.clientHeight};faceapi.matchDimensions(c,ds);
-        const det=await faceapi.detectSingleFace(v).withFaceLandmarks().withFaceDescriptor();
-        const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
-        if(det){
-            const r=faceapi.resizeResults(det,ds),box=r.detection.box;
-            ctx.strokeStyle='rgba(0,217,255,.7)';ctx.lineWidth=2;ctx.strokeRect(box.x,box.y,box.width,box.height);
-            if(faceMatcher&&!enCooldown){
-                const match=faceMatcher.findBestMatch(det.descriptor);
-                if(match.label!=='unknown'){
-                    enCooldown=true;
-                    if(match.label.includes('_p')){
-                    const idEst=match.label.split('_')[0];playParentMelody();
-                    if(match.distance<0.35){ctx.fillStyle='rgba(0,255,136,.9)';ctx.font='14px Arial';ctx.fillText('✅ Encargado Autorizado',box.x,box.y-10);setTimeout(()=>{toggleQueryScanner();ejecutarConsultaIdDirecta(idEst);},1500);}
-                    else{ctx.fillStyle='rgba(255,184,0,.9)';ctx.font='14px Arial';ctx.fillText('⚠️ Digite cédula del alumno',box.x,box.y-10);setTimeout(()=>{toggleQueryScanner();const id2=prompt('Digite la cédula del estudiante:');if(id2&&id2.trim()===idEst)ejecutarConsultaIdDirecta(idEst);else alert('Validación incorrecta.');},1500);}
-                    }else{playSuccessSound();ctx.fillStyle='rgba(0,217,255,.9)';ctx.font='14px Arial';ctx.fillText('✅ '+db.personas[match.label]?.nombre,box.x,box.y-10);setTimeout(()=>{toggleQueryScanner();ejecutarConsultaIdDirecta(match.label);},1500);}
-                    setTimeout(()=>enCooldown=false,4000);
-                }else{ctx.fillStyle='rgba(255,68,68,.8)';ctx.font='16px Arial';ctx.fillText('Rostro no reconocido',box.x,box.y-10);}
-            }
-        }
-        setTimeout(loopConsultaFacial,150);
-    }
-
-    function detenerCamaras(){if(streamActual){streamActual.getTracks().forEach(t=>t.stop());streamActual=null;}if(regStream){regStream.getTracks().forEach(t=>t.stop());regStream=null;}clearTimeout(registroLoopId);}
-
-    // ====
-    // ADMIN — ROSTROS
-    // ====
-    async function abrirRegistroRostro(id,tipo='estudiante'){
-        if(!iaCargada)await inicializarIA();
-        idCapturaActual=id;tipoCapturaActual=tipo;const p=db.personas[id];
-        let etq='Rostro Propio';if(tipo==='padre1')etq='Encargado 1';if(tipo==='padre2')etq='Encargado 2';
-        document.getElementById('modalFaceTitle').innerText='📸 '+etq;
-        document.getElementById('modal-student-name').innerText=p.nombre+' ('+id+')';
-        document.getElementById('face-modal').style.display='flex';
-        document.getElementById('btnCaptureFace').disabled=true;
-        document.getElementById('reg-status').innerText='Buscando rostro...';
-        document.getElementById('reg-status').style.color='var(--accent-warning)';
-        try{streamActual=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});const v=document.getElementById('reg-video');v.srcObject=streamActual;v.addEventListener('play',loopCapturaAdmin);resetIdleTimer();}
-        catch(err){alert('Error con la cámara.');cerrarFaceModal();}
-    }
-    async function loopCapturaAdmin(){
-        const v=document.getElementById('reg-video'),c=document.getElementById('reg-canvas');
-        if(!streamActual||v.paused||v.ended)return;
-        const ds={width:v.clientWidth,height:v.clientHeight};faceapi.matchDimensions(c,ds);
-        const det=await faceapi.detectSingleFace(v).withFaceLandmarks().withFaceDescriptor();
-        const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
-        const btn=document.getElementById('btnCaptureFace'),status=document.getElementById('reg-status');
-        if(det){const r=faceapi.resizeResults(det,ds);faceapi.draw.drawDetections(c,r);faceapi.draw.drawFaceLandmarks(c,r);descriptorDetectado=Array.from(det.descriptor);btn.disabled=false;status.innerText='✅ Rostro detectado. ¡Puede guardar!';status.style.color='var(--accent-success)';}
-        else{descriptorDetectado=null;btn.disabled=true;status.innerText='Mire a la cámara...';status.style.color='var(--accent-warning)';}
-        registroLoopId=setTimeout(loopCapturaAdmin,200);
-    }
-    function capturarYGuardarRostro(){
-        if(!idCapturaActual||!descriptorDetectado)return;
-        if(tipoCapturaActual==='estudiante')db.personas[idCapturaActual].descriptor=descriptorDetectado;
-        else if(tipoCapturaActual==='padre1')db.personas[idCapturaActual].descriptorPadre1=descriptorDetectado;
-        else if(tipoCapturaActual==='padre2')db.personas[idCapturaActual].descriptorPadre2=descriptorDetectado;
-        sincronizarConNube(true);alert('Rostro guardado.');cerrarFaceModal();construirFaceMatcher();
-    }
-    function cerrarFaceModal(){document.getElementById('face-modal').style.display='none';detenerCamaras();idCapturaActual=null;descriptorDetectado=null;resetIdleTimer();}
-
-    // ====
-    // RENDER TABLA MIEMBROS
-    // ====
-    function renderAlumnos(){
-        const t=document.getElementById('tablaAlumnos');t.innerHTML='';
-        const hISO=new Date().toLocaleDateString('sv-SE');
-        const pres=[...new Set(logsGlobal.filter(l=>(l.fechaISO?l.fechaISO===hISO:coincideFecha(l.hora,hISO))&&l.tipo==='ENTRADA').map(l=>l.id))];
-        Object.entries(db.personas).forEach(([id,p])=>{
-            const isP=pres.includes(id),tieneR=p.descriptor&&p.descriptor.length===128;
-            const tel=p.telefono?p.telefono.replace(/\D/g,'').replace(/(\d{4})(\d{4})/,'$1-$2'):'';
-            t.insertAdjacentHTML('beforeend',`
-            <tr>
-            <td><span class="status-badge ${isP?'status-in':'status-none'}">${isP?'✓':'✗'}</span></td>
-            <td><b>${id}</b></td>
-            <td><span class="status-badge" style="background:var(--bg-hover);color:var(--text-primary);border:1px solid var(--border-light);">${p.tipoUsuario||'Estudiante'}</span></td>
-            <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.nombre||''}" onchange="db.personas['${id}'].nombre=this.value"></td>
-            <td><input style="border:none;background:transparent;color:var(--text-secondary);width:100%" value="${p.puesto||''}" onchange="db.personas['${id}'].puesto=this.value"></td>
-            <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${tel}" onchange="db.personas['${id}'].telefono=this.value.replace(/\\D/g,'')" placeholder="8888-8888"></td>
-            <td><button class="btn ${tieneR?'btn-m':'btn-dark'}" style="padding:4px 8px;font-size:.75rem;" onclick="abrirRegistroRostro('${id}','estudiante')">${tieneR?'👤 OK':'📸 Config'}</button></td>
-            <td><div style="display:flex;flex-direction:column;gap:4px;">
-                <button class="btn ${p.descriptorPadre1?'btn-s':'btn-dark'}" style="padding:2px 6px;font-size:.7rem;text-transform:none;" onclick="abrirRegistroRostro('${id}','padre1')">👤 Enc1: ${p.descriptorPadre1?'✓':'✗'}</button>
-                <button class="btn ${p.descriptorPadre2?'btn-s':'btn-dark'}" style="padding:2px 6px;font-size:.7rem;text-transform:none;" onclick="abrirRegistroRostro('${id}','padre2')">👤 Enc2: ${p.descriptorPadre2?'✓':'✗'}</button>
-            </div></td>
-            <td class="no-print"><div style="display:flex;gap:4px;">
-                <button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono||''}')" title="WhatsApp">💬</button>
-                <button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Carnet">📇</button>
-                <button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?'))database.ref('escuelas_data/'+TENANT_ID+'/personas/'+'${id}').remove()" title="Eliminar">🗑️</button>
-            </div></td>
-            </tr>`);
-        });
-    }
-
-    function renderGeolocalizacion(){
-        const tbody=document.getElementById('tablaLogsLejanos');tbody.innerHTML='';
-        if(logsLejanosGlobal.length===0){tbody.innerHTML="<tr><td colspan='5' style='text-align:center;color:var(--text-muted);padding:20px;'>Sin registros lejanos.</td></tr>";return;}
-        logsLejanosGlobal.slice().reverse().forEach(log=>{
-            const prec=log.precision?'±'+log.precision+'m':'—';
-            tbody.insertAdjacentHTML('beforeend',`<tr>
-            <td style="white-space:nowrap;">${log.hora}</td>
-            <td><b>${log.id}</b><br><span style="font-size:.78rem;color:var(--text-muted);">${log.nombre}</span></td>
-            <td style="color:var(--accent-danger);font-weight:700;">${log.distancia} m</td>
-            <td style="font-size:.8rem;color:var(--text-muted);">GPS ${prec}</td>
-            <td class="no-print" style="white-space:nowrap;">
-                <button class="btn btn-i" style="padding:4px 10px;font-size:.75rem;margin-right:4px;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}','_blank')">🗺️</button>
-                <button class="btn btn-d" style="padding:4px 10px;font-size:.75rem;" onclick="if(confirm('¿Eliminar?'))database.ref('escuelas_data/'+TENANT_ID+'/logs_lejanos/'+'${log.key}').remove()">🗑️</button>
-            </td></tr>`);
-        });
-    }
-
-    // ====
-    // UTILIDADES ADMIN
-    // ====
-    function enviarWA(tel){if(!tel){alert('Sin número.');return;}window.open('https://wa.me/506'+tel.replace(/\D/g,''),'_blank');}
-    function editarNumeroJunta(){const n=prompt('Número de contacto:',NUMERO_OFICIAL_JUNTA);if(n){const nl=n.replace(/\D/g,'');if(nl.length===8){database.ref('tenants/'+TENANT_ID+'/config/numeroOficial').set(nl);NUMERO_OFICIAL_JUNTA=nl;alert('Número actualizado.');}else alert('Debe tener 8 dígitos.');}}
-
-    function sincronizarConNube(silencioso=false){
-        database.ref('escuelas_data/'+TENANT_ID+'/personas').set(db.personas)
-            .then(()=>{if(!silencioso)alert('Datos guardados.');})
-            .catch(err=>{if(!silencioso)alert('Error: '+err.message);});
-    }
-
-    // ====
-    // GEOCERCA — GUARDAR
-    // ====
-    async function guardarConfigGeo(){
-        const current = firebase.auth().currentUser || authUser;
-        if (!current) {
-            alert('⚠️ Debe iniciar sesión con una cuenta autorizada antes de guardar la geocerca.');
-            return;
-        }
-
-        const lat = Number.parseFloat(document.getElementById('geoLat').value);
-        const lng = Number.parseFloat(document.getElementById('geoLng').value);
-        const mapsUrl = document.getElementById('geoMapsUrl').value.trim();
-        const radio = 200;
-        const precisionMinima = 35;
-
-        if (!mapsUrl) {
-            alert('⚠️ Pegue una URL de Google Maps y presione 🔍 Extraer primero.');
-            return;
-        }
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-            alert('⚠️ Primero extraiga las coordenadas presionando 🔍 Extraer.');
-            return;
-        }
-
-        const data = {
-            lat: Number(lat.toFixed(6)),
-            lng: Number(lng.toFixed(6)),
-            radio,
-            mapsUrl,
-            precisionMinima
+        // ===========================================================
+        // CONFIGURACIÓN FIREBASE (Con tus credenciales y reglas)
+        // ===========================================================
+        let NUMERO_OFICIAL_JUNTA = "88888888"; 
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-3shuRaHP2LP2R39G9IUu7dBB-Dtan94",
+            authDomain: "tenant-escuela.firebaseapp.com",
+            databaseURL: "https://tenant-escuela-default-rtdb.firebaseio.com",
+            projectId: "tenant-escuela",
+            storageBucket: "tenant-escuela.firebasestorage.app",
+            messagingSenderId: "456023877565",
+            appId: "1:456023877565:web:f29a83b9c6f2ee374bd4d4",
+            measurementId: "G-ZK03Q0855K"
         };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-        geoConfig = data;
-        try {
-            await database.ref('tenants/' + TENANT_ID + '/config/geocerca').set(data);
-            const d = document.getElementById('geoEstadoGuardado');
-            const i = document.getElementById('geoEstadoInfo');
-            if (d) d.style.display = 'flex';
-            if (i) i.textContent = data.lat.toFixed(5) + ', ' + data.lng.toFixed(5) + ' · ' + data.radio + 'm';
-            alert('✅ Geocerca guardada. Radio: ' + data.radio + 'm');
-        } catch (err) {
-            const code = (err && err.code) ? String(err.code) : 'unknown';
-            const msg = code.toLowerCase().includes('permission')
-                ? '❌ Permiso denegado. Verifique que su UID esté en super_admins o coincida con tenants/' + TENANT_ID + '/config/director/uid.'
-                : code.toLowerCase().includes('validation')
-                    ? '❌ Error de validación. Revise que lat/lng sean numéricos, radio sea 200, mapsUrl tenga más de 10 caracteres y precisionMinima sea numérico.'
-                    : '❌ Error: ' + (err && err.message ? err.message : 'No se pudo guardar') + ' Código: ' + code;
-            alert(msg);
+        // -----------------------------------------------------------
+        // 1️⃣ IDENTIFICADOR DEL TENANT (dinámico por URL o subdominio)
+        // -----------------------------------------------------------
+        const urlParams = new URLSearchParams(window.location.search);
+        let paramId = urlParams.get('id') || urlParams.get('tenant');
+        if (paramId) paramId = paramId.replace(/\/$/, ""); // Eliminar slash final si existe
+        const TENANT_ID = paramId || "escuela-la-carpio";
+
+        // -----------------------------------------------------------
+        // 2️⃣  MONITOREO DEL ESTADO GLOBAL ADMIN (status en tenants/)
+        // -----------------------------------------------------------
+        database.ref('tenants/' + TENANT_ID).on('value', (snapshot) => {
+            const tenantData = snapshot.val();
+            if (tenantData) {
+                const estadoSaaS = tenantData.status || tenantData.estado || 'activo';
+                const config = tenantData.config || {};
+                
+                if (estadoSaaS === 'bloqueado' || estadoSaaS === 'suspendido' || estadoSaaS === 'moroso' || config.bloqueado === true) {
+                    const htmlMora = config.htmlMora || `
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
+                            <h1 style="color:#ff4444;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">⚠️ Acceso Suspendido</h1>
+                            <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
+                                El servicio asociado a este entorno (<strong>${TENANT_ID}</strong>) se encuentra temporalmente inactivo.<br><br>
+                                Por favor, contacte a soporte técnico o a la administración de SaaS para restablecer la conexión.
+                            </p>
+                        </div>
+                    `;
+                    document.body.innerHTML = htmlMora;
+                    
+                    try {
+                        if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
+                        if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
+                    } catch(e) {}
+                } else if (estadoSaaS === 'mantenimiento') {
+                    const htmlMantenimiento = config.htmlMantenimiento || `
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
+                            <h1 style="color:#ffb800;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">🔧 Mantenimiento en curso</h1>
+                            <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
+                                El sistema para (<strong>${TENANT_ID}</strong>) está experimentando tareas de mantenimiento programado.<br><br>
+                                Por favor, intente ingresar más tarde.
+                            </p>
+                        </div>
+                    `;
+                    document.body.innerHTML = htmlMantenimiento;
+                    
+                    try {
+                        if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
+                        if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
+                    } catch(e) {}
+                } else if (estadoSaaS === 'activo') {
+                    if (!document.getElementById('main-navbar')) {
+                        window.location.reload();
+                    }
+                }
+            }
+        });
+
+        // -----------------------------------------------------------
+        // 3️⃣  BLOQUEO AUTOMÁTICO (Vía nodo público de seguridad tenantDB/)
+        // -----------------------------------------------------------
+        function monitorBlockFlag() {
+            const overlay = document.getElementById('blockedOverlay');
+            database.ref('tenantDB/' + TENANT_ID)
+                .on('value', snap => {
+                    const data = snap.val();
+                    if (!data) return;
+
+                    const isBlocked = data.bloqueado === true || data.estado === 'bloqueado';
+
+                    if (isBlocked) {
+                        const customHtml = data.htmlMora;
+                        if (customHtml) {
+                            document.body.innerHTML = customHtml;
+                        } else {
+                            if (overlay) overlay.classList.remove('hidden');
+                        }
+
+                        try {
+                            if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
+                            if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
+                        } catch(e) {}
+                    } else if (data.estado === 'mantenimiento') {
+                        const customHtml = data.htmlMantenimiento;
+                        if (customHtml) {
+                            document.body.innerHTML = customHtml;
+                        }
+
+                        try {
+                            if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
+                            if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
+                        } catch(e) {}
+                    } else {
+                        if (overlay) overlay.classList.add('hidden');
+                        if (!document.getElementById('main-navbar') && document.body.innerHTML.includes('suspendido')) {
+                            window.location.reload();
+                        }
+                    }
+                });
         }
-    }
+        monitorBlockFlag();
 
-    function extraerCoordsDesdeURL(){
-        const url=document.getElementById('geoMapsUrl').value.trim();
-        if(!url){alert('Pegue primero una URL de Google Maps.');return;}
-        let lat=null,lng=null;
-        const m1=url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);if(m1){lat=parseFloat(m1[1]);lng=parseFloat(m1[2]);}
-        if(!lat){const m2=url.match(/[?&]q=(-?\d+\.?\d*)[,%2C]+(-?\d+\.?\d*)/);if(m2){lat=parseFloat(m2[1]);lng=parseFloat(m2[2]);}}
-        if(!lat){const m3=url.match(/ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);if(m3){lat=parseFloat(m3[1]);lng=parseFloat(m3[2]);}}
-        if(!lat){const m4=url.match(/place\/[^\/]+\/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);if(m4){lat=parseFloat(m4[1]);lng=parseFloat(m4[2]);}}
-        if(!lat){const m5=url.match(/query=(-?\d+\.?\d*)[,%2C]+(-?\d+\.?\d*)/);if(m5){lat=parseFloat(m5[1]);lng=parseFloat(m5[2]);}}
-        if(!lat||isNaN(lat)||!lng||isNaN(lng)||Math.abs(lat)>90||Math.abs(lng)>180){alert('❌ No se pudieron extraer coordenadas.\n\nUse la URL completa del navegador:\nhttps://www.google.com/maps/@19.4326,-99.1332,17z');return;}
-        document.getElementById('geoLat').value=lat;document.getElementById('geoLng').value=lng;
-        const display=document.getElementById('geoCoordDisplay');if(display)display.textContent=lat.toFixed(6)+', '+lng.toFixed(6);
-        const verLink=document.getElementById('geoVerMapa');if(verLink)verLink.href='https://www.google.com/maps/search/?api=1&query='+lat+','+lng;
-        const coordBox=document.getElementById('geoCoordBox');if(coordBox)coordBox.style.display='block';
-        // Actualizar vista previa del mapa (con null check)
-        const mapPreview=document.getElementById('geoMapPreview');
-        if(mapPreview){
-            mapPreview.style.display='block';
-            mapPreview.innerHTML='<iframe src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d500!2d'+lng+'!3d'+lat+'!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1ses!2s!4v1234567890!5m2!1ses!2s" allowfullscreen loading="lazy"></iframe>';
+        // -----------------------------------------------------------
+        // 4️⃣  Resto de la lógica del cliente (AISLADA AL TENANT)
+        // -----------------------------------------------------------
+        let db = { personas: {} };
+        let logsGlobal = [];
+        let logsLejanosGlobal = [];
+
+        // Parámetros geocerca por defecto
+        let geoConfig = { lat: 9.9388, lng: -84.1200, radio: 150 };
+
+        document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
+        
+        // ===========================================================
+        // 🚀 REEMPLAZO ARQUITECTÓNICO - FLAT DATA STRUCTURE
+        // ===========================================================
+        // const dbTenantRoot = 'escuelas_data/' + TENANT_ID; // REEMPLAZADO POR ARQUITECTURA PLANA
+
+        // Listener Config - Aislado
+        database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', (s) => { if(s.val()) NUMERO_OFICIAL_JUNTA = s.val(); });
+        database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', (s) => { 
+            if(s.val()) { 
+                geoConfig = s.val(); 
+                document.getElementById('geoLat').value = geoConfig.lat;
+                document.getElementById('geoLng').value = geoConfig.lng;
+                document.getElementById('geoRadio').value = geoConfig.radio;
+            } 
+        });
+
+        if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-theme'); }
+        if (localStorage.getItem('CUSTOM_BG')) { document.body.style.backgroundImage = `url(${localStorage.getItem('CUSTOM_BG')})`; }
+        
+        function cargarLogoPersonalizado() {
+            const logoBase64 = localStorage.getItem('CUSTOM_LOGO');
+            const navContainer = document.getElementById('nav-logo-container');
+            if(logoBase64) {
+                navContainer.innerHTML = `<img src="${logoBase64}" alt="Logo Oficial">`;
+            } else {
+                navContainer.innerHTML = `🤖 Asistencia IA`;
+            }
         }
-        alert('✅ Coordenadas extraídas: '+lat.toFixed(5)+', '+lng.toFixed(5));
-    }
+        cargarLogoPersonalizado();
 
-    // ====
-    // SUBIDA FONDO Y LOGO (Firebase Storage aislado)
-    // ====
-    function procesarSubidaFondo(event){
-        const file=event.target.files[0];if(!file)return;
-        const btn=document.querySelector('button[onclick*="bgUploader"]');
-        if(btn)btn.innerText='⏳ 0%';
-        const ref=storage.ref('tenants/'+TENANT_ID+'/branding/fondo');
-        const task=ref.put(file);
-        task.on(firebase.storage.TaskEvent.STATE_CHANGED,
-            snap=>{const pct=Math.round(snap.bytesTransferred/snap.totalBytes*100);if(btn)btn.innerText='⏳ '+pct+'%';},
-            err=>{if(btn)btn.innerText='🖼️ FONDO';alert('❌ Error: '+err.code+' — '+err.message);},
-            ()=>{task.snapshot.ref.getDownloadURL().then(url=>{database.ref('tenants/'+TENANT_ID+'/config/customBg').set(url);document.body.style.backgroundImage='url('+url+')';localStorage.setItem('CUSTOM_BG_'+TENANT_ID,url);if(btn)btn.innerText='🖼️ FONDO';alert('✅ Fondo guardado.');}).catch(err=>{if(btn)btn.innerText='🖼️ FONDO';alert('❌ Error URL: '+err.message);});}
-        );
-    }
-    function procesarSubidaLogo(event){
-        const file=event.target.files[0];if(!file)return;
-        const btn=document.querySelector('button[onclick*="logoUploader"]');
-        if(btn)btn.innerText='⏳ 0%';
-        const ref=storage.ref('tenants/'+TENANT_ID+'/branding/logo');
-        const task=ref.put(file);
-        task.on(firebase.storage.TaskEvent.STATE_CHANGED,
-            snap=>{const pct=Math.round(snap.bytesTransferred/snap.totalBytes*100);if(btn)btn.innerText='⏳ '+pct+'%';},
-            err=>{if(btn)btn.innerText='🎨 LOGO';alert('❌ Error: '+err.code+' — '+err.message);},
-            ()=>{task.snapshot.ref.getDownloadURL().then(url=>{database.ref('tenants/'+TENANT_ID+'/config/customLogo').set(url);localStorage.setItem('CUSTOM_LOGO_'+TENANT_ID,url);cargarLogoPersonalizado();if(btn)btn.innerText='🎨 LOGO';alert('✅ Logo guardado.');}).catch(err=>{if(btn)btn.innerText='🎨 LOGO';alert('❌ Error URL: '+err.message);});}
-        );
-    }
+        // ===========================================================
+        // LÓGICA DE BASE DE DATOS AISLADA (FLAT STRUCTURE)
+        // ===========================================================
 
-    // ====
-    // REPORTES
-    // ====
-    function filtrarRapido(){let f=document.getElementById('busqueda').value.toUpperCase();let rows=document.getElementById('tablaAlumnos').getElementsByTagName('tr');for(let i=0;i<rows.length;i++)rows[i].style.display=rows[i].textContent.toUpperCase().includes(f)?'':'none';}
+        // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
+        database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => { 
+            db.personas = s.val() || {}; 
+            renderAlumnos(); 
+            construirFaceMatcher(); 
+        });
+        
+        // CORREGIDO: Usar la ruta correcta para marcas
+        database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', (s) => { 
+            logsGlobal = []; 
+            s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
+            renderAlumnos(); 
+        });
 
-    function coincideFecha(horaLog,fechaInputISO){if(!horaLog||!fechaInputISO)return false;let[y,m,d]=fechaInputISO.split('-');m=parseInt(m).toString();d=parseInt(d).toString();return horaLog.includes(m+'/'+d+'/'+y)||horaLog.includes(m.padStart(2,'0')+'/'+d+'/'+y)||horaLog.includes(y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0'));}
+        // CORREGIDO: Usar la ruta correcta para logs lejanos
+        database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').on('value', (s) => {
+            logsLejanosGlobal = [];
+            s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
+            renderGeolocalizacion();
+        });
 
-    function filtrarVistaReporte(tipo){
-        const fecha=document.getElementById('reportDate').value;if(!fecha)return alert('Seleccione una fecha');
-        const cuerpo=document.getElementById('cuerpoReporte'),head=document.getElementById('headReporte'),titulo=document.getElementById('tituloReporte');
-        cuerpo.innerHTML='';
-        let del=logsGlobal.filter(l=>l.fechaISO?l.fechaISO===fecha:coincideFecha(l.hora,fecha));
-        if(tipo==='ENTRADA'||tipo==='SALIDA'){
-            titulo.innerText=tipo==='ENTRADA'?'✅ Llegaron':'🚪 Salieron';
-            head.innerHTML='<tr><th>Hora</th><th>ID</th><th>Nombre</th><th>Sección</th><th>Emoción</th><th>Distancia</th></tr>';
-            del.filter(l=>l.tipo===tipo).forEach(l=>{const p=db.personas[l.id]||{};let h=l.hora.includes(',')?l.hora.split(',')[1]:l.hora;let ed=l.lejano?'<span style="color:var(--accent-warning);">⭐ Lejano ('+l.distanciaMetros+'m)</span>':'<span style="color:var(--accent-success);">En Escuela</span>';let em=l.emoticon?'<span style="font-size:1.2rem;">'+l.emoticon+'</span>':'😐';cuerpo.insertAdjacentHTML('beforeend','<tr><td>'+h+'</td><td><b>'+l.id+'</b></td><td>'+l.nombre+'</td><td>'+(p.puesto||'-')+'</td><td>'+em+'</td><td>'+ed+'</td></tr>');});
-        }else if(tipo==='TODOS'){
-            titulo.innerText='📋 Todos los Movimientos';
-            head.innerHTML='<tr><th>Hora</th><th>ID</th><th>Nombre</th><th>Tipo</th><th>Sección</th><th>Emoción</th><th>Distancia</th></tr>';
-            del.filter(l=>l.tipo!=='JUSTIFICADA').forEach(l=>{const p=db.personas[l.id]||{};let h=l.hora.includes(',')?l.hora.split(',')[1]:l.hora;let ed=l.lejano?'<span style="color:var(--accent-warning);">⭐ '+l.distanciaMetros+'m</span>':'<span style="color:var(--accent-success);">✓</span>';let em=l.emoticon?'<span style="font-size:1.2rem;">'+l.emoticon+'</span>':'😐';cuerpo.insertAdjacentHTML('beforeend','<tr><td>'+h+'</td><td><b>'+l.id+'</b></td><td>'+l.nombre+'</td><td><span class="status-badge '+(l.tipo==='ENTRADA'?'status-in':'status-none')+'">'+l.tipo+'</span></td><td>'+(p.puesto||'-')+'</td><td>'+em+'</td><td>'+ed+'</td></tr>');});
-        }else{
-            titulo.innerText='❌ Ausentes / ⭐ Justificados';
-            head.innerHTML='<tr><th>Estado</th><th>ID</th><th>Nombre</th><th>Sección</th><th>WhatsApp</th><th class="no-print">Acción</th></tr>';
-            const pres=[...new Set(del.filter(l=>l.tipo==='ENTRADA').map(l=>l.id))];
-            const just=[...new Set(del.filter(l=>l.tipo==='JUSTIFICADA').map(l=>l.id))];
-            Object.entries(db.personas).forEach(([id,p])=>{
-                if(!pres.includes(id)){const isJ=just.includes(id);const tag=isJ?'<span style="color:var(--accent-warning);font-weight:bold;">⭐ Justificado</span>':'<span style="color:var(--accent-danger);font-weight:bold;">❌ Ausente</span>';cuerpo.insertAdjacentHTML('beforeend','<tr><td>'+tag+'</td><td><b>'+id+'</b></td><td>'+p.nombre+'</td><td>'+(p.puesto||'-')+'</td><td>'+(p.telefono||'Sin tel')+'</td><td class="no-print" style="display:flex;gap:5px;">'+((!isJ)?'<button class="btn btn-m" style="padding:4px 8px;font-size:.75rem;" onclick="justificarAusencia(\''+id+'\',\''+p.nombre+'\')">✅ Justificar</button>':'')+'<button class="btn btn-s" style="padding:4px 8px;font-size:.75rem;" onclick="enviarWA_Ausente(\''+(p.telefono||'')+'\',\''+p.nombre+'\')">💬 Msg</button></td></tr>');}
+
+        // ===========================================================
+        // SISTEMA DE INICIO DE SESIÓN SEGURO
+        // ===========================================================
+        let contextoLogin = '';
+
+        function abrirLogin(tipo) {
+            contextoLogin = tipo;
+            const modal = document.getElementById('login-modal');
+            const emailInput = document.getElementById('loginEmail');
+            const passInput = document.getElementById('loginPass');
+            const title = document.getElementById('login-title');
+
+            passInput.value = '';
+
+            if (tipo === 'admin') {
+                title.innerHTML = "🔓 Panel de Administrador";
+            } else if (tipo === 'escaner') {
+                title.innerHTML = "📷 Escáner de Asistencia";
+            }
+            modal.style.display = 'flex';
+        }
+
+        function cerrarLogin() { document.getElementById('login-modal').style.display = 'none'; }
+
+        function procesarLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value;
+
+            if (!email || !pass) { alert("Por favor, ingrese el correo y la contraseña."); return; }
+
+            firebase.auth().signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    cerrarLogin();
+                    if (contextoLogin === 'admin') {
+                        document.getElementById('master-panel').style.display = 'block';
+                        inicializarIA();
+                        resetIdleTimer();
+                    } else if (contextoLogin === 'escaner') {
+                        mostrarVista('scan-view');
+                    }
+                })
+                .catch((error) => {
+                    alert("Acceso Denegado. Contraseña o correo incorrectos.\n\n" + error.message);
+                });
+        }
+
+        // ===========================================================
+        // SISTEMA DE INACTIVIDAD (IDLE) Y AUDIO
+        // ===========================================================
+        let idleTimeout;
+        const IDLE_TIME = 45000;
+        function resetIdleTimer() {
+            clearTimeout(idleTimeout);
+            if(!scannerActivo && !queryScannerActivo && 
+               document.getElementById('master-panel').style.display !== 'block' && 
+               document.getElementById('face-modal').style.display !== 'flex' &&
+               document.getElementById('login-modal').style.display !== 'flex') {
+                idleTimeout = setTimeout(() => { mostrarVista('home-view'); }, IDLE_TIME);
+            }
+        }
+
+        ['mousemove', 'touchstart', 'click', 'keydown', 'scroll'].forEach(evt => { document.addEventListener(evt, resetIdleTimer); });
+        function updateIdleClock() {
+            const now = new Date(); let h = now.getHours(); let m = now.getMinutes(); const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12; h = h ? h : 12; m = m < 10 ? '0' + m : m;
+            const clockEl = document.getElementById('home-clock-time');
+            if(clockEl) clockEl.innerText = h + ':' + m + ' ' + ampm;
+            setTimeout(updateIdleClock, 5000);
+        }
+        updateIdleClock();
+
+        function playSuccessSound() {
+            try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(0.08, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.12); setTimeout(() => { const osc2 = ctx.createOscillator(); const gain2 = ctx.createGain(); osc2.connect(gain2); gain2.connect(ctx.destination); osc2.type = 'sine'; osc2.frequency.setValueAtTime(1046.50, ctx.currentTime); gain2.gain.setValueAtTime(0.08, ctx.currentTime); osc2.start(); osc2.stop(ctx.currentTime + 0.18); }, 120); } catch(e) {}
+        }
+        function playParentMelody() {
+            try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const notes = [523.25, 659.25, 783.99, 1046.50]; const times = [0, 100, 200, 300]; notes.forEach((freq, idx) => { setTimeout(() => { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, ctx.currentTime); gain.gain.setValueAtTime(0.07, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); osc.start(); osc.stop(ctx.currentTime + 0.35); }, times[idx]); }); } catch(e) {}
+        }
+        function playErrorSound() {
+            try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(180, ctx.currentTime); gain.gain.setValueAtTime(0.12, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4); osc.start(); osc.stop(ctx.currentTime + 0.45); } catch(e) {}
+        }
+
+        // ===========================================================
+        // DISTANCIA E INTELIGENCIA ARTIFICIAL
+        // ===========================================================
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+        }
+
+        let iaCargada = false, faceMatcher = null, scannerActivo = false, queryScannerActivo = false, enCooldown = false, streamActual = null, idCapturaActual = null, tipoCapturaActual = 'estudiante', descriptorDetectado = null, registroLoopId = null;
+
+        async function inicializarIA() {
+            if(iaCargada) return; actualizarEstadoIA("Descargando modelos biométricos y de emociones (10MB)... Espera.");
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+            try {
+                await Promise.all([ faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL), faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL), faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL), faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL) ]);
+                iaCargada = true; actualizarEstadoIA("✅ Inteligencia Artificial (y Emociones) Lista"); construirFaceMatcher();
+            } catch (err) { actualizarEstadoIA("❌ Error cargando IA. Revisa tu conexión."); }
+        }
+
+        function actualizarEstadoIA(msg) {
+            const el1 = document.getElementById('scan-ai-status'), el2 = document.getElementById('query-ai-status'), el3 = document.getElementById('admin-ai-status');
+            if(el1) el1.innerText = msg; if(el2) el2.innerText = msg; if(el3) el3.innerText = msg;
+        }
+
+        function construirFaceMatcher() {
+            if(!iaCargada) return;
+            const labeledDescriptors = [];
+            for (const id in db.personas) {
+                const persona = db.personas[id];
+                if (persona.descriptor && persona.descriptor.length === 128) { labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(id, [new Float32Array(persona.descriptor)])); }
+                if (persona.descriptorPadre1 && persona.descriptorPadre1.length === 128) { labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(id + "_p1", [new Float32Array(persona.descriptorPadre1)])); }
+                if (persona.descriptorPadre2 && persona.descriptorPadre2.length === 128) { labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(id + "_p2", [new Float32Array(persona.descriptorPadre2)])); }
+            }
+            faceMatcher = labeledDescriptors.length > 0 ? new faceapi.FaceMatcher(labeledDescriptors, 0.5) : null;
+        }
+
+        // ===========================================================
+        // REGISTRO DE USUARIOS
+        // ===========================================================
+        let regDescriptors = [], regPhase = 0, regStream = null;
+
+        function toggleStudentField() {
+            const role = document.getElementById('regRole').value; const studentInput = document.getElementById('regStudentId');
+            if(role === 'Padre/Encargado') { studentInput.style.display = 'block'; } else { studentInput.style.display = 'none'; studentInput.value = ''; }
+        }
+
+        async function iniciarCamaraRegistro() {
+            const id = document.getElementById('regId').value.trim(), nombre = document.getElementById('regName').value.trim(), rol = document.getElementById('regRole').value;
+            if(!id || !nombre || !rol) { alert("Por favor, complete Identificación, Nombre y Perfil."); return; }
+            if(!iaCargada) { document.getElementById('reg-instructions').innerText = "Descargando IA..."; await inicializarIA(); }
+            
+            regDescriptors = []; regPhase = 1;
+            const btn = document.getElementById('btnCaptureProfile'), instr = document.getElementById('reg-instructions');
+            btn.innerText = "📸 Capturar Frente (0/4)"; btn.disabled = false;
+            instr.innerText = "Paso 1: Mire fijamente a la cámara y presione Capturar."; instr.style.color = "var(--accent-primary)";
+            
+            try {
+                regStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                const video = document.getElementById('reg-video-pub'); video.srcObject = regStream;
+                document.getElementById('reg-cam-container').classList.add('active', 'scanning');
+                video.addEventListener('play', loopRegPub);
+            } catch (e) { alert("Error al acceder a la cámara."); }
+        }
+
+        async function loopRegPub() {
+            const video = document.getElementById('reg-video-pub'), canvas = document.getElementById('reg-canvas-pub');
+            if(!regStream || video.paused || video.ended) return;
+            const displaySize = { width: video.clientWidth, height: video.clientHeight }; faceapi.matchDimensions(canvas, displaySize);
+            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+            const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if(detection) {
+                const resized = faceapi.resizeResults(detection, displaySize);
+                faceapi.draw.drawDetections(canvas, resized); faceapi.draw.drawFaceLandmarks(canvas, resized);
+                window.currentRegDescriptor = Array.from(detection.descriptor); 
+            } else { window.currentRegDescriptor = null; }
+            setTimeout(loopRegPub, 150);
+        }
+
+        function capturarPerfilRegistro() {
+            if(!window.currentRegDescriptor) { alert("Rostro no detectado con claridad."); playErrorSound(); return; }
+            playSuccessSound(); regDescriptors.push(window.currentRegDescriptor); regPhase++;
+            
+            const btn = document.getElementById('btnCaptureProfile'), instr = document.getElementById('reg-instructions');
+            if(regPhase === 2) { btn.innerText = "📸 Capturar Izquierda (1/4)"; instr.innerText = "Paso 2: Gire su rostro a la IZQUIERDA."; } 
+            else if(regPhase === 3) { btn.innerText = "📸 Capturar Derecha (2/4)"; instr.innerText = "Paso 3: Gire su rostro a la DERECHA."; } 
+            else if(regPhase === 4) { btn.innerText = "📸 Capturar Sonrisa/Arriba (3/4)"; instr.innerText = "Paso 4: Sonría o mire hacia ARRIBA."; } 
+            else if(regPhase === 5) {
+                btn.innerText = "✅ Capturas Completas (4/4)"; btn.disabled = true; btn.classList.replace('btn-m', 'btn-s');
+                instr.innerText = "¡Excelente! Guarde su Registro."; instr.style.color = "var(--accent-success)";
+                document.getElementById('btnSaveRegistry').disabled = false;
+                if (regStream) { regStream.getTracks().forEach(t => t.stop()); regStream = null; }
+                document.getElementById('reg-cam-container').classList.remove('active', 'scanning');
+            }
+        }
+
+        function guardarRegistroCompleto() {
+            const id = document.getElementById('regId').value.trim(), nombre = document.getElementById('regName').value.trim(), rol = document.getElementById('regRole').value;
+            const section = document.getElementById('regSection').value.trim(), phone = document.getElementById('regPhone').value.trim(), studentId = document.getElementById('regStudentId').value.trim();
+            
+            let avgDesc = new Float32Array(128);
+            for(let i=0; i<128; i++) { let sum = 0; for(let j=0; j<4; j++) { sum += regDescriptors[j][i]; } avgDesc[i] = sum / 4; }
+            const finalDescArray = Array.from(avgDesc);
+            
+            const newUser = { nombre, puesto: section, telefono: phone, tipoUsuario: rol, descriptor: finalDescArray };
+            
+            // CORREGIDO: Usar la ruta correcta según las reglas
+            database.ref('escuelas_data/' + TENANT_ID + '/personas/' + id).update(newUser);
+            
+            if (rol === 'Padre/Encargado' && studentId) {
+                if (db.personas[studentId]) {
+                    const stu = db.personas[studentId];
+                    if (!stu.descriptorPadre1) { database.ref('escuelas_data/' + TENANT_ID + '/personas/' + studentId + '/descriptorPadre1').set(finalDescArray); } 
+                    else { database.ref('escuelas_data/' + TENANT_ID + '/personas/' + studentId + '/descriptorPadre2').set(finalDescArray); }
+                    alert(`✅ Registro exitoso.\n\nEnlazado como encargado del estudiante ${studentId}.`);
+                } else { alert("⚠️ Perfil guardado, pero el ID del estudiante no existe."); }
+            } else { alert("✅ Registro almacenado en la partición de su escuela."); }
+            
+            document.getElementById('regId').value = ''; document.getElementById('regName').value = ''; document.getElementById('regRole').value = '';
+            document.getElementById('regSection').value = ''; document.getElementById('regPhone').value = ''; document.getElementById('regStudentId').value = '';
+            document.getElementById('regStudentId').style.display = 'none'; document.getElementById('btnSaveRegistry').disabled = true;
+            document.getElementById('btnCaptureProfile').classList.replace('btn-s', 'btn-m');
+            document.getElementById('reg-instructions').innerText = "Llene sus datos personales y presione \"1️⃣ Iniciar Cámara\".";
+            document.getElementById('reg-instructions').style.color = "var(--accent-warning)";
+            cerrarVistaProtegida('register-view'); construirFaceMatcher();
+        }
+
+        // ===========================================================
+        // REGISTRO DE ASISTENCIA (GEOLOCALIZADA)
+        // ===========================================================
+        function registrarAsistenciaConGPS(id, strEmocion = "Neutral", emoticon = "😐") {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    const latDisp = pos.coords.latitude, lngDisp = pos.coords.longitude;
+                    const dist = calcularDistancia(latDisp, lngDisp, geoConfig.lat, geoConfig.lng);
+                    const hISO = new Date().toLocaleDateString('sv-SE');
+                    const esLejano = dist > geoConfig.radio;
+
+                    if (esLejano) {
+                        // CORREGIDO: Usar la ruta correcta para logs lejanos
+                        database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').push({ id, nombre: db.personas[id]?.nombre || "Desconocido", hora: new Date().toLocaleString(), distancia: Math.round(dist), lat: latDisp, lng: lngDisp });
+                        mostrarMensajeTemp("⚠️ Fuera del rango. Escaneo detectado (" + Math.round(dist) + "m) pero NO registrado.", "var(--accent-danger)");
+                        playErrorSound();
+                        if(scannerActivo) toggleScanner(); return;
+                    }
+                    completarEscaneoBD(id, hISO, esLejano, dist, strEmocion, emoticon);
+                }, (err) => { completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon); }, { enableHighAccuracy: true, timeout: 5000 });
+            } else { completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon); }
+        }
+
+        function completarEscaneoBD(id, hISO, esLejano, dist, strEmocion, emoticon) {
+            const marcas = logsGlobal.filter(l => (l.fechaISO ? l.fechaISO === hISO : coincideFecha(l.hora, hISO)) && l.id === id && l.tipo !== 'JUSTIFICADA');
+            const tieneE = marcas.some(l => l.tipo === 'ENTRADA'), tieneS = marcas.some(l => l.tipo === 'SALIDA');
+            
+            let tipo = "";
+            if (!tieneE) tipo = "ENTRADA"; else if (!tieneS) tipo = "SALIDA"; 
+            else { mostrarMensajeTemp("Ya registró Entrada y Salida hoy.", "var(--accent-warning)"); if(scannerActivo) toggleScanner(); return; }
+            
+            // CORREGIDO: Usar la ruta correcta para marcas
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo, lejano: esLejano, distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon });
+            playSuccessSound();
+
+            const res = document.getElementById('resBox'); res.style.display = 'block'; res.style.background = tipo === "ENTRADA" ? "rgba(0, 255, 136, 0.1)" : "rgba(255, 68, 68, 0.1)";
+            document.getElementById('resNombre').innerHTML = "✅ " + db.personas[id].nombre; 
+            document.getElementById('resMov').innerHTML = (tipo === "ENTRADA" ? "Entrada" : "Salida") + ` Registrada <span style="font-size:1.5rem;" title="${strEmocion}">${emoticon}</span>`;
+            
+            if(scannerActivo) toggleScanner(); setTimeout(() => { res.style.display = 'none'; }, 5000);
+        }
+
+        function mostrarMensajeTemp(msg, color) {
+            const status = document.getElementById('scan-ai-status');
+            if(status) { const old = status.innerText; status.innerText = msg; status.style.color = color; setTimeout(() => { status.innerText = old; status.style.color = "var(--accent-warning)"; }, 4500); }
+        }
+
+        // Funciones de escaneo facial
+        async function toggleScanner() {
+            const container = document.getElementById('scan-video-container'), btn = document.getElementById('btnCamaraMain');
+            if (!scannerActivo) {
+                if(!iaCargada) { btn.innerText = "⏳ Cargando IA..."; await inicializarIA(); }
+                if(!faceMatcher) { alert("No hay rostros registrados aún."); return; }
+                try {
+                    streamActual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                    const video = document.getElementById('scan-video'); video.srcObject = streamActual;
+                    container.classList.add('active', 'scanning'); btn.innerText = "🛑 Detener Escáner"; btn.classList.replace('btn-i', 'btn-d');
+                    scannerActivo = true; video.addEventListener('play', loopReconocimiento);
+                    actualizarEstadoIA("👁️ Escáner Activo. Alumno/Personal mire a la cámara."); resetIdleTimer();
+                } catch (err) { alert("Error al acceder a la cámara."); }
+            } else { detenerCamaras(); container.classList.remove('active', 'scanning'); btn.innerText = "🟢 Iniciar Escáner"; btn.classList.replace('btn-d', 'btn-i'); scannerActivo = false; actualizarEstadoIA("IA en espera."); resetIdleTimer(); }
+        }
+
+        async function loopReconocimiento() {
+            if(!scannerActivo) return;
+            const video = document.getElementById('scan-video'), canvas = document.getElementById('scan-canvas');
+            if(video.paused || video.ended) return setTimeout(loopReconocimiento, 100);
+
+            const displaySize = { width: video.clientWidth, height: video.clientHeight }; faceapi.matchDimensions(canvas, displaySize);
+            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceExpressions().withFaceDescriptor();
+            const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if(detection) {
+                const resized = faceapi.resizeResults(detection, displaySize); const box = resized.detection.box;
+                ctx.strokeStyle = "rgba(0, 217, 255, 0.7)"; ctx.lineWidth = 2; ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+                if(faceMatcher && !enCooldown) {
+                    const match = faceMatcher.findBestMatch(detection.descriptor);
+                    if(match.label !== 'unknown' && !match.label.includes('_p')) {
+                        let emotionStr = "Neutral", emoticon = "😐";
+                        if(detection.expressions) {
+                            const exp = detection.expressions; const maxE = Object.keys(exp).reduce((a, b) => exp[a] > exp[b] ? a : b);
+                            if(maxE === 'happy') { emoticon = "😄"; emotionStr = "Feliz"; } else if(maxE === 'sad') { emoticon = "😢"; emotionStr = "Triste"; }
+                            else if(maxE === 'angry') { emoticon = "😡"; emotionStr = "Enojado"; } else if(maxE === 'surprised') { emoticon = "😲"; emotionStr = "Sorprendido"; } else if(maxE === 'fearful') { emoticon = "😨"; emotionStr = "Asustado"; }
+                        }
+                        ctx.fillStyle = "rgba(0, 255, 136, 0.8)"; ctx.font = "16px Arial"; ctx.fillText(`${emoticon} ${db.personas[match.label]?.nombre || match.label}`, box.x, box.y - 10);
+                        enCooldown = true; registrarAsistenciaConGPS(match.label, emotionStr, emoticon); setTimeout(() => { enCooldown = false; }, 4000); 
+                    } else if(match.label !== 'unknown' && match.label.includes('_p')) {
+                        ctx.fillStyle = "rgba(255, 184, 0, 0.8)"; ctx.font = "14px Arial"; ctx.fillText("Rostro de encargado (No registra asistencia aquí)", box.x, box.y - 10);
+                    } else { ctx.fillStyle = "rgba(255, 68, 68, 0.8)"; ctx.font = "16px Arial"; ctx.fillText("Desconocido", box.x, box.y - 10); }
+                }
+            }
+            setTimeout(loopReconocimiento, 150);
+        }
+
+        async function toggleQueryScanner() {
+            const container = document.getElementById('query-video-container'), btn = document.getElementById('btnCamaraQuery');
+            if (!queryScannerActivo) {
+                if(!iaCargada) { btn.innerText = "⏳ Cargando IA..."; await inicializarIA(); }
+                if(!faceMatcher) { alert("No hay rostros registrados para consultar."); return; }
+                try {
+                    streamActual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                    const video = document.getElementById('query-video'); video.srcObject = streamActual;
+                    container.classList.add('active', 'scanning'); btn.innerText = "🛑 Detener Consulta Facial"; btn.classList.replace('btn-m', 'btn-d');
+                    queryScannerActivo = true; video.addEventListener('play', loopConsultaFacial);
+                    actualizarEstadoIA("👁️ Analizando rostro..."); resetIdleTimer();
+                } catch (err) { alert("Error al acceder a la cámara."); }
+            } else { detenerCamaras(); container.classList.remove('active', 'scanning'); btn.innerText = "📷 Iniciar Consulta Facial"; btn.classList.replace('btn-d', 'btn-m'); queryScannerActivo = false; resetIdleTimer(); }
+        }
+
+        async function loopConsultaFacial() {
+            if(!queryScannerActivo) return;
+            const video = document.getElementById('query-video'), canvas = document.getElementById('query-canvas');
+            if(video.paused || video.ended) return setTimeout(loopConsultaFacial, 100);
+
+            const displaySize = { width: video.clientWidth, height: video.clientHeight }; faceapi.matchDimensions(canvas, displaySize);
+            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+            const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if(detection) {
+                const resized = faceapi.resizeResults(detection, displaySize); const box = resized.detection.box;
+                ctx.strokeStyle = "rgba(0, 217, 255, 0.7)"; ctx.lineWidth = 2; ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+                if(faceMatcher && !enCooldown) {
+                    const match = faceMatcher.findBestMatch(detection.descriptor); const distance = match.distance; 
+
+                    if(match.label !== 'unknown') {
+                        enCooldown = true; const exactitudSuficiente = distance < 0.35;
+
+                        if (match.label.includes('_p1') || match.label.includes('_p2')) {
+                            const idEstudiante = match.label.split('_')[0]; const nombreEstudiante = db.personas[idEstudiante]?.nombre || "";
+                            playParentMelody();
+
+                            if (exactitudSuficiente) {
+                                ctx.fillStyle = "rgba(0, 255, 136, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`✅ Encargado Autorizado (>95%)`, box.x, box.y - 25); ctx.fillText(`Ingresando a: ${nombreEstudiante}`, box.x, box.y - 10);
+                                setTimeout(() => { toggleQueryScanner(); ejecutarConsultaIdDirecta(idEstudiante); }, 1500);
+                            } else {
+                                ctx.fillStyle = "rgba(255, 184, 0, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`⚠️ Encargado Identificado`, box.x, box.y - 25); ctx.fillText(`Digite la cédula del alumno por seguridad`, box.x, box.y - 10);
+                                setTimeout(() => { toggleQueryScanner(); let idPrompt = prompt("Rostro de encargado reconocido. Por seguridad, digite la cédula del estudiante:"); if(idPrompt && idPrompt.trim() === idEstudiante) { ejecutarConsultaIdDirecta(idEstudiante); } else { alert("Validación incorrecta."); } }, 1500);
+                            }
+                        } else {
+                            playSuccessSound(); ctx.fillStyle = "rgba(0, 217, 255, 0.9)"; ctx.font = "14px Arial"; ctx.fillText(`✅ Perfil: ${db.personas[match.label]?.nombre}`, box.x, box.y - 10);
+                            setTimeout(() => { toggleQueryScanner(); ejecutarConsultaIdDirecta(match.label); }, 1500);
+                        }
+                        setTimeout(() => { enCooldown = false; }, 4000);
+                    } else { ctx.fillStyle = "rgba(255, 68, 68, 0.8)"; ctx.font = "16px Arial"; ctx.fillText("Rostro no reconocido", box.x, box.y - 10); }
+                }
+            }
+            setTimeout(loopConsultaFacial, 150);
+        }
+
+        function detenerCamaras() {
+            if (streamActual) { streamActual.getTracks().forEach(track => track.stop()); streamActual = null; }
+            if (regStream) { regStream.getTracks().forEach(track => track.stop()); regStream = null; }
+            clearTimeout(registroLoopId);
+        }
+
+        // ===========================================================
+        // CAPTURA ADMIN Y GESTIÓN
+        // ===========================================================
+        async function abrirRegistroRostro(id, tipo = 'estudiante') {
+            if(!iaCargada) await inicializarIA();
+            idCapturaActual = id; tipoCapturaActual = tipo; const persona = db.personas[id];
+            
+            let etiquetaRostro = "Rostro Propio del Usuario";
+            if(tipo === 'padre1') etiquetaRostro = "Rostro de Encargado Autorizado 1";
+            if(tipo === 'padre2') etiquetaRostro = "Rostro de Encargado Autorizado 2";
+
+            document.getElementById('modalFaceTitle').innerText = `📸 ${etiquetaRostro}`;
+            document.getElementById('modal-student-name').innerText = `${persona.nombre} (${id})`;
+            document.getElementById('face-modal').style.display = 'flex'; document.getElementById('btnCaptureFace').disabled = true;
+            document.getElementById('reg-status').innerText = "Buscando rostro..."; document.getElementById('reg-status').style.color = "var(--accent-warning)";
+            try {
+                streamActual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                const video = document.getElementById('reg-video'); video.srcObject = streamActual;
+                video.addEventListener('play', loopCapturaAdmin); resetIdleTimer();
+            } catch (err) { alert("Error con la cámara."); cerrarFaceModal(); }
+        }
+
+        async function loopCapturaAdmin() {
+            const video = document.getElementById('reg-video'), canvas = document.getElementById('reg-canvas');
+            if(!streamActual || video.paused || video.ended) return;
+            const displaySize = { width: video.clientWidth, height: video.clientHeight }; faceapi.matchDimensions(canvas, displaySize);
+            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+            const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const btn = document.getElementById('btnCaptureFace'), status = document.getElementById('reg-status');
+
+            if(detection) {
+                const resized = faceapi.resizeResults(detection, displaySize); faceapi.draw.drawDetections(canvas, resized); faceapi.draw.drawFaceLandmarks(canvas, resized);
+                descriptorDetectado = Array.from(detection.descriptor); btn.disabled = false; 
+                status.innerText = "✅ Rostro detectado. ¡Puede guardar!"; status.style.color = "var(--accent-success)";
+            } else { descriptorDetectado = null; btn.disabled = true; status.innerText = "Mire a la cámara..."; status.style.color = "var(--accent-warning)"; }
+            registroLoopId = setTimeout(loopCapturaAdmin, 200);
+        }
+
+        function capturarYGuardarRostro() {
+            if(idCapturaActual && descriptorDetectado) {
+                if (tipoCapturaActual === 'estudiante') { db.personas[idCapturaActual].descriptor = descriptorDetectado; } 
+                else if (tipoCapturaActual === 'padre1') { db.personas[idCapturaActual].descriptorPadre1 = descriptorDetectado; } 
+                else if (tipoCapturaActual === 'padre2') { db.personas[idCapturaActual].descriptorPadre2 = descriptorDetectado; }
+                sincronizarConNube(); alert("Rostro facial guardado exitosamente en su partición.");
+                cerrarFaceModal(); construirFaceMatcher();
+            }
+        }
+        function cerrarFaceModal() { document.getElementById('face-modal').style.display = 'none'; detenerCamaras(); idCapturaActual = null; descriptorDetectado = null; resetIdleTimer(); }
+
+        // --- Funciones del Admin Panel ---
+        function renderAlumnos() {
+            const t = document.getElementById('tablaAlumnos'); t.innerHTML = "";
+            const hISO = new Date().toLocaleDateString('sv-SE');
+            const pres = [...new Set(logsGlobal.filter(l => (l.fechaISO ? l.fechaISO === hISO : coincideFecha(l.hora, hISO)) && l.tipo === 'ENTRADA').map(l => l.id))];
+            
+            Object.entries(db.personas).forEach(([id, p]) => {
+                const isP = pres.includes(id); const tieneRostroEst = p.descriptor && p.descriptor.length === 128;
+                let tipoUserHtml = `<span class="status-badge" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border-light);">${p.tipoUsuario || 'Estudiante'}</span>`;
+
+                t.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td><span class="status-badge ${isP ? 'status-in' : 'status-none'}">${isP ? '✓' : '✗'}</span></td>
+                        <td><b>${id}</b></td>
+                        <td>${tipoUserHtml}</td>
+                        <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.nombre || ''}" onchange="db.personas['${id}'].nombre=this.value"></td>
+                        <td><input style="border:none;background:transparent;color:var(--text-secondary);font-weight:bold;width:100%" value="${p.puesto || ''}" onchange="db.personas['${id}'].puesto=this.value"></td>
+                        <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.telefono || ''}" onchange="db.personas['${id}'].telefono=this.value"></td>
+                        <td><button class="btn ${tieneRostroEst ? 'btn-m' : 'btn-dark'}" style="padding:4px 8px; font-size:0.75rem;" onclick="abrirRegistroRostro('${id}', 'estudiante')">${tieneRostroEst ? '👤 Configurado' : '📸 Configurar'}</button></td>
+                        <td><div style="display:flex; flex-direction:column; gap:4px;"><button class="btn ${p.descriptorPadre1 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre1')">👨‍👦 Encargado 1: ${p.descriptorPadre1 ? '✓' : '✗'}</button><button class="btn ${p.descriptorPadre2 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre2')">👨‍👦 Encargado 2: ${p.descriptorPadre2 ? '✓' : '✗'}</button></div></td>
+                        <td class="no-print"><div style="display:flex; gap: 4px;"><button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono || ''}')" title="WhatsApp">💬</button><button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Ver Carnet">📇</button><button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { database.ref('escuelas_data/' + TENANT_ID + '/personas/' + '${id}').remove(); }" title="Eliminar">🗑️</button></div></td>
+                    </tr>
+                `);
             });
         }
-    }
 
-    function justificarAusencia(id,nombre){const hISO=document.getElementById('reportDate').value;if(confirm('¿Justificar ausencia de '+nombre+'?'))database.ref('escuelas_data/'+TENANT_ID+'/marcas').push({id,nombre,hora:new Date().toLocaleString(),fechaISO:hISO,tipo:'JUSTIFICADA',lejano:false,distanciaMetros:0});alert('Ausencia justificada.');}
-
-    function confirmarBorrarDia(){if(confirm('¿Borrar historial del día seleccionado?'))borrarHistorialDia();}
-    function borrarHistorialDia(){
-        const hISO=document.getElementById('reportDate').value;
-        if(!hISO){alert('Seleccione una fecha.');return;}
-        database.ref('escuelas_data/'+TENANT_ID+'/marcas').once('value',snapshot=>{
-            const updates={};
-            snapshot.forEach(child=>{
-                const v=child.val();
-                if(v.fechaISO===hISO||coincideFecha(v.hora,hISO))updates['escuelas_data/'+TENANT_ID+'/marcas/'+child.key]=null;
+        function renderGeolocalizacion() {
+            const tbody = document.getElementById('tablaLogsLejanos'); tbody.innerHTML = "";
+            if (logsLejanosGlobal.length === 0) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color: var(--text-muted);'>No hay reportes de escaneos lejanos.</td></tr>"; return; }
+            logsLejanosGlobal.slice().reverse().forEach(log => {
+                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
             });
-            const total=Object.keys(updates).length;
-            if(total===0){alert('No hay registros para esa fecha.');return;}
-            database.ref().update(updates).then(()=>alert('✅ '+total+' registros eliminados.')).catch(err=>alert('❌ Error: '+err.message));
-        });
-    }
+        }
 
-    function ejecutarConsultaIdDirecta(id){
-        if(!db.personas[id])return alert('Usuario no encontrado.');
-        const p=db.personas[id];
-        document.getElementById('parentStudentName').innerText=p.nombre;
-        document.getElementById('parentStudentPuesto').innerText=(p.tipoUsuario||'Perfil')+' / '+(p.puesto||'N/A');
-        document.getElementById('btnConsultaWA').onclick=()=>{const msg=encodeURIComponent('Hola, consulta sobre: '+p.nombre);window.open('https://wa.me/506'+NUMERO_OFICIAL_JUNTA+'?text='+msg,'_blank');};
-        database.ref('escuelas_data/'+TENANT_ID+'/marcas').orderByChild('id').equalTo(id).once('value',s=>{
-            const list=document.getElementById('parentLogList');list.innerHTML='';
-            if(s.exists()){s.forEach(c=>{const l=c.val();const sc=l.tipo==='ENTRADA'?'#00ff88':(l.tipo==='SALIDA'?'#ff4444':'#ffb800');const al=l.lejano?' <span style="color:var(--accent-danger);font-size:.75rem;">('+l.distanciaMetros+'m)</span>':'';list.innerHTML='<div style="padding:10px;border-bottom:1px solid #3a4560;">'+l.hora+' - <b style="color:'+sc+'">'+l.tipo+'</b>'+al+'</div>'+list.innerHTML;});}
-            else{list.innerHTML='<p style="color:var(--text-muted);text-align:center;">Sin registros hoy.</p>';}
-            document.getElementById('parentResult').style.display='block';
-        });
-    }
-    function consultarPadre(){ejecutarConsultaIdDirecta(document.getElementById('parentInput').value.trim());}
-    function limpiarConsultaPadres(){document.getElementById('parentResult').style.display='none';document.getElementById('parentInput').value='';if(queryScannerActivo)toggleQueryScanner();}
+        function editarNumeroJunta() { let n = prompt("Número de contacto general:", NUMERO_OFICIAL_JUNTA); if(n) { database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').set(n); alert("Actualizado en su partición."); } }
+        
+        // CORREGIDO: Usar la ruta correcta según las reglas
+        function sincronizarConNube() { 
+            database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas); 
+            alert("Datos guardados en la partición de la escuela."); 
+        }
+        
+        function guardarConfigGeo() {
+            const lat = parseFloat(document.getElementById('geoLat').value), lng = parseFloat(document.getElementById('geoLng').value), radio = parseInt(document.getElementById('geoRadio').value);
+            if (isNaN(lat) || isNaN(lng) || isNaN(radio)) { alert("Valores inválidos."); return; }
+            geoConfig = { lat, lng, radio };
+            database.ref('tenants/' + TENANT_ID + '/config/geocerca').set(geoConfig);
+            alert("Ubicación configurada en la partición de la escuela.");
+        }
 
-    // ====
-    // EXPORTAR / IMPORTAR
-    // ====
-    function exportarCSV(){let csv='Código,Nombre,Sección,WhatsApp,Rol\n';Object.entries(db.personas).forEach(([id,p])=>{csv+=id+','+p.nombre+','+(p.puesto||'')+','+(p.telefono||'')+','+(p.tipoUsuario||'Estudiante')+'\n';});const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='Usuarios.csv';a.click();}
-    function exportarPDFMiembros(){const{jsPDF}=window.jspdf;const doc=new jsPDF();doc.text('Lista de Usuarios',14,20);const bd=[];Object.entries(db.personas).forEach(([id,p])=>{bd.push([id,p.tipoUsuario,p.nombre,p.puesto,p.telefono,p.descriptor?'Sí':'No']);});doc.autoTable({head:[['Código','Rol','Nombre','Sección','WhatsApp','IA']],body:bd,startY:30,theme:'grid'});doc.save('Usuarios.pdf');}
-    function exportarPDFReporte(){const{jsPDF}=window.jspdf;const doc=new jsPDF();doc.text(document.getElementById('tituloReporte').innerText,14,20);doc.autoTable({html:'#tabla-logs-final',startY:30,theme:'grid'});doc.save('Reporte.pdf');}
-    function importarCSV(){const f=document.getElementById('csvFile').files[0];if(!f)return;const r=new FileReader();r.onload=e=>{let imp=0;e.target.result.split('\n').forEach((l,i)=>{if(i>0&&l.trim()){let c=l.split(',');if(c[0]){db.personas[c[0].trim()]={nombre:c[1]?.trim()||'',puesto:c[2]?.trim()||'',telefono:c[3]?.trim()||'',tipoUsuario:c[4]?.trim()||'Estudiante'};imp++;}}});database.ref('escuelas_data/'+TENANT_ID+'/personas').set(db.personas).then(()=>{renderAlumnos();alert('Importados '+imp+' registros.');}).catch(err=>alert('Error: '+err.message));};r.readAsText(f);}
-    function agregarMiembroManual(){const id=prompt('Cédula/Código:');if(id){db.personas[id]={nombre:prompt('Nombre:'),puesto:prompt('Sección:'),telefono:prompt('WhatsApp:'),tipoUsuario:'Estudiante'};renderAlumnos();}}
-    function duplicarMiembro(){const id=prompt('Código a duplicar:');if(id&&db.personas[id]){const nid=prompt('Nuevo código:');if(nid){db.personas[nid]={...db.personas[id]};renderAlumnos();alert('Duplicado.');}}}
-    function mostrarConfirmacionBorrar(){if(confirm('⚠️ ¿Borrar TODA la base de datos de esta escuela?')){database.ref('escuelas_data/'+TENANT_ID+'/personas').remove();database.ref('escuelas_data/'+TENANT_ID+'/marcas').remove();database.ref('escuelas_data/'+TENANT_ID+'/logs_lejanos').remove();location.reload();}}
-    function mostrarEstadisticas(){const t=Object.keys(db.personas).length,p=logsGlobal.filter(l=>l.tipo==='ENTRADA'&&(l.fechaISO===new Date().toLocaleDateString('sv-SE')||coincideFecha(l.hora,new Date().toLocaleDateString('sv-SE')))).length;alert('ESTADÍSTICAS DEL DÍA:\nTotal: '+t+'\nPresentes: '+p+'\nAusentes: '+(t-p)+'\nAsistencia: '+(t>0?((p/t)*100).toFixed(1):0)+'%');}
-    function mostrarConfiguracion(){const w=window.open('','Configuración','width=400,height=200');w.document.write('<html><head><title>Configuración</title><style>body{padding:20px;font-family:sans-serif}.btn{padding:8px 12px;cursor:pointer;margin:5px;border-radius:6px;border:none;font-weight:bold;}</style></head><body><h3>Tema de la interfaz</h3><button class="btn" style="background:#0a0e27;color:#fff" onclick="window.opener.setSystemTheme(\'dark\');window.close()">🌙 Modo Oscuro</button><button class="btn" style="background:#f0f4f8;color:#1e293b;" onclick="window.opener.setSystemTheme(\'light\');window.close()">☀️ Modo Claro</button></body></html>');w.document.close();}
-    function setSystemTheme(t){if(t==='light'){document.body.classList.add('light-theme');localStorage.setItem('theme','light');}else{document.body.classList.remove('light-theme');localStorage.setItem('theme','dark');}}
-    function enviarWA_Ausente(tel,nombre){if(!tel){alert('Sin número.');return;}const msg=encodeURIComponent('Hola, le informamos que '+nombre+' está ausente hoy.');window.open('https://wa.me/506'+tel.replace(/\D/g,'')+'?text='+msg,'_blank');}
-    function descargarCarnet(id){const p=db.personas[id];const w=window.open('','','width=350,height=500');w.document.write('<html><head><style>body{font-family:sans-serif;background:#0a0e27;color:#e8eef5;margin:0;padding:0;display:flex;align-items:center;justify-content:center;height:100vh;}.card{width:280px;height:420px;background:#1a1f3a;border-radius:12px;padding:20px;text-align:center}</style></head><body><div class="card"><h3>'+p.nombre+'</h3><div id="q"></div></div><script>new QRCode(document.getElementById("q"),{text:"'+id+'",width:130,height:130});setTimeout(()=>window.print(),800);<\/script></body></html>');w.document.close();}
-    function imprimirTodosLosCarnets(){const w=window.open('','');w.document.write('<html><body>');Object.entries(db.personas).forEach(([id,p])=>{w.document.write('<div style="display:inline-block;border:1px solid #000;margin:10px;padding:10px;"><div id="qr-'+id+'"></div><br>'+p.nombre+'</div>');});w.document.write('<script>'+Object.keys(db.personas).map(id=>'new QRCode(document.getElementById("qr-'+id+'"),{text:"'+id+'",width:100,height:100});').join('\n')+' setTimeout(()=>window.print(),1500);<\/script></body></html>');w.document.close();}
-    function mostrarAyuda(){alert('SISTEMA DE ASISTENCIA\n\n1. Asegúrate de estar dentro del rango de la escuela.\n2. Presiona Iniciar Escáner.\n3. Mire a la cámara y espere el reconocimiento.');}
+        // CORREGIDO: Usar la ruta correcta para borrar todos los datos
+        function mostrarConfirmacionBorrar() { 
+            if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos DE ESTA ESCUELA?\n\nPresione OK para confirmar.')) { 
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').remove(); 
+                database.ref('escuelas_data/' + TENANT_ID + '/marcas').remove(); 
+                database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').remove(); 
+                location.reload(); 
+            } 
+        }
+        
+        function justificarAusencia(id, nombre) {
+            const hISO = document.getElementById('reportDate').value;
+            if(confirm(`¿Desea justificar la ausencia de ${nombre}?`)) {
+                // CORREGIDO: Usar la ruta correcta para marcas
+                database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
+                alert('Ausencia justificada.');
+            }
+        }
+        
+        function borrarHistorialDia() { 
+            const hISO = document.getElementById('reportDate').value; 
+            logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => 
+                // CORREGIDO: Usar la ruta correcta para borrar marcas
+                database.ref('escuelas_data/' + TENANT_ID + '/marcas/' + l.key).remove()
+            ); 
+            alert('Registros del día eliminados.'); 
+        }
+        
+        function ejecutarConsultaIdDirecta(id) {
+            if(!db.personas[id]) return alert("Usuario no encontrado.");
+            const p = db.personas[id];
+            document.getElementById('parentStudentName').innerText = p.nombre;
+            document.getElementById('parentStudentPuesto').innerText = (p.tipoUsuario || "Perfil") + " / " + (p.puesto || "N/A");
+            document.getElementById('btnConsultaWA').onclick = () => { const mensaje = encodeURIComponent(`Hola, quisiera realizar una consulta sobre el usuario: ${p.nombre}`); window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${mensaje}`, '_blank'); };
+            
+            // CORREGIDO: Usar la ruta correcta para consultar marcas
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').orderByChild('id').equalTo(id).once('value', (s) => {
+                const list = document.getElementById('parentLogList'); list.innerHTML = "";
+                if(s.exists()){ s.forEach(c => { let l=c.val(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(${l.distanciaMetros}m)</span>` : ""; let statusColor = l.tipo === 'ENTRADA' ? '#00ff88' : (l.tipo === 'SALIDA' ? '#ff4444' : '#ffb800'); list.innerHTML = `<div style="padding:10px; border-bottom:1px solid #3a4560;"><span>${l.hora}</span> - <b style="color:${statusColor}">${l.tipo}</b>${alertTag}</div>` + list.innerHTML; }); }
+                else { list.innerHTML = "<p style='color: var(--text-muted); text-align:center;'>Sin registros el día de hoy.</p>"; }
+                document.getElementById('parentResult').style.display = 'block';
+            });
+        }
 
-    // Auto-sync periódico
-    setInterval(()=>{if(connectionStatus&&document.getElementById('master-panel').style.display==='block')sincronizarConNube(true);},30000);
+        // Resto de utilidades de UI intactas...
+        function procesarSubidaFondo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxW = 1920; if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/jpeg', 0.6); try { localStorage.setItem('CUSTOM_BG', dataUrl); document.body.style.backgroundImage = `url(${dataUrl})`; alert('Fondo actualizado localmente.'); } catch(err) { alert('Imagen muy pesada.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
+        function procesarSubidaLogo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxH = 200; if(h > maxH) { w = Math.round(w * maxH / h); h = maxH; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/png', 0.8); try { localStorage.setItem('CUSTOM_LOGO', dataUrl); cargarLogoPersonalizado(); alert('Logo actualizado.'); } catch(err) { alert('Imagen excede límite.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
+        function mostrarEstadisticas() { const total = Object.keys(db.personas).length; const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE') || coincideFecha(l.hora, new Date().toLocaleDateString('sv-SE')))).length; alert(`ESTADÍSTICAS DEL DÍA:\nTotal Registrados: ${total}\nPresentes (Entradas): ${presentes}\nAusentes: ${total - presentes}\nAsistencia: ${total>0?((presentes/total)*100).toFixed(1):0}%`); }
+        function mostrarConfiguracion() { let configDiv = document.createElement('div'); configDiv.innerHTML = `<div><button class="btn btn-m" onclick="setTheme('dark')">Modo Oscuro</button> <button class="btn btn-s" onclick="setTheme('light')">Modo Claro</button></div>`; let win = window.open('', 'Configuración', 'width=400,height=300'); win.document.write(`<html><head><title>Configuración</title><style>body{padding:20px}.btn{padding:8px 12px;cursor:pointer}</style></head><body>${configDiv.innerHTML}<script>function setTheme(theme) { window.opener.setSystemTheme(theme); window.close(); }<\/script></body></html>`); win.document.close(); }
+        function setSystemTheme(theme) { if (theme === 'light') { document.body.classList.add('light-theme'); localStorage.setItem('theme', 'light'); } else { document.body.classList.remove('light-theme'); localStorage.setItem('theme', 'dark'); } }
+        function agregarMiembroManual() { const id = prompt("Cédula/Código nuevo:"); if(id) { db.personas[id] = { nombre: prompt("Nombre Completo:"), puesto: prompt("Sección:"), telefono: prompt("WhatsApp:"), tipoUsuario: 'Estudiante' }; renderAlumnos(); } }
+        
+        // FUNCIÓN ACTUALIZADA PARA IMPORTAR CSV Y GUARDAR AUTOMÁTICAMENTE EN FIREBASE
+        function importarCSV() { 
+            const f = document.getElementById('csvFile').files[0]; 
+            if (!f) {
+                alert("Por favor, seleccione un archivo CSV.");
+                return;
+            }
+            
+            const r = new FileReader(); 
+            r.onload = (e) => { 
+                let importados = 0;
+                e.target.result.split('\n').forEach((l, i) => { 
+                    if(i>0 && l.trim()){ 
+                        let c=l.split(','); 
+                        if(c[0]) { 
+                            db.personas[c[0].trim()] = { 
+                                nombre: c[1]?.trim() || '', 
+                                puesto: c[2]?.trim() || '', 
+                                telefono: c[3]?.trim() || '', 
+                                tipoUsuario: c[4]?.trim() || 'Estudiante' 
+                            }; 
+                            importados++;
+                        } 
+                    } 
+                }); 
+                
+                // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas)
+                    .then(() => {
+                        renderAlumnos(); 
+                        alert(`Importados ${importados} registros y guardados en Firebase.`); 
+                    })
+                    .catch((error) => {
+                        alert("Error al guardar en Firebase: " + error.message);
+                    });
+            }; 
+            r.readAsText(f); 
+        }
+        
+        function exportarCSV() { let csv = 'Código,Nombre,Sección,WhatsApp,Rol\n'; Object.entries(db.personas).forEach(([id, p]) => { csv += `${id},${p.nombre},${p.puesto || ''},${p.telefono || ''},${p.tipoUsuario || 'Estudiante'}\n`; }); const link = document.createElement('a'); link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); link.download = `Usuarios.csv`; link.click(); }
+        function exportarPDFMiembros() { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text("Lista de Usuarios", 14, 20); const bodyData = []; Object.entries(db.personas).forEach(([id, p]) => { let rostrosStatus = p.descriptor ? 'Sí' : 'No'; bodyData.push([id, p.tipoUsuario, p.nombre, p.puesto, p.telefono, rostrosStatus]); }); doc.autoTable({ head: [['Código', 'Rol', 'Nombre', 'Sección', 'WhatsApp', 'IA']], body: bodyData, startY: 30, theme: 'grid' }); doc.save(`Usuarios.pdf`); }
+        function duplicarMiembro() { const id = prompt('Código a duplicar:'); if(id && db.personas[id]) { const newId = prompt('Nuevo código:'); if(newId) { db.personas[newId] = {...db.personas[id]}; renderAlumnos(); alert('Duplicado'); } } }
+        function enviarWA(tel) { if(!tel || tel==='') { alert("Sin número."); return;} window.open(`https://wa.me/506${tel.replace(/\D/g,'')}`, '_blank'); }
+        function enviarWA_Ausente(tel, nombre) { if(!tel || tel==='') { alert("Sin número."); return;} const msj = encodeURIComponent(`Hola, le informamos que ${nombre} está ausente hoy.`); window.open(`https://wa.me/506${tel.replace(/\D/g,'')}?text=${msj}`, '_blank'); }
+        function descargarCarnet(id) { const p = db.personas[id]; const win = window.open('','',`width=350,height=500`); win.document.write(`<html><head><style>body{font-family:sans-serif;background:#0a0e27;color:#e8eef5;margin:0;padding:0;display:flex;align-items:center;justify-content:center;height:100vh;}.card{width:280px;height:420px;background:#1a1f3a;border-radius:12px;padding:20px;text-align:center}</style></head><body><div class="card"><h3>${p.nombre}</h3><div id="q"></div></div><script>new QRCode(document.getElementById("q"),{text:"${id}",width:130,height:130});setTimeout(()=>window.print(),800);<\/script></body></html>`); win.document.close(); }
+        function imprimirTodosLosCarnets() { const win = window.open('',''); win.document.write(`<html><body>`); Object.entries(db.personas).forEach(([id,p]) => { win.document.write(`<div style="display:inline-block;border:1px solid #000;margin:10px;padding:10px;"><div id="qr-${id}"></div><br>${p.nombre}</div>`); }); win.document.write(`<script>${Object.keys(db.personas).map(id => `new QRCode(document.getElementById("qr-${id}"),{text:"${id}",width:100,height:100});`).join('\n')} setTimeout(()=>window.print(),1500);<\/script></body></html>`); win.document.close(); }
+        
+        function mostrarVista(id) { document.getElementById('home-view').style.display = (id==='home-view')?'flex':'none'; document.getElementById('scan-view').style.display = (id==='scan-view')?'flex':'none'; document.getElementById('parent-view').style.display = (id==='parent-view')?'flex':'none'; document.getElementById('register-view').style.display = (id==='register-view')?'flex':'none'; if(id!=='scan-view' && scannerActivo) toggleScanner(); if(id!=='parent-view' && queryScannerActivo) toggleQueryScanner(); if(id!=='register-view' && regStream) { regStream.getTracks().forEach(t => t.stop()); regStream = null; document.getElementById('reg-cam-container').classList.remove('active', 'scanning'); } resetIdleTimer(); }
+        function cerrarMaster() { document.getElementById('master-panel').style.display = 'none'; detenerCamaras(); resetIdleTimer(); }
+        function cerrarVistaProtegida(id) { document.getElementById(id).style.display = 'none'; mostrarVista('home-view'); detenerCamaras(); }
+        function cambiarTab(n) { document.getElementById('sec-alumnos').style.display = (n===1)?'block':'none'; document.getElementById('sec-reporte').style.display = (n===2)?'block':'none'; document.getElementById('sec-geolocalizacion').style.display = (n===3)?'block':'none'; document.getElementById('tab1').className = (n===1)?'tab-btn active':'tab-btn'; document.getElementById('tab2').className = (n===2)?'tab-btn active':'tab-btn'; document.getElementById('tab3').className = (n===3)?'tab-btn active':'tab-btn'; }
+        function filtrarRapido() { let f = document.getElementById('busqueda').value.toUpperCase(); let rows = document.getElementById("tablaAlumnos").getElementsByTagName("tr"); for (let i = 0; i < rows.length; i++) { rows[i].style.display = (rows[i].textContent.toUpperCase().indexOf(f) > -1) ? "" : "none"; } }
+        function consultarPadre() { const id = document.getElementById('parentInput').value.trim(); ejecutarConsultaIdDirecta(id); }
+        function limpiarConsultaPadres() { document.getElementById('parentResult').style.display='none'; document.getElementById('parentInput').value=''; if(queryScannerActivo) toggleQueryScanner(); }
+        function coincideFecha(horaLog, fechaInputISO) { if(!horaLog || !fechaInputISO) return false; let [y, m, d] = fechaInputISO.split('-'); m = parseInt(m).toString(); d = parseInt(d).toString(); return horaLog.includes(`${m}/${d}/${y}`) || horaLog.includes(`${m.padStart(2,'0')}/${d}/${y}`) || horaLog.includes(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`); }
+        
+        function filtrarVistaReporte(tipo) {
+            const fechaBuscada = document.getElementById('reportDate').value; if(!fechaBuscada) return alert("Seleccione una fecha");
+            const cuerpo = document.getElementById('cuerpoReporte'), head = document.getElementById('headReporte'), titulo = document.getElementById('tituloReporte'); cuerpo.innerHTML = "";
+            let logsDelDia = logsGlobal.filter(l => l.fechaISO ? l.fechaISO === fechaBuscada : coincideFecha(l.hora, fechaBuscada));
 
-    window.addEventListener('beforeunload',()=>{if(gpsState.watchId!==null)navigator.geolocation.clearWatch(gpsState.watchId);});
+            if (tipo === 'ENTRADA' || tipo === 'SALIDA') {
+                titulo.innerText = tipo === 'ENTRADA' ? `✅ Llegaron` : `🚪 Salieron`; head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
+                logsDelDia.filter(l => l.tipo === tipo).forEach(l => { const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); });
+            } else if (tipo === 'TODOS') {
+                titulo.innerText = `📋 Todos los Movimientos`; head.innerHTML = `<tr><th>Hora</th><th>Identificación</th><th>Nombre</th><th>Tipo</th><th>Sección</th><th>Emoción</th><th>Estado Distancia</th></tr>`;
+                logsDelDia.filter(l => l.tipo !== 'JUSTIFICADA').forEach(l => { const p = db.personas[l.id] || {}; let h = l.hora.includes(',') ? l.hora.split(',')[1] : l.hora; let estDist = l.lejano ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Lejano (${l.distanciaMetros}m)</span>` : `<span style="color:var(--accent-success);">En Escuela</span>`; let emoInfo = l.emoticon ? `<span style="font-size:1.2rem;" title="${l.emocion}">${l.emoticon}</span>` : '😐'; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${h}</td><td><b>${l.id}</b></td><td>${l.nombre}</td><td><span class="status-badge ${l.tipo === 'ENTRADA' ? 'status-in' : 'status-none'}">${l.tipo}</span></td><td>${p.puesto || '-'}</td><td>${emoInfo}</td><td>${estDist}</td></tr>`); });
+            } else {
+                titulo.innerText = `❌ Ausentes / ⭐ Justificados`; head.innerHTML = `<tr><th>Estado</th><th>Identificación</th><th>Nombre</th><th>Sección</th><th>WhatsApp</th><th class="no-print">Acción</th></tr>`;
+                const presentes = [...new Set(logsDelDia.filter(l => l.tipo === 'ENTRADA').map(l => l.id))]; const justificados = [...new Set(logsDelDia.filter(l => l.tipo === 'JUSTIFICADA').map(l => l.id))];
+                Object.entries(db.personas).forEach(([id, p]) => { if(!presentes.includes(id)) { const isJustificado = justificados.includes(id); const estadoTag = isJustificado ? `<span style="color:var(--accent-warning); font-weight:bold;">⭐ Justificado</span>` : `<span style="color:var(--accent-danger); font-weight:bold;">❌ Ausente</span>`; cuerpo.insertAdjacentHTML('beforeend', `<tr><td>${estadoTag}</td><td><b>${id}</b></td><td>${p.nombre}</td><td>${p.puesto || '-'}</td><td>${p.telefono || 'Sin teléfono'}</td><td class="no-print" style="display:flex; gap: 5px;">${!isJustificado ? `<button class="btn btn-m" style="padding: 4px 8px; font-size: 0.75rem;" onclick="justificarAusencia('${id}', '${p.nombre}')">✅ Justificar</button>` : ''}<button class="btn btn-s" style="padding: 4px 8px; font-size: 0.75rem;" onclick="enviarWA_Ausente('${p.telefono || ''}', '${p.nombre}')">💬 Msg</button></td></tr>`); } });
+            }
+        }
 
-    // ====
-    // INIT
-    // ====
-    mostrarVista('home-view');
-    resetIdleTimer();
-    actualizarTenantBadge(navigator.onLine);
+        function exportarPDFReporte() { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text(document.getElementById('tituloReporte').innerText, 14, 20); doc.autoTable({ html: '#tabla-logs-final', startY: 30, theme: 'grid' }); doc.save(`Reporte_Asistencia.pdf`); }
+        function mostrarAyuda(t) { alert("SISTEMA DE ASISTENCIA\n\n1. Asegúrate de estar dentro del rango.\n2. Presiona Iniciar Escáner.\n3. Mire a la cámara."); }
+
+        mostrarVista('home-view'); resetIdleTimer();
     </script>
 </body>
 </html>
