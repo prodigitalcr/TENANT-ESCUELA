@@ -765,6 +765,11 @@
 
         document.getElementById('reportDate').value = new Date().toLocaleDateString('sv-SE');
         
+        // ===========================================================
+        // 🚀 REEMPLAZO ARQUITECTÓNICO - FLAT DATA STRUCTURE
+        // ===========================================================
+        // const dbTenantRoot = 'escuelas_data/' + TENANT_ID; // REEMPLAZADO POR ARQUITECTURA PLANA
+
         // Listener Config - Aislado
         database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').on('value', (s) => { if(s.val()) NUMERO_OFICIAL_JUNTA = s.val(); });
         database.ref('tenants/' + TENANT_ID + '/config/geocerca').on('value', (s) => { 
@@ -1036,26 +1041,117 @@
         }
 
         // ===========================================================
-        // REGISTRO DE ASISTENCIA (GEOLOCALIZADA)
+        // REGISTRO DE ASISTENCIA (GEOLOCALIZADA) - GPS PRECISO
+        // Usa watchPosition para esperar lectura real del dispositivo,
+        // descartando posiciones cacheadas con baja precisión.
         // ===========================================================
-        function registrarAsistenciaConGPS(id, strEmocion = "Neutral", emoticon = "😐") {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    const latDisp = pos.coords.latitude, lngDisp = pos.coords.longitude;
-                    const dist = calcularDistancia(latDisp, lngDisp, geoConfig.lat, geoConfig.lng);
-                    const hISO = new Date().toLocaleDateString('sv-SE');
-                    const esLejano = dist > geoConfig.radio;
+        const GPS_PRECISION_REQUERIDA = 50;  // metros de precisión máxima aceptada
+        const GPS_TIMEOUT_TOTAL      = 20000; // 20 s máximo esperando lectura buena
+        const GPS_MAX_AGE            = 0;     // no aceptar caché del sistema (0 = siempre fresco)
 
-                    if (esLejano) {
-                        // CORREGIDO: Usar la ruta correcta para logs lejanos
-                        database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').push({ id, nombre: db.personas[id]?.nombre || "Desconocido", hora: new Date().toLocaleString(), distancia: Math.round(dist), lat: latDisp, lng: lngDisp });
-                        mostrarMensajeTemp("⚠️ Fuera del rango. Escaneo detectado (" + Math.round(dist) + "m) pero NO registrado.", "var(--accent-danger)");
-                        playErrorSound();
-                        if(scannerActivo) toggleScanner(); return;
+        function obtenerGPSPreciso() {
+            return new Promise((resolve, reject) => {
+                if (!("geolocation" in navigator)) {
+                    return reject(new Error("GPS no disponible"));
+                }
+
+                let watchId = null;
+                let resuelto = false;
+
+                // Temporizador de seguridad: si en GPS_TIMEOUT_TOTAL ms no llega
+                // una lectura suficientemente precisa, rechazamos.
+                const timer = setTimeout(() => {
+                    if (!resuelto) {
+                        resuelto = true;
+                        navigator.geolocation.clearWatch(watchId);
+                        reject(new Error("TIMEOUT"));
                     }
-                    completarEscaneoBD(id, hISO, esLejano, dist, strEmocion, emoticon);
-                }, (err) => { completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon); }, { enableHighAccuracy: true, timeout: 5000 });
-            } else { completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon); }
+                }, GPS_TIMEOUT_TOTAL);
+
+                watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        if (resuelto) return;
+
+                        const precision = pos.coords.accuracy; // metros
+                        console.log(`[GPS] precisión=${precision}m lat=${pos.coords.latitude} lng=${pos.coords.longitude}`);
+
+                        // Solo aceptamos lecturas con precisión dentro del umbral
+                        if (precision <= GPS_PRECISION_REQUERIDA) {
+                            resuelto = true;
+                            clearTimeout(timer);
+                            navigator.geolocation.clearWatch(watchId);
+                            resolve({
+                                lat      : pos.coords.latitude,
+                                lng      : pos.coords.longitude,
+                                precision: Math.round(precision)
+                            });
+                        }
+                        // Si la precisión es mala, seguimos esperando mejores lecturas
+                    },
+                    (err) => {
+                        if (!resuelto) {
+                            resuelto = true;
+                            clearTimeout(timer);
+                            navigator.geolocation.clearWatch(watchId);
+                            reject(err);
+                        }
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout           : GPS_TIMEOUT_TOTAL,
+                        maximumAge        : GPS_MAX_AGE  // 0 = nunca usar caché
+                    }
+                );
+            });
+        }
+
+        async function registrarAsistenciaConGPS(id, strEmocion = "Neutral", emoticon = "😐") {
+            mostrarMensajeTemp("📡 Obteniendo señal GPS precisa…", "var(--accent-secondary)");
+
+            try {
+                const { lat: latDisp, lng: lngDisp, precision } = await obtenerGPSPreciso();
+
+                const dist   = calcularDistancia(latDisp, lngDisp, geoConfig.lat, geoConfig.lng);
+                const hISO   = new Date().toLocaleDateString('sv-SE');
+                const esLejano = dist > geoConfig.radio;
+
+                console.log(`[GPS ✔] dist=${Math.round(dist)}m, precisión=${precision}m, lejano=${esLejano}`);
+
+                if (esLejano) {
+                    database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').push({
+                        id,
+                        nombre    : db.personas[id]?.nombre || "Desconocido",
+                        hora      : new Date().toLocaleString(),
+                        distancia : Math.round(dist),
+                        precision,
+                        lat       : latDisp,
+                        lng       : lngDisp
+                    });
+                    mostrarMensajeTemp(
+                        `⚠️ Fuera del rango (${Math.round(dist)}m, GPS ±${precision}m). Escaneo NO registrado.`,
+                        "var(--accent-danger)"
+                    );
+                    playErrorSound();
+                    if (scannerActivo) toggleScanner();
+                    return;
+                }
+
+                completarEscaneoBD(id, hISO, esLejano, dist, strEmocion, emoticon);
+
+            } catch (err) {
+                // Si es TIMEOUT significa que el GPS no logró precisión suficiente
+                if (err.message === "TIMEOUT") {
+                    mostrarMensajeTemp(
+                        "⏱️ No se pudo obtener GPS preciso a tiempo. Intente de nuevo al aire libre.",
+                        "var(--accent-warning)"
+                    );
+                    playErrorSound();
+                    if (scannerActivo) toggleScanner();
+                } else {
+                    // Error de permiso u otro: registrar sin GPS (comportamiento anterior)
+                    completarEscaneoBD(id, new Date().toLocaleDateString('sv-SE'), false, 0, strEmocion, emoticon);
+                }
+            }
         }
 
         function completarEscaneoBD(id, hISO, esLejano, dist, strEmocion, emoticon) {
@@ -1258,13 +1354,6 @@
         
         function cerrarFaceModal() { document.getElementById('face-modal').style.display = 'none'; detenerCamaras(); idCapturaActual = null; descriptorDetectado = null; resetIdleTimer(); }
 
-        // NUEVA FUNCIÓN: Guarda los cambios en tiempo real al editar un campo
-        function actualizarDato(id, campo, valor) {
-            database.ref('escuelas_data/' + TENANT_ID + '/personas/' + id).update({ [campo]: valor })
-                .then(() => console.log(`✅ ${campo} actualizado en la nube.`))
-                .catch(error => alert("❌ Error al guardar en Firebase: " + error.message));
-        }
-
         // --- Funciones del Admin Panel ---
         function renderAlumnos() {
             const t = document.getElementById('tablaAlumnos'); t.innerHTML = "";
@@ -1280,9 +1369,9 @@
                         <td><span class="status-badge ${isP ? 'status-in' : 'status-none'}">${isP ? '✓' : '✗'}</span></td>
                         <td><b>${id}</b></td>
                         <td>${tipoUserHtml}</td>
-                        <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.nombre || ''}" onchange="actualizarDato('${id}', 'nombre', this.value)"></td>
-                        <td><input style="border:none;background:transparent;color:var(--text-secondary);font-weight:bold;width:100%" value="${p.puesto || ''}" onchange="actualizarDato('${id}', 'puesto', this.value)"></td>
-                        <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.telefono || ''}" onchange="actualizarDato('${id}', 'telefono', this.value)"></td>
+                        <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.nombre || ''}" onchange="db.personas['${id}'].nombre=this.value"></td>
+                        <td><input style="border:none;background:transparent;color:var(--text-secondary);font-weight:bold;width:100%" value="${p.puesto || ''}" onchange="db.personas['${id}'].puesto=this.value"></td>
+                        <td><input style="border:none;background:transparent;color:var(--text-primary);width:100%" value="${p.telefono || ''}" onchange="db.personas['${id}'].telefono=this.value"></td>
                         <td><button class="btn ${tieneRostroEst ? 'btn-m' : 'btn-dark'}" style="padding:4px 8px; font-size:0.75rem;" onclick="abrirRegistroRostro('${id}', 'estudiante')">${tieneRostroEst ? '👤 Configurado' : '📸 Configurar'}</button></td>
                         <td><div style="display:flex; flex-direction:column; gap:4px;"><button class="btn ${p.descriptorPadre1 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre1')">👨‍👦 Encargado 1: ${p.descriptorPadre1 ? '✓' : '✗'}</button><button class="btn ${p.descriptorPadre2 ? 'btn-s' : 'btn-dark'}" style="padding:2px 6px; font-size:0.7rem; text-transform:none;" onclick="abrirRegistroRostro('${id}', 'padre2')">👨‍👦 Encargado 2: ${p.descriptorPadre2 ? '✓' : '✗'}</button></div></td>
                         <td class="no-print"><div style="display:flex; gap: 4px;"><button class="btn btn-s" style="padding:6px 10px;" onclick="enviarWA('${p.telefono || ''}')" title="WhatsApp">💬</button><button class="btn btn-i" style="padding:6px 10px;" onclick="descargarCarnet('${id}')" title="Ver Carnet">📇</button><button class="btn btn-d" style="padding:6px 10px;" onclick="if(confirm('¿Borrar usuario?')) { database.ref('escuelas_data/' + TENANT_ID + '/personas/' + '${id}').remove(); }" title="Eliminar">🗑️</button></div></td>
@@ -1295,35 +1384,19 @@
             const tbody = document.getElementById('tablaLogsLejanos'); tbody.innerHTML = "";
             if (logsLejanosGlobal.length === 0) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color: var(--text-muted);'>No hay reportes de escaneos lejanos.</td></tr>"; return; }
             logsLejanosGlobal.slice().reverse().forEach(log => {
-                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
+                const precisionTag = log.precision != null
+                    ? `<span style="color:var(--accent-success);font-size:0.75rem;"> (GPS ±${log.precision}m)</span>`
+                    : `<span style="color:var(--accent-warning);font-size:0.75rem;"> (precisión desconocida)</span>`;
+                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango${precisionTag}</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
             });
         }
 
         function editarNumeroJunta() { let n = prompt("Número de contacto general:", NUMERO_OFICIAL_JUNTA); if(n) { database.ref('tenants/' + TENANT_ID + '/config/numeroOficial').set(n); alert("Actualizado en su partición."); } }
         
-        // REEMPLAZO: Guarda directamente a Firebase en lugar de solo local
-        function agregarMiembroManual() { 
-            const id = prompt("Cédula/Código nuevo:"); 
-            if(id) { 
-                const nuevoUsuario = { 
-                    nombre: prompt("Nombre Completo:") || "", 
-                    puesto: prompt("Sección:") || "", 
-                    telefono: prompt("WhatsApp:") || "", 
-                    tipoUsuario: 'Estudiante' 
-                }; 
-                
-                database.ref('escuelas_data/' + TENANT_ID + '/personas/' + id).set(nuevoUsuario)
-                    .then(() => alert("✅ Miembro agregado correctamente a la base de datos."))
-                    .catch(error => alert("❌ Error de permisos o red: " + error.message));
-            } 
-        }
-
-        // REEMPLAZO: Sincronización masiva con manejo de errores
+        // CORREGIDO: Usar la ruta correcta según las reglas
         function sincronizarConNube() { 
-            // Usamos update en lugar de set para evitar que un dato corrupto borre la BD
-            database.ref('escuelas_data/' + TENANT_ID + '/personas').update(db.personas)
-                .then(() => alert("✅ Datos guardados en la partición de la escuela."))
-                .catch(error => alert("❌ Error crítico al sincronizar: " + error.message));
+            database.ref('escuelas_data/' + TENANT_ID + '/personas').set(db.personas); 
+            alert("Datos guardados en la partición de la escuela."); 
         }
         
         function guardarConfigGeo() {
@@ -1384,6 +1457,7 @@
         function mostrarEstadisticas() { const total = Object.keys(db.personas).length; const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE') || coincideFecha(l.hora, new Date().toLocaleDateString('sv-SE')))).length; alert(`ESTADÍSTICAS DEL DÍA:\nTotal Registrados: ${total}\nPresentes (Entradas): ${presentes}\nAusentes: ${total - presentes}\nAsistencia: ${total>0?((presentes/total)*100).toFixed(1):0}%`); }
         function mostrarConfiguracion() { let configDiv = document.createElement('div'); configDiv.innerHTML = `<div><button class="btn btn-m" onclick="setTheme('dark')">Modo Oscuro</button> <button class="btn btn-s" onclick="setTheme('light')">Modo Claro</button></div>`; let win = window.open('', 'Configuración', 'width=400,height=300'); win.document.write(`<html><head><title>Configuración</title><style>body{padding:20px}.btn{padding:8px 12px;cursor:pointer}</style></head><body>${configDiv.innerHTML}<script>function setTheme(theme) { window.opener.setSystemTheme(theme); window.close(); }<\/script></body></html>`); win.document.close(); }
         function setSystemTheme(theme) { if (theme === 'light') { document.body.classList.add('light-theme'); localStorage.setItem('theme', 'light'); } else { document.body.classList.remove('light-theme'); localStorage.setItem('theme', 'dark'); } }
+        function agregarMiembroManual() { const id = prompt("Cédula/Código nuevo:"); if(id) { db.personas[id] = { nombre: prompt("Nombre Completo:"), puesto: prompt("Sección:"), telefono: prompt("WhatsApp:"), tipoUsuario: 'Estudiante' }; renderAlumnos(); } }
         
         // FUNCIÓN ACTUALIZADA PARA IMPORTAR CSV Y GUARDAR AUTOMÁTICAMENTE EN FIREBASE
         function importarCSV() { 
