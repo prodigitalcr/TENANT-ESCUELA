@@ -798,28 +798,72 @@
         // ===========================================================
         // LÓGICA DE BASE DE DATOS AISLADA (FLAT STRUCTURE)
         // ===========================================================
+        // LISTENERS DE BASE DE DATOS - con manejo de errores y reconexión
+        // ===========================================================
 
-        // CORREGIDO: Usar la ruta correcta según las reglas de Firebase
+        // personas: requiere auth de admin → se registra siempre, 
+        // funciona cuando hay sesión activa
         database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => { 
             db.personas = s.val() || {}; 
             renderAlumnos(); 
             construirFaceMatcher(); 
+        }, (err) => {
+            console.warn('[DB] personas - permiso denegado (normal sin sesión admin):', err.code);
         });
         
-        // CORREGIDO: Usar la ruta correcta para marcas
-        database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', (s) => { 
-            logsGlobal = []; 
-            s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
-            renderAlumnos(); 
-        });
+        // marcas: .write=true y .read=true en reglas → acceso público
+        // Si falla en lectura, reconectar cuando haya auth
+        function iniciarListenerMarcas() {
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', (s) => { 
+                logsGlobal = []; 
+                if (s.exists()) {
+                    s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
+                }
+                renderAlumnos(); 
+            }, (err) => {
+                console.error('[DB] marcas - error de permiso:', err.code, err.message);
+                mostrarMensajeTemp('⚠️ Error al leer historial de marcas: ' + err.code, 'var(--accent-danger)');
+            });
+        }
+        iniciarListenerMarcas();
 
-        // CORREGIDO: Usar la ruta correcta para logs lejanos
-        database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').on('value', (s) => {
-            logsLejanosGlobal = [];
-            s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
-            renderGeolocalizacion();
-        });
+        // logs_lejanos: .write=true y .read=true en reglas → acceso público
+        function iniciarListenerLogsLejanos() {
+            database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').on('value', (s) => {
+                logsLejanosGlobal = [];
+                if (s.exists()) {
+                    s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
+                }
+                renderGeolocalizacion();
+            }, (err) => {
+                console.error('[DB] logs_lejanos - error de permiso:', err.code, err.message);
+            });
+        }
+        iniciarListenerLogsLejanos();
 
+        // ===========================================================
+        // RECONEXIÓN AUTOMÁTICA AL RESTAURAR SESIÓN FIREBASE
+        // Cuando el navegador recarga y Firebase restaura la sesión guardada,
+        // los listeners se re-adjuntan con las credenciales correctas
+        // ===========================================================
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                console.log('[Auth] Sesión restaurada para:', user.email);
+                // Re-adjuntar todos los listeners con el token autenticado
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').off();
+                database.ref('escuelas_data/' + TENANT_ID + '/marcas').off();
+                database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').off();
+
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => {
+                    db.personas = s.val() || {};
+                    renderAlumnos();
+                    construirFaceMatcher();
+                }, (err) => { console.error('[DB] personas auth-state error:', err.code); });
+
+                iniciarListenerMarcas();
+                iniciarListenerLogsLejanos();
+            }
+        });
 
         // ===========================================================
         // SISTEMA DE INICIO DE SESIÓN SEGURO
@@ -864,6 +908,21 @@
             firebase.auth().signInWithEmailAndPassword(email, pass)
                 .then((userCredential) => {
                     cerrarLogin();
+                    // Re-adjuntar listeners con credenciales autenticadas
+                    // Esto asegura que personas, marcas y logs_lejanos se lean correctamente
+                    database.ref('escuelas_data/' + TENANT_ID + '/personas').off();
+                    database.ref('escuelas_data/' + TENANT_ID + '/marcas').off();
+                    database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').off();
+
+                    database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => {
+                        db.personas = s.val() || {};
+                        renderAlumnos();
+                        construirFaceMatcher();
+                    }, (err) => { console.error('[DB] personas post-login error:', err.code); });
+
+                    iniciarListenerMarcas();
+                    iniciarListenerLogsLejanos();
+
                     if (contextoLogin === 'admin') {
                         document.getElementById('master-panel').style.display = 'block';
                         inicializarIA();
@@ -1126,6 +1185,10 @@
                         precision,
                         lat       : latDisp,
                         lng       : lngDisp
+                    }).then(() => {
+                        console.log('[DB] ✅ Log lejano guardado en Firebase');
+                    }).catch((err) => {
+                        console.error('[DB] ❌ Error al guardar log lejano:', err.code, err.message);
                     });
                     mostrarMensajeTemp(
                         `⚠️ Fuera del rango (${Math.round(dist)}m, GPS ±${precision}m). Escaneo NO registrado.`,
@@ -1162,8 +1225,23 @@
             if (!tieneE) tipo = "ENTRADA"; else if (!tieneS) tipo = "SALIDA"; 
             else { mostrarMensajeTemp("Ya registró Entrada y Salida hoy.", "var(--accent-warning)"); if(scannerActivo) toggleScanner(); return; }
             
-            // CORREGIDO: Usar la ruta correcta para marcas
-            database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre: db.personas[id].nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo, lejano: esLejano, distanciaMetros: esLejano ? Math.round(dist) : 0, emocion: strEmocion, emoticon });
+            // Guardar marca con confirmación y manejo de error
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({
+                id,
+                nombre: db.personas[id].nombre,
+                hora: new Date().toLocaleString(),
+                fechaISO: hISO,
+                tipo,
+                lejano: esLejano,
+                distanciaMetros: esLejano ? Math.round(dist) : 0,
+                emocion: strEmocion,
+                emoticon
+            }).then(() => {
+                console.log('[DB] ✅ Marca guardada correctamente en Firebase');
+            }).catch((err) => {
+                console.error('[DB] ❌ Error al guardar marca:', err.code, err.message);
+                mostrarMensajeTemp('❌ Error al guardar en Firebase: ' + err.code + ' - ' + err.message, 'var(--accent-danger)');
+            });
             playSuccessSound();
 
             const res = document.getElementById('resBox'); res.style.display = 'block'; res.style.background = tipo === "ENTRADA" ? "rgba(0, 255, 136, 0.1)" : "rgba(255, 68, 68, 0.1)";
