@@ -332,7 +332,8 @@
     <div class="navbar no-print" id="main-navbar">
         <div class="navbar-title" id="nav-logo-container">🤖 Asistencia IA</div>
         <div class="navbar-actions">
-            <button class="btn btn-s" onclick="mostrarVista('register-view')" title="Registro General">📝 Registrarse</button>
+            <!-- BOTÓN DE REGISTRO PROTEGIDO APLICADO AQUÍ -->
+            <button class="btn btn-s" onclick="abrirRegistroProtegido()" title="Registro General">📝 Registrarse</button>
             <button class="btn btn-w" onclick="mostrarVista('parent-view')" title="Consulta para padres">👨‍👩‍👧 Padres/Consulta</button>
             <button class="btn btn-i" onclick="abrirLogin('escaner')" title="Acceso al escáner">📷 Escáner Facial</button>
             <button class="btn btn-m" onclick="abrirLogin('admin')" title="Panel administrativo">🔓 Admin</button>
@@ -825,6 +826,16 @@
         // ===========================================================
         let contextoLogin = '';
 
+        function abrirRegistroProtegido() {
+            const user = firebase.auth().currentUser;
+            if (user) {
+                mostrarVista('register-view');
+            } else {
+                alert("🔒 Acceso Denegado: Debe iniciar sesión como Administrador (Botón Admin) para registrar usuarios nuevos.");
+                abrirLogin('admin');
+            }
+        }
+
         function abrirLogin(tipo) {
             contextoLogin = tipo;
             const modal = document.getElementById('login-modal');
@@ -1226,13 +1237,30 @@
 
         function capturarYGuardarRostro() {
             if(idCapturaActual && descriptorDetectado) {
-                if (tipoCapturaActual === 'estudiante') { db.personas[idCapturaActual].descriptor = descriptorDetectado; } 
-                else if (tipoCapturaActual === 'padre1') { db.personas[idCapturaActual].descriptorPadre1 = descriptorDetectado; } 
-                else if (tipoCapturaActual === 'padre2') { db.personas[idCapturaActual].descriptorPadre2 = descriptorDetectado; }
-                sincronizarConNube(); alert("Rostro facial guardado exitosamente en su partición.");
-                cerrarFaceModal(); construirFaceMatcher();
+                let updates = {};
+                
+                // Asignamos el descriptor a la ruta específica según el tipo
+                if (tipoCapturaActual === 'estudiante') { 
+                    updates['descriptor'] = descriptorDetectado; 
+                } else if (tipoCapturaActual === 'padre1') { 
+                    updates['descriptorPadre1'] = descriptorDetectado; 
+                } else if (tipoCapturaActual === 'padre2') { 
+                    updates['descriptorPadre2'] = descriptorDetectado; 
+                }
+                
+                // Actualizamos SOLAMENTE a este usuario en Firebase, sin tocar a los demás
+                database.ref('escuelas_data/' + TENANT_ID + '/personas/' + idCapturaActual).update(updates)
+                    .then(() => {
+                        alert("✅ Rostro guardado exitosamente en la base de datos.");
+                        cerrarFaceModal(); 
+                        construirFaceMatcher();
+                    })
+                    .catch((error) => {
+                        alert("❌ Error al guardar rostro: " + error.message);
+                    });
             }
         }
+        
         function cerrarFaceModal() { document.getElementById('face-modal').style.display = 'none'; detenerCamaras(); idCapturaActual = null; descriptorDetectado = null; resetIdleTimer(); }
 
         // --- Funciones del Admin Panel ---
