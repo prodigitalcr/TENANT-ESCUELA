@@ -798,70 +798,62 @@
         // ===========================================================
         // LÓGICA DE BASE DE DATOS AISLADA (FLAT STRUCTURE)
         // ===========================================================
-        // LISTENERS DE BASE DE DATOS - con manejo de errores y reconexión
+        // LISTENERS DE BASE DE DATOS
+        // IMPORTANTE: todos los listeners se adjuntan SOLO después de auth
+        // para evitar que Firebase cancele los listeners por PERMISSION_DENIED
+        // antes de que el usuario haya iniciado sesión.
         // ===========================================================
 
-        // personas: requiere auth de admin → se registra siempre, 
-        // funciona cuando hay sesión activa
-        database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => { 
-            db.personas = s.val() || {}; 
-            renderAlumnos(); 
-            construirFaceMatcher(); 
-        }, (err) => {
-            console.warn('[DB] personas - permiso denegado (normal sin sesión admin):', err.code);
-        });
-        
-        // marcas: .write=true y .read=true en reglas → acceso público
-        // Si falla en lectura, reconectar cuando haya auth
-        function iniciarListenerMarcas() {
-            database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', (s) => { 
-                logsGlobal = []; 
+        function adjuntarTodosLosListeners() {
+            // Limpiar listeners anteriores antes de re-adjuntar
+            database.ref('escuelas_data/' + TENANT_ID + '/personas').off();
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').off();
+            database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').off();
+
+            database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => {
+                db.personas = s.val() || {};
+                renderAlumnos();
+                construirFaceMatcher();
+            }, (err) => {
+                console.error('[DB] personas error:', err.code, err.message);
+            });
+
+            database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', (s) => {
+                logsGlobal = [];
                 if (s.exists()) {
                     s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
                 }
-                renderAlumnos(); 
+                renderAlumnos();
+                console.log('[DB] marcas cargadas:', logsGlobal.length);
             }, (err) => {
-                console.error('[DB] marcas - error de permiso:', err.code, err.message);
-                mostrarMensajeTemp('⚠️ Error al leer historial de marcas: ' + err.code, 'var(--accent-danger)');
+                console.error('[DB] marcas PERMISSION_DENIED:', err.code, err.message);
+                mostrarMensajeTemp('⚠️ Sin acceso a marcas: ' + err.code, 'var(--accent-danger)');
             });
-        }
-        iniciarListenerMarcas();
 
-        // logs_lejanos: .write=true y .read=true en reglas → acceso público
-        function iniciarListenerLogsLejanos() {
             database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').on('value', (s) => {
                 logsLejanosGlobal = [];
                 if (s.exists()) {
                     s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
                 }
                 renderGeolocalizacion();
+                console.log('[DB] logs_lejanos cargados:', logsLejanosGlobal.length);
             }, (err) => {
-                console.error('[DB] logs_lejanos - error de permiso:', err.code, err.message);
+                console.error('[DB] logs_lejanos PERMISSION_DENIED:', err.code, err.message);
             });
         }
-        iniciarListenerLogsLejanos();
 
-        // ===========================================================
-        // RECONEXIÓN AUTOMÁTICA AL RESTAURAR SESIÓN FIREBASE
-        // Cuando el navegador recarga y Firebase restaura la sesión guardada,
-        // los listeners se re-adjuntan con las credenciales correctas
-        // ===========================================================
+        // Adjuntar listeners cuando Firebase confirma sesión activa
+        // Esto cubre: login nuevo + recarga de página con sesión guardada
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
-                console.log('[Auth] Sesión restaurada para:', user.email);
-                // Re-adjuntar todos los listeners con el token autenticado
+                console.log('[Auth] ✅ Sesión activa:', user.email, '| UID:', user.uid);
+                adjuntarTodosLosListeners();
+            } else {
+                console.log('[Auth] Sin sesión - listeners no adjuntados');
+                // Sin sesión: limpiar datos locales
                 database.ref('escuelas_data/' + TENANT_ID + '/personas').off();
                 database.ref('escuelas_data/' + TENANT_ID + '/marcas').off();
                 database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').off();
-
-                database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => {
-                    db.personas = s.val() || {};
-                    renderAlumnos();
-                    construirFaceMatcher();
-                }, (err) => { console.error('[DB] personas auth-state error:', err.code); });
-
-                iniciarListenerMarcas();
-                iniciarListenerLogsLejanos();
             }
         });
 
@@ -908,20 +900,8 @@
             firebase.auth().signInWithEmailAndPassword(email, pass)
                 .then((userCredential) => {
                     cerrarLogin();
-                    // Re-adjuntar listeners con credenciales autenticadas
-                    // Esto asegura que personas, marcas y logs_lejanos se lean correctamente
-                    database.ref('escuelas_data/' + TENANT_ID + '/personas').off();
-                    database.ref('escuelas_data/' + TENANT_ID + '/marcas').off();
-                    database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').off();
-
-                    database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => {
-                        db.personas = s.val() || {};
-                        renderAlumnos();
-                        construirFaceMatcher();
-                    }, (err) => { console.error('[DB] personas post-login error:', err.code); });
-
-                    iniciarListenerMarcas();
-                    iniciarListenerLogsLejanos();
+                    // onAuthStateChanged ya llama adjuntarTodosLosListeners()
+                    // automáticamente tras el signIn, no hace falta duplicar aquí.
 
                     if (contextoLogin === 'admin') {
                         document.getElementById('master-panel').style.display = 'block';
