@@ -804,56 +804,50 @@
         // antes de que el usuario haya iniciado sesión.
         // ===========================================================
 
-        function adjuntarTodosLosListeners() {
-            // Limpiar listeners anteriores antes de re-adjuntar
-            database.ref('escuelas_data/' + TENANT_ID + '/personas').off();
-            database.ref('escuelas_data/' + TENANT_ID + '/marcas').off();
-            database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').off();
+        // ===========================================================
+        // LISTENERS PÚBLICOS - se adjuntan AL CARGAR, sin necesidad de auth
+        // marcas_publ y lejanos_publ tienen .read:true .write:true en reglas
+        // ===========================================================
+        database.ref('marcas_publ/' + TENANT_ID).on('value', (s) => {
+            logsGlobal = [];
+            if (s.exists()) {
+                s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
+            }
+            renderAlumnos();
+            console.log('[DB] ✅ marcas_publ cargadas:', logsGlobal.length);
+        }, (err) => {
+            console.error('[DB] marcas_publ error:', err.code, err.message);
+        });
 
-            database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => {
-                db.personas = s.val() || {};
-                renderAlumnos();
-                construirFaceMatcher();
-            }, (err) => {
-                console.error('[DB] personas error:', err.code, err.message);
-            });
+        database.ref('lejanos_publ/' + TENANT_ID).on('value', (s) => {
+            logsLejanosGlobal = [];
+            if (s.exists()) {
+                s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
+            }
+            renderGeolocalizacion();
+            console.log('[DB] ✅ lejanos_publ cargados:', logsLejanosGlobal.length);
+        }, (err) => {
+            console.error('[DB] lejanos_publ error:', err.code, err.message);
+        });
 
-            database.ref('escuelas_data/' + TENANT_ID + '/marcas').on('value', (s) => {
-                logsGlobal = [];
-                if (s.exists()) {
-                    s.forEach(c => { let val = c.val(); val.key = c.key; logsGlobal.push(val); });
-                }
-                renderAlumnos();
-                console.log('[DB] marcas cargadas:', logsGlobal.length);
-            }, (err) => {
-                console.error('[DB] marcas PERMISSION_DENIED:', err.code, err.message);
-                mostrarMensajeTemp('⚠️ Sin acceso a marcas: ' + err.code, 'var(--accent-danger)');
-            });
-
-            database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').on('value', (s) => {
-                logsLejanosGlobal = [];
-                if (s.exists()) {
-                    s.forEach(c => { let val = c.val(); val.key = c.key; logsLejanosGlobal.push(val); });
-                }
-                renderGeolocalizacion();
-                console.log('[DB] logs_lejanos cargados:', logsLejanosGlobal.length);
-            }, (err) => {
-                console.error('[DB] logs_lejanos PERMISSION_DENIED:', err.code, err.message);
-            });
-        }
-
-        // Adjuntar listeners cuando Firebase confirma sesión activa
-        // Esto cubre: login nuevo + recarga de página con sesión guardada
+        // ===========================================================
+        // LISTENER PRIVADO - personas requiere auth de admin
+        // Se adjunta solo cuando Firebase confirma sesión activa
+        // ===========================================================
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 console.log('[Auth] ✅ Sesión activa:', user.email, '| UID:', user.uid);
-                adjuntarTodosLosListeners();
-            } else {
-                console.log('[Auth] Sin sesión - listeners no adjuntados');
-                // Sin sesión: limpiar datos locales
                 database.ref('escuelas_data/' + TENANT_ID + '/personas').off();
-                database.ref('escuelas_data/' + TENANT_ID + '/marcas').off();
-                database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').off();
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').on('value', (s) => {
+                    db.personas = s.val() || {};
+                    renderAlumnos();
+                    construirFaceMatcher();
+                }, (err) => {
+                    console.error('[DB] personas error:', err.code, err.message);
+                });
+            } else {
+                console.log('[Auth] Sin sesión activa');
+                database.ref('escuelas_data/' + TENANT_ID + '/personas').off();
             }
         });
 
@@ -900,8 +894,7 @@
             firebase.auth().signInWithEmailAndPassword(email, pass)
                 .then((userCredential) => {
                     cerrarLogin();
-                    // onAuthStateChanged ya llama adjuntarTodosLosListeners()
-                    // automáticamente tras el signIn, no hace falta duplicar aquí.
+                    // marcas_publ y lejanos_publ ya están escuchando desde el inicio de página.
 
                     if (contextoLogin === 'admin') {
                         document.getElementById('master-panel').style.display = 'block';
@@ -1157,7 +1150,7 @@
                 console.log(`[GPS ✔] dist=${Math.round(dist)}m, precisión=${precision}m, lejano=${esLejano}`);
 
                 if (esLejano) {
-                    database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').push({
+                    database.ref('lejanos_publ/' + TENANT_ID).push({
                         id,
                         nombre    : db.personas[id]?.nombre || "Desconocido",
                         hora      : new Date().toLocaleString(),
@@ -1206,7 +1199,7 @@
             else { mostrarMensajeTemp("Ya registró Entrada y Salida hoy.", "var(--accent-warning)"); if(scannerActivo) toggleScanner(); return; }
             
             // Guardar marca con confirmación y manejo de error
-            database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({
+            database.ref('marcas_publ/' + TENANT_ID).push({
                 id,
                 nombre: db.personas[id].nombre,
                 hora: new Date().toLocaleString(),
@@ -1445,7 +1438,7 @@
                 const precisionTag = log.precision != null
                     ? `<span style="color:var(--accent-success);font-size:0.75rem;"> (GPS ±${log.precision}m)</span>`
                     : `<span style="color:var(--accent-warning);font-size:0.75rem;"> (precisión desconocida)</span>`;
-                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango${precisionTag}</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
+                tbody.insertAdjacentHTML('beforeend', `<tr><td>${log.hora}</td><td><b>${log.id}</b></td><td>${log.nombre}</td><td style="color: var(--accent-danger); font-weight:bold;">${log.distancia} metros fuera del rango${precisionTag}</td><td>${log.lat.toFixed(6)}, ${log.lng.toFixed(6)}</td><td class="no-print"><div style="display:flex; gap: 5px;"><button class="btn btn-i" style="padding: 4px 8px; font-size: 0.75rem;" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${log.lat},${log.lng}', '_blank')">🗺️ Ver Mapa</button><button class="btn btn-d" style="padding: 4px 8px; font-size: 0.75rem;" onclick="database.ref('lejanos_publ/' + TENANT_ID + '/' + '${log.key}').remove();">🗑️ Eliminar</button></div></td></tr>`);
             });
         }
 
@@ -1469,8 +1462,8 @@
         function mostrarConfirmacionBorrar() { 
             if(confirm('⚠️ ADVERTENCIA: ¿Borrar TODA la base de datos DE ESTA ESCUELA?\n\nPresione OK para confirmar.')) { 
                 database.ref('escuelas_data/' + TENANT_ID + '/personas').remove(); 
-                database.ref('escuelas_data/' + TENANT_ID + '/marcas').remove(); 
-                database.ref('escuelas_data/' + TENANT_ID + '/logs_lejanos').remove(); 
+                database.ref('marcas_publ/' + TENANT_ID).remove(); 
+                database.ref('lejanos_publ/' + TENANT_ID).remove(); 
                 location.reload(); 
             } 
         }
@@ -1479,7 +1472,7 @@
             const hISO = document.getElementById('reportDate').value;
             if(confirm(`¿Desea justificar la ausencia de ${nombre}?`)) {
                 // CORREGIDO: Usar la ruta correcta para marcas
-                database.ref('escuelas_data/' + TENANT_ID + '/marcas').push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
+                database.ref('marcas_publ/' + TENANT_ID).push({ id, nombre, hora: new Date().toLocaleString(), fechaISO: hISO, tipo: 'JUSTIFICADA', lejano: false, distanciaMetros: 0 });
                 alert('Ausencia justificada.');
             }
         }
@@ -1488,7 +1481,7 @@
             const hISO = document.getElementById('reportDate').value; 
             logsGlobal.filter(l => l.fechaISO === hISO || coincideFecha(l.hora, hISO)).forEach(l => 
                 // CORREGIDO: Usar la ruta correcta para borrar marcas
-                database.ref('escuelas_data/' + TENANT_ID + '/marcas/' + l.key).remove()
+                database.ref('marcas_publ/' + TENANT_ID + '/' + l.key).remove()
             ); 
             alert('Registros del día eliminados.'); 
         }
@@ -1501,7 +1494,7 @@
             document.getElementById('btnConsultaWA').onclick = () => { const mensaje = encodeURIComponent(`Hola, quisiera realizar una consulta sobre el usuario: ${p.nombre}`); window.open(`https://wa.me/506${NUMERO_OFICIAL_JUNTA}?text=${mensaje}`, '_blank'); };
             
             // CORREGIDO: Usar la ruta correcta para consultar marcas
-            database.ref('escuelas_data/' + TENANT_ID + '/marcas').orderByChild('id').equalTo(id).once('value', (s) => {
+            database.ref('marcas_publ/' + TENANT_ID).orderByChild('id').equalTo(id).once('value', (s) => {
                 const list = document.getElementById('parentLogList'); list.innerHTML = "";
                 if(s.exists()){ s.forEach(c => { let l=c.val(); let alertTag = l.lejano ? ` <span style="color:var(--accent-danger); font-size: 0.75rem;">(${l.distanciaMetros}m)</span>` : ""; let statusColor = l.tipo === 'ENTRADA' ? '#00ff88' : (l.tipo === 'SALIDA' ? '#ff4444' : '#ffb800'); list.innerHTML = `<div style="padding:10px; border-bottom:1px solid #3a4560;"><span>${l.hora}</span> - <b style="color:${statusColor}">${l.tipo}</b>${alertTag}</div>` + list.innerHTML; }); }
                 else { list.innerHTML = "<p style='color: var(--text-muted); text-align:center;'>Sin registros el día de hoy.</p>"; }
