@@ -763,57 +763,15 @@
         const TENANT_ID = paramId || "escuela-la-carpio";
 
         // -----------------------------------------------------------
-        // 2️⃣  MONITOREO DEL ESTADO GLOBAL ADMIN (status en tenants/)
+        // 2️⃣ + 3️⃣  BLOQUEO / MANTENIMIENTO (Vía nodo público tenantDB/)
         // -----------------------------------------------------------
-        database.ref('tenants/' + TENANT_ID).on('value', (snapshot) => {
-            const tenantData = snapshot.val();
-            if (tenantData) {
-                const estadoSaaS = tenantData.status || tenantData.estado || 'activo';
-                const config = tenantData.config || {};
-                
-                if (estadoSaaS === 'bloqueado' || estadoSaaS === 'suspendido' || estadoSaaS === 'moroso' || config.bloqueado === true) {
-                    const htmlMora = config.htmlMora || `
-                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
-                            <h1 style="color:#ff4444;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">⚠️ Acceso Suspendido</h1>
-                            <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
-                                El servicio asociado a este entorno (<strong>${TENANT_ID}</strong>) se encuentra temporalmente inactivo.<br><br>
-                                Por favor, contacte a soporte técnico o a la administración de SaaS para restablecer la conexión.
-                            </p>
-                        </div>
-                    `;
-                    document.body.innerHTML = htmlMora;
-                    
-                    try {
-                        if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
-                        if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
-                    } catch(e) {}
-                } else if (estadoSaaS === 'mantenimiento') {
-                    const htmlMantenimiento = config.htmlMantenimiento || `
-                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
-                            <h1 style="color:#ffb800;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">🔧 Mantenimiento en curso</h1>
-                            <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
-                                El sistema para (<strong>${TENANT_ID}</strong>) está experimentando tareas de mantenimiento programado.<br><br>
-                                Por favor, intente ingresar más tarde.
-                            </p>
-                        </div>
-                    `;
-                    document.body.innerHTML = htmlMantenimiento;
-                    
-                    try {
-                        if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
-                        if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
-                    } catch(e) {}
-                } else if (estadoSaaS === 'activo') {
-                    if (!document.getElementById('main-navbar')) {
-                        window.location.reload();
-                    }
-                }
-            }
-        });
-
-        // -----------------------------------------------------------
-        // 3️⃣  BLOQUEO AUTOMÁTICO (Vía nodo público de seguridad tenantDB/)
-        // -----------------------------------------------------------
+        // NOTA: el listener anterior sobre 'tenants/' + TENANT_ID (nodo raíz,
+        // sin '/config') causaba PERMISSION_DENIED para usuarios no
+        // autenticados o sin entrada en tenants/$id/admins, porque las
+        // reglas solo permiten lectura pública de 'tenants/$id/config',
+        // no del nodo padre. Ese error rompía el listener completo y con
+        // él el sistema de bloqueo. Ahora todo el bloqueo/mantenimiento
+        // depende únicamente de 'tenantDB/$id', que SÍ tiene .read: true.
         function monitorBlockFlag() {
             const overlay = document.getElementById('blockedOverlay');
             database.ref('tenantDB/' + TENANT_ID)
@@ -821,25 +779,36 @@
                     const data = snap.val();
                     if (!data) return;
 
-                    const isBlocked = data.bloqueado === true || data.estado === 'bloqueado';
+                    const isBlocked = data.bloqueado === true || data.estado === 'bloqueado' || data.estado === 'suspendido' || data.estado === 'moroso';
+                    const isMaintenance = !isBlocked && data.estado === 'mantenimiento';
 
                     if (isBlocked) {
-                        const customHtml = data.htmlMora;
-                        if (customHtml) {
-                            document.body.innerHTML = customHtml;
-                        } else {
-                            if (overlay) overlay.classList.remove('hidden');
-                        }
+                        const htmlMora = data.htmlMora || `
+                            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
+                                <h1 style="color:#ff4444;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">⚠️ Acceso Suspendido</h1>
+                                <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
+                                    El servicio asociado a este entorno (<strong>${TENANT_ID}</strong>) se encuentra temporalmente inactivo.<br><br>
+                                    Por favor, contacte a soporte técnico o a la administración de SaaS para restablecer la conexión.
+                                </p>
+                            </div>
+                        `;
+                        document.body.innerHTML = htmlMora;
 
                         try {
                             if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
                             if (typeof queryScannerActivo !== 'undefined' && queryScannerActivo) toggleQueryScanner();
                         } catch(e) {}
-                    } else if (data.estado === 'mantenimiento') {
-                        const customHtml = data.htmlMantenimiento;
-                        if (customHtml) {
-                            document.body.innerHTML = customHtml;
-                        }
+                    } else if (isMaintenance) {
+                        const htmlMantenimiento = data.htmlMantenimiento || `
+                            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0e27;font-family:sans-serif;padding:20px;text-align:center;">
+                                <h1 style="color:#ffb800;font-size:2.8rem;margin-bottom:15px;font-weight:bold;">🔧 Mantenimiento en curso</h1>
+                                <p style="color:#a8b2c1;font-size:1.2rem;max-width:600px;line-height:1.6;">
+                                    El sistema para (<strong>${TENANT_ID}</strong>) está experimentando tareas de mantenimiento programado.<br><br>
+                                    Por favor, intente ingresar más tarde.
+                                </p>
+                            </div>
+                        `;
+                        document.body.innerHTML = htmlMantenimiento;
 
                         try {
                             if (typeof scannerActivo !== 'undefined' && scannerActivo) toggleScanner();
@@ -847,7 +816,7 @@
                         } catch(e) {}
                     } else {
                         if (overlay) overlay.classList.add('hidden');
-                        if (!document.getElementById('main-navbar') && document.body.innerHTML.includes('suspendido')) {
+                        if (!document.getElementById('main-navbar') && (document.body.innerHTML.includes('Suspendido') || document.body.innerHTML.includes('Mantenimiento'))) {
                             window.location.reload();
                         }
                     }
