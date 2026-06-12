@@ -884,18 +884,59 @@
         });
 
         if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-theme'); }
-        if (localStorage.getItem('CUSTOM_BG')) { document.body.style.backgroundImage = `url(${localStorage.getItem('CUSTOM_BG')})`; }
-        
-        function cargarLogoPersonalizado() {
-            const logoBase64 = localStorage.getItem('CUSTOM_LOGO');
+
+        // ===========================================================
+        // LOGO Y FONDO — Se cargan desde Firebase (tenants/$id/config)
+        // Así funcionan en TODOS los dispositivos, no solo el que subió la imagen
+        // ===========================================================
+        function aplicarLogo(base64) {
             const navContainer = document.getElementById('nav-logo-container');
-            if(logoBase64) {
-                navContainer.innerHTML = `<img src="${logoBase64}" alt="Logo Oficial">`;
+            if (base64) {
+                navContainer.innerHTML = `<img src="${base64}" alt="Logo" style="max-height:40px;border-radius:6px;object-fit:contain;">`;
             } else {
                 navContainer.innerHTML = `🤖 Asistencia IA`;
             }
         }
-        cargarLogoPersonalizado();
+
+        function aplicarFondo(base64) {
+            if (base64) {
+                document.body.style.backgroundImage = `url(${base64})`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundPosition = 'center';
+            } else {
+                document.body.style.backgroundImage = '';
+            }
+        }
+
+        // Cargar logo y fondo desde Firebase al iniciar
+        database.ref('tenants/' + TENANT_ID + '/config/logo').once('value', (s) => {
+            aplicarLogo(s.val());
+            // También guardar en localStorage como caché local
+            if (s.val()) localStorage.setItem('CUSTOM_LOGO', s.val());
+        }, () => {
+            // Fallback a localStorage si Firebase falla
+            aplicarLogo(localStorage.getItem('CUSTOM_LOGO'));
+        });
+
+        database.ref('tenants/' + TENANT_ID + '/config/fondo').once('value', (s) => {
+            aplicarFondo(s.val());
+            if (s.val()) localStorage.setItem('CUSTOM_BG', s.val());
+        }, () => {
+            aplicarFondo(localStorage.getItem('CUSTOM_BG'));
+        });
+
+        // Mientras carga Firebase, mostrar lo que haya en caché local inmediatamente
+        const cachedLogo  = localStorage.getItem('CUSTOM_LOGO');
+        const cachedFondo = localStorage.getItem('CUSTOM_BG');
+        if (cachedLogo)  aplicarLogo(cachedLogo);
+        if (cachedFondo) aplicarFondo(cachedFondo);
+
+        function cargarLogoPersonalizado() {
+            // Mantener compatibilidad — ahora lee de Firebase
+            database.ref('tenants/' + TENANT_ID + '/config/logo').once('value', (s) => {
+                aplicarLogo(s.val() || localStorage.getItem('CUSTOM_LOGO'));
+            });
+        }
 
         // ===========================================================
         // LÓGICA DE BASE DE DATOS AISLADA (FLAT STRUCTURE)
@@ -1605,8 +1646,80 @@
         }
 
         // Resto de utilidades de UI intactas...
-        function procesarSubidaFondo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxW = 1920; if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/jpeg', 0.6); try { localStorage.setItem('CUSTOM_BG', dataUrl); document.body.style.backgroundImage = `url(${dataUrl})`; alert('Fondo actualizado localmente.'); } catch(err) { alert('Imagen muy pesada.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
-        function procesarSubidaLogo(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let w = img.width; let h = img.height; const maxH = 200; if(h > maxH) { w = Math.round(w * maxH / h); h = maxH; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); const dataUrl = canvas.toDataURL('image/png', 0.8); try { localStorage.setItem('CUSTOM_LOGO', dataUrl); cargarLogoPersonalizado(); alert('Logo actualizado.'); } catch(err) { alert('Imagen excede límite.'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }
+        async function procesarSubidaFondo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = async () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    // Reducir más en móvil para que quepa en Firebase (límite ~10MB por nodo)
+                    const maxW = 1280;
+                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+
+                    // Verificar tamaño (Firebase limita a ~10MB por valor)
+                    if (dataUrl.length > 9_000_000) {
+                        alert('⚠️ Imagen demasiado pesada. Use una imagen más pequeña o de menor resolución.'); return;
+                    }
+
+                    // Guardar en Firebase
+                    mostrarMensajeTemp('💾 Guardando fondo en Firebase…', 'var(--accent-secondary)');
+                    try {
+                        await database.ref('tenants/' + TENANT_ID + '/config/fondo').set(dataUrl);
+                        localStorage.setItem('CUSTOM_BG', dataUrl);
+                        aplicarFondo(dataUrl);
+                        mostrarMensajeTemp('✅ Fondo guardado en la nube. Se verá en todos los dispositivos.', 'var(--accent-success)');
+                    } catch(err) {
+                        // Fallback: guardar solo local si no tiene permisos todavía
+                        try { localStorage.setItem('CUSTOM_BG', dataUrl); } catch(e) {}
+                        aplicarFondo(dataUrl);
+                        mostrarMensajeTemp('⚠️ Fondo guardado solo localmente: ' + err.code, 'var(--accent-warning)');
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        async function procesarSubidaLogo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = async () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    const maxH = 120; // Logo pequeño, suficiente para la navbar
+                    if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    const dataUrl = canvas.toDataURL('image/png', 0.85);
+
+                    if (dataUrl.length > 500_000) {
+                        alert('⚠️ Logo demasiado grande. Use una imagen más pequeña.'); return;
+                    }
+
+                    mostrarMensajeTemp('💾 Guardando logo en Firebase…', 'var(--accent-secondary)');
+                    try {
+                        await database.ref('tenants/' + TENANT_ID + '/config/logo').set(dataUrl);
+                        localStorage.setItem('CUSTOM_LOGO', dataUrl);
+                        aplicarLogo(dataUrl);
+                        mostrarMensajeTemp('✅ Logo guardado en la nube. Se verá en todos los dispositivos.', 'var(--accent-success)');
+                    } catch(err) {
+                        try { localStorage.setItem('CUSTOM_LOGO', dataUrl); } catch(e) {}
+                        aplicarLogo(dataUrl);
+                        mostrarMensajeTemp('⚠️ Logo guardado solo localmente: ' + err.code, 'var(--accent-warning)');
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
         function mostrarEstadisticas() { const total = Object.keys(db.personas).length; const presentes = logsGlobal.filter(l => l.tipo === 'ENTRADA' && (l.fechaISO === new Date().toLocaleDateString('sv-SE') || coincideFecha(l.hora, new Date().toLocaleDateString('sv-SE')))).length; alert(`ESTADÍSTICAS DEL DÍA:\nTotal Registrados: ${total}\nPresentes (Entradas): ${presentes}\nAusentes: ${total - presentes}\nAsistencia: ${total>0?((presentes/total)*100).toFixed(1):0}%`); }
         function mostrarConfiguracion() { let configDiv = document.createElement('div'); configDiv.innerHTML = `<div><button class="btn btn-m" onclick="setTheme('dark')">Modo Oscuro</button> <button class="btn btn-s" onclick="setTheme('light')">Modo Claro</button></div>`; let win = window.open('', 'Configuración', 'width=400,height=300'); win.document.write(`<html><head><title>Configuración</title><style>body{padding:20px}.btn{padding:8px 12px;cursor:pointer}</style></head><body>${configDiv.innerHTML}<script>function setTheme(theme) { window.opener.setSystemTheme(theme); window.close(); }<\/script></body></html>`); win.document.close(); }
         function setSystemTheme(theme) { if (theme === 'light') { document.body.classList.add('light-theme'); localStorage.setItem('theme', 'light'); } else { document.body.classList.remove('light-theme'); localStorage.setItem('theme', 'dark'); } }
